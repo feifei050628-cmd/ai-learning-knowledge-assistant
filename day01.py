@@ -292,3 +292,5 @@ for skill, count in sorted_skills:# 遍历排序后的技能列表
 
 
 # Python Day 1 completed
+
+print("Git practice 分支练习完成")
