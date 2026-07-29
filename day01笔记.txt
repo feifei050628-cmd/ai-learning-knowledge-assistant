@@ -1,0 +1,232 @@
+Python Day 1｜六道复习题与核心代码
+=================================
+
+一、list 和 set 有什么区别？
+---------------------------------
+
+list 是列表：
+1. 有顺序。
+2. 允许出现重复元素。
+3. 可以通过索引访问元素。
+
+set 是集合：
+1. 元素不能重复。
+2. 不适合依靠位置取值。
+3. 适合去重、求交集和求差集。
+
+示例：
+
+skills_list = ["python", "python", "rag"]
+print(skills_list[0])
+
+skills_set = {"python", "python", "rag"}
+print(skills_set)
+
+输出结果中，列表保留两个 python，集合只保留一个 python。
+集合的显示顺序可能发生变化，不能使用 skills_set[0] 取值。
+
+
+二、dict["key"] 和 dict.get("key") 有什么区别？
+---------------------------------
+
+假设有一个字典：
+
+job = {
+    "company": "百度",
+    "city": "北京",
+}
+
+键存在时，下面两种写法结果相同：
+
+print(job["company"])
+print(job.get("company"))
+
+区别发生在键不存在时：
+
+job["salary"]
+
+如果 salary 不存在，程序会产生 KeyError。
+
+job.get("salary")
+
+如果 salary 不存在，不会报错，而是返回 None。
+
+get() 还可以指定默认值：
+
+salary = job.get("salary", "面议")
+print(salary)
+
+记忆：
+1. 确定键一定存在，可以使用 dict["key"]。
+2. 键可能不存在，使用 dict.get("key") 更安全。
+
+
+三、split() 返回什么类型？
+---------------------------------
+
+split() 返回 list 类型，也就是列表。
+
+text = "Python,RAG,Docker"
+skills = text.split(",")
+
+print(skills)
+print(type(skills))
+
+输出：
+
+['Python', 'RAG', 'Docker']
+<class 'list'>
+
+原始字符串不会被修改，split() 会创建并返回一个新列表。
+
+
+四、为什么清洗文本时经常使用 strip()？
+---------------------------------
+
+strip() 用于删除字符串两端的空白，包括常见的空格、换行符和制表符。
+它不会删除字符串中间的空格。
+
+text = "  Python Developer  "
+cleaned_text = text.strip()
+print(cleaned_text)
+
+输出：
+
+Python Developer
+
+相关方法：
+
+text.strip()    # 清除两端空白
+text.lstrip()   # 只清除左侧空白
+text.rstrip()   # 只清除右侧空白
+
+技能清洗中的常用写法：
+
+cleaned_skill = skill.strip().lower()
+
+这行代码先清除两端空格，再将英文字母转换为小写。
+
+
+五、如何求两个技能集合的交集和差集？
+---------------------------------
+
+交集使用 &，表示两个集合共同拥有的元素。
+差集使用 -，表示前一个集合有、后一个集合没有的元素。
+
+my_skills = {"python", "git", "docker"}
+required_skills = {"python", "pytorch", "rag", "docker"}
+
+matched = my_skills & required_skills
+missing = required_skills - my_skills
+
+print("已掌握：", matched)
+print("缺失：", missing)
+
+注意差集有方向：
+
+required_skills - my_skills
+
+表示岗位要求但自己缺少的技能。
+
+my_skills - required_skills
+
+表示自己掌握但岗位没有要求的技能。
+
+
+六、Python 为什么依赖缩进？
+---------------------------------
+
+Python 使用缩进表示一段代码属于哪个代码块。
+一般统一使用 4 个空格，不要混用 Tab 和空格。
+
+score = 80
+
+if score >= 60:
+    print("通过")
+    print("可以进入下一阶段")
+
+print("程序结束")
+
+两个缩进的 print() 都属于 if 代码块。
+最后一个没有缩进的 print() 不属于 if，无论条件是否成立都会执行。
+
+错误示例：
+
+if score >= 60:
+print("通过")
+
+这会产生 IndentationError，因为 if 后面的代码没有正确缩进。
+
+
+Day 1 最核心的代码
+=================================
+
+1. 拆分字符串：
+
+skills = text.split(",")
+
+2. 清除空格并转换为小写：
+
+cleaned_skill = skill.strip().lower()
+
+3. 安全读取字典并提供默认值：
+
+value = dictionary.get(key, 0)
+
+4. 求集合交集：
+
+matched = my_skills & required_skills
+
+5. 求岗位要求中自己缺少的技能：
+
+missing = required_skills - my_skills
+
+6. 计算匹配率：
+
+match_rate = len(matched) / len(required_skills)
+print(f"匹配率：{match_rate:.1%}")
+
+7. 使用字典统计次数：
+
+skill_counts[skill] = skill_counts.get(skill, 0) + 1
+
+8. 按出现次数从高到低排序：
+
+sorted_skills = sorted(
+    skill_counts.items(),
+    key=lambda item: item[1],
+    reverse=True,
+)
+
+
+综合示例：清洗技能并保持原始顺序去重
+=================================
+
+raw_skills = " Python,PyTorch, RAG,python, Docker ,RAG "
+
+unique_skills = []
+seen_skills = set()
+
+for skill in raw_skills.split(","):
+    cleaned_skill = skill.strip().lower()
+
+    if cleaned_skill not in seen_skills:
+        unique_skills.append(cleaned_skill)
+        seen_skills.add(cleaned_skill)
+
+print(unique_skills)
+
+输出：
+
+['python', 'pytorch', 'rag', 'docker']
+
+
+复习时需要记住的易错点
+=================================
+
+1. set 可以去重，但不能依靠它保存列表中的原始顺序。
+2. strip() 只删除字符串两端的空白，不删除中间的空格。
+3. dict["key"] 在键不存在时会报错，dict.get("key") 不会。
+4. 集合差集有方向，required_skills - my_skills 才表示缺失技能。
+5. Python 使用缩进划分代码块，通常统一使用 4 个空格。
+6. 函数定义的参数位置只能写参数名称，不能写 len(matched) 这样的表达式。
