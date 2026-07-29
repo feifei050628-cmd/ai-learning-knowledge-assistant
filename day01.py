@@ -287,5 +287,8 @@ sorted_skills = sorted(
 
 print("技能频率：")
 
-for skill, count in sorted_skills:
-    print(f"{skill}: {count}")
+for skill, count in sorted_skills:# 遍历排序后的技能列表
+    print(f"{skill}: {count}")  # 打印技能名称和出现次数
+
+
+# Python Day 1 completed
