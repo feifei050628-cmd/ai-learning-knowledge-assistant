@@ -230,3 +230,268 @@ print(unique_skills)
 4. 集合差集有方向，required_skills - my_skills 才表示缺失技能。
 5. Python 使用缩进划分代码块，通常统一使用 4 个空格。
 6. 函数定义的参数位置只能写参数名称，不能写 len(matched) 这样的表达式。
+
+
+Git Day 1｜基础概念与实际操作
+=================================
+
+一、Git 的作用
+---------------------------------
+
+Git 是版本控制工具，可以记录代码每一次有意义的变化，帮助查看历史、比较修改、创建分支和恢复版本。
+Git 与 GitHub 不相同：
+
+1. Git 负责在本地管理版本。
+2. GitHub 是用于保存和协作管理远程Git仓库的平台。
+3. git commit 创建本地提交；git push 才会把本地提交推送到远程仓库。
+
+
+二、初始化仓库前先检查目录
+---------------------------------
+
+使用以下命令查看当前目录：
+
+Get-Location
+
+进入Python学习目录：
+
+cd "C:\Users\21855\Documents\python learning"
+
+确认当前位置正确后再初始化：
+
+git init -b main
+
+git init 会在当前目录创建隐藏的 .git 文件夹，使当前目录成为Git仓库。
+
+今天遇到的错误：第一次在 C:\Users\21855 中执行 git init，导致整个用户目录被Git扫描。
+修复时只删除误创建的Git元数据：
+
+Remove-Item -LiteralPath "C:\Users\21855\.git" -Recurse -Force
+
+这条命令只适用于本次明确确认的错误路径，不能随意修改为其他宽泛目录。
+
+经验：执行 git init、git add 和 git commit 前，先使用 Get-Location 确认当前目录。
+
+
+三、查看Git状态
+---------------------------------
+
+git status
+
+用于查看：
+
+1. 当前位于哪个分支。
+2. 哪些文件尚未被Git跟踪。
+3. 哪些文件已经修改。
+4. 哪些修改已经进入暂存区。
+5. 当前是否还有内容需要提交。
+
+常见状态：
+
+Untracked files
+
+表示文件尚未被Git跟踪。
+
+Changes not staged for commit
+
+表示工作区中的文件已经修改，但修改还未进入暂存区。
+
+Changes to be committed
+
+表示修改已经通过 git add 进入暂存区，等待提交。
+
+nothing to commit, working tree clean
+
+表示所有修改都已提交，工作区处于干净状态。
+
+
+四、工作区、暂存区和本地仓库
+---------------------------------
+
+Git的基本流程：
+
+修改文件 -> 工作区 -> git add -> 暂存区 -> git commit -> 本地仓库
+
+工作区：
+实际编辑文件的项目文件夹，例如 day01.py 和 day01笔记.txt。
+
+暂存区：
+用于选择哪些修改进入下一次提交。执行：
+
+git add day01.py
+
+会把 day01.py 的当前修改放入暂存区。
+
+本地仓库：
+保存正式的提交记录。执行：
+
+git commit -m "提交说明"
+
+会把暂存区中的内容保存成一条版本记录。
+
+注意：git commit 只提交暂存区中的内容，不会自动提交所有工作区修改。
+
+
+五、第一次添加和提交文件
+---------------------------------
+
+添加指定文件：
+
+git add day01.py "day01笔记.txt"
+
+创建提交：
+
+git commit -m "完成 Python Day 1 学习"
+
+查看简洁的提交历史：
+
+git log --oneline
+
+如果Git提示 Please tell me who you are，需要为当前仓库配置身份：
+
+git config user.name "你的名字"
+git config user.email "你的邮箱"
+
+不添加 --global 时，配置只影响当前仓库。
+
+
+六、查看文件修改
+---------------------------------
+
+查看工作区中尚未暂存的修改：
+
+git diff
+
+查看已经进入暂存区的修改：
+
+git diff --staged
+
+差异显示中：
+
+1. 绿色加号 + 表示新增内容。
+2. 红色减号 - 表示删除内容。
+3. 如果进入分页查看界面，可以按 q 退出。
+4. No newline at end of file 表示文件末尾缺少换行，不影响运行；可在文件末尾按一次回车修正。
+
+
+七、创建和切换分支
+---------------------------------
+
+查看已有分支：
+
+git branch
+
+带星号 * 的是当前分支：
+
+* main
+  practice
+
+创建并切换到新分支：
+
+git switch -c practice
+
+切换到已经存在的分支：
+
+git switch practice
+
+今天遇到的提示：
+
+fatal: a branch named 'practice' already exists
+
+原因是 practice 已经存在，却再次使用了带 -c 的创建命令。正确操作是：
+
+git switch practice
+
+记忆：
+
+git switch -c 分支名    创建并切换到新分支
+git switch 分支名       切换到已有分支
+
+
+八、在分支中修改并提交
+---------------------------------
+
+在 practice 分支修改 day01.py 后：
+
+git status
+git diff
+git add day01.py
+git commit -m "在 practice 分支完成练习"
+git log --oneline -3
+
+日志中的：
+
+HEAD -> practice
+
+表示当前位于 practice 分支，HEAD 指向该分支的最新提交。
+
+
+九、将practice分支合并回main
+---------------------------------
+
+切换回主分支：
+
+git switch main
+
+合并practice：
+
+git merge practice
+
+本次合并显示：
+
+Fast-forward
+
+表示main分支在practice开发期间没有新的分叉提交，因此Git可以直接把main向前推进到practice的最新提交，不需要解决冲突。
+
+合并后的日志中：
+
+HEAD -> main, practice
+
+表示当前位于main，而且main和practice指向同一个最新提交。
+
+最后检查：
+
+git status
+git log --oneline -3
+
+当看到：
+
+nothing to commit, working tree clean
+
+说明合并完成且没有遗漏修改。
+
+
+十、Git最核心的命令
+=================================
+
+Get-Location                         查看当前目录
+git init -b main                     初始化Git仓库并创建main分支
+git status                           查看仓库状态
+git add 文件名                       将指定修改放入暂存区
+git commit -m "说明"                 创建本地提交
+git diff                             查看未暂存修改
+git diff --staged                    查看已暂存修改
+git log --oneline                    查看简洁提交历史
+git branch                           查看本地分支
+git switch -c 分支名                 创建并切换到新分支
+git switch 分支名                    切换到已有分支
+git merge 分支名                     将指定分支合并到当前分支
+
+
+Git Day 1 最终实践流程
+=================================
+
+1. 在正确目录初始化仓库。
+2. 添加 day01.py 和 day01笔记.txt。
+3. 创建第一次提交。
+4. 修改 day01.py，查看差异并创建第二次提交。
+5. 创建 practice 分支。
+6. 在 practice 中修改并提交。
+7. 切换回 main。
+8. 使用 git merge practice 完成Fast-forward合并。
+9. 使用 git status 确认 working tree clean。
+
+Day 1 学习结论
+=================================
+
+已完成Python基础、三道Python练习、六道知识自测、Git仓库初始化、版本提交、差异查看、分支创建、分支切换以及分支合并。
