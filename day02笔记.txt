@@ -1,0 +1,416 @@
+Python Day 2｜函数、参数、返回值与作用域
+========================================
+
+一、函数的定义与调用
+----------------------------------------
+
+定义函数：
+
+def greet(name):
+    message = f"你好，{name}"
+    return message
+
+调用函数：
+
+result = greet("小明")
+print(result)
+
+概念：
+
+1. def：定义函数的关键字。
+2. greet：函数名称。
+3. name：形式参数，简称形参。
+4. "小明"：实际传入的数据，简称实参。
+5. greet("小明")：调用函数。
+6. result：接收函数的返回值。
+
+定义函数时不会执行函数体；调用函数时才会执行函数体。
+
+
+二、函数的执行顺序
+----------------------------------------
+
+print("1. 准备定义函数")
+
+def greet(name):
+    print("3. 函数开始执行")
+    return f"你好，{name}"
+
+print("2. 函数定义完成")
+result = greet("小明")
+print("4. 函数返回结果")
+print(result)
+
+输出顺序：
+
+1. 准备定义函数
+2. 函数定义完成
+3. 函数开始执行
+4. 函数返回结果
+你好，小明
+
+
+三、位置参数、关键字参数和默认参数
+----------------------------------------
+
+def introduce_job(company, position, city="地点未填写"):
+    return f"{company}正在招聘{position}，工作地点：{city}"
+
+1. 位置参数：按照位置依次对应。
+
+introduce_job("百度", "大模型算法工程师", "北京")
+
+2. 关键字参数：明确写出参数名称，顺序可以改变。
+
+introduce_job(
+    position="AI应用工程师",
+    city="杭州",
+    company="阿里巴巴",
+)
+
+3. 默认参数：调用函数时没有提供对应实参，就使用定义时的默认值。
+
+introduce_job("公司A", "Python开发工程师")
+
+默认参数必须放在没有默认值的参数后面。
+
+
+四、print()与return的区别
+----------------------------------------
+
+def add_with_print(a, b):
+    print(a + b)
+
+def add_with_return(a, b):
+    return a + b
+
+result_print = add_with_print(10, 20)
+result_return = add_with_return(10, 20)
+
+print(result_print)   # None
+print(result_return)  # 30
+
+区别：
+
+1. print()只把内容显示在终端。
+2. 没有显式return的函数默认返回None。
+3. return会把结果交给调用者。
+4. return得到的结果可以保存到变量，并继续参与运算。
+
+final_result = result_return * 2
+print(final_result)  # 60
+
+记忆：参数负责把数据送进函数，return负责把结果送出函数。
+
+
+五、返回多个结果与元组解包
+----------------------------------------
+
+def get_result():
+    return "python", 3
+
+result = get_result()
+print(result)        # ('python', 3)
+print(type(result))  # <class 'tuple'>
+
+return多个值时，Python会把它们组成一个元组。
+
+使用两个变量接收，叫作元组解包：
+
+skill, count = get_result()
+
+print(skill)  # python
+print(count)  # 3
+
+左侧变量数量必须与返回元素数量一致。
+
+
+六、局部变量与全局变量
+----------------------------------------
+
+company = "百度"  # 全局变量
+
+def build_job_title(position):
+    prefix = "招聘岗位："  # 局部变量
+    return f"{company}｜{prefix}{position}"
+
+概念：
+
+1. 函数外定义的变量通常是全局变量。
+2. 函数内部定义的变量是局部变量。
+3. 函数参数也是局部变量。
+4. 函数外不能直接使用函数内部的局部变量。
+
+推荐通过参数传入数据：
+
+def build_job_title(company, position):
+    prefix = "招聘岗位："
+    return f"{company}｜{prefix}{position}"
+
+这样函数更容易复用和测试，也更少依赖全局变量。
+
+
+七、类型注解与文档字符串
+----------------------------------------
+
+def analyze_skills(
+    my_skills: set[str],
+    required_skills: set[str],
+) -> tuple[set[str], set[str]]:
+    """计算已掌握技能和缺失技能。"""
+
+    matched = my_skills & required_skills
+    missing = required_skills - my_skills
+    return matched, missing
+
+含义：
+
+1. my_skills: set[str]：建议传入由字符串组成的集合。
+2. -> tuple[set[str], set[str]]：预计返回包含两个集合的元组。
+3. 三引号内容是文档字符串，用于说明函数用途。
+4. 类型注解增强可读性和编辑器检查，但不会自动强制运行时类型。
+
+
+八、岗位匹配函数
+----------------------------------------
+
+def analyze_match(
+    my_skills: set[str],
+    required_skills: set[str],
+) -> tuple[set[str], set[str], float]:
+    """计算已掌握技能、缺失技能和匹配率。"""
+
+    matched = my_skills & required_skills
+    missing = required_skills - my_skills
+
+    if required_skills:
+        match_rate = len(matched) / len(required_skills)
+    else:
+        match_rate = 0.0
+
+    return matched, missing, match_rate
+
+匹配率公式：
+
+已掌握岗位技能数 / 岗位要求技能总数
+
+需要先判断required_skills是否为空，否则分母为0时会产生：
+
+ZeroDivisionError
+
+以下三种判断均可：
+
+if required_skills:
+if required_skills != set():
+if len(required_skills) != 0:
+
+不能只写：
+
+if != 0:
+
+因为比较运算符左边缺少值。
+
+也不应写：
+
+if required_skills != 0:
+
+因为required_skills是集合，0是整数。即使是空集合，set() != 0仍为True，不能避免除以零。
+
+
+九、技能清洗函数
+----------------------------------------
+
+def clean_skills(raw_skills: str) -> list[str]:
+    """清洗技能字符串，并按照原始顺序去重。"""
+
+    unique_skills = []
+    seen_skills = set()
+
+    for skill in raw_skills.split(","):
+        cleaned_skill = skill.strip().lower()
+
+        if cleaned_skill and cleaned_skill not in seen_skills:
+            unique_skills.append(cleaned_skill)
+            seen_skills.add(cleaned_skill)
+
+    return unique_skills
+
+处理内容：
+
+1. split(",")：按逗号拆分。
+2. strip()：清除两端空白。
+3. lower()：统一为小写。
+4. cleaned_skill：过滤空字符串。
+5. not in seen_skills：过滤重复技能。
+
+为什么同时使用列表和集合？
+
+1. unique_skills列表负责保存最终结果和原始顺序。
+2. seen_skills集合负责快速判断技能是否已经出现。
+3. 只使用集合虽然可以去重，但不应依靠集合保存输入顺序。
+
+测试：
+
+clean_skills(" Python,PyTorch, RAG,python, Docker ,RAG ")
+
+结果：
+
+['python', 'pytorch', 'rag', 'docker']
+
+
+十、技能频率统计函数
+----------------------------------------
+
+def count_skills(
+    jobs: list[dict],
+) -> list[tuple[str, int]]:
+    """统计全部岗位的技能频率，并按次数从高到低排序。"""
+
+    skill_counts = {}
+
+    for job in jobs:
+        for skill in job["skills"]:
+            normalized_skill = skill.strip().lower()
+            skill_counts[normalized_skill] = (
+                skill_counts.get(normalized_skill, 0) + 1
+            )
+
+    sorted_skills = sorted(
+        skill_counts.items(),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+
+    return sorted_skills
+
+核心理解：
+
+1. 外层循环每次取出一个岗位。
+2. 内层循环每次取出该岗位的一项技能。
+3. strip().lower()统一技能格式。
+4. dict.get(key, 0)在技能首次出现时返回0。
+5. key=lambda item: item[1]表示按照出现次数排序。
+6. reverse=True表示从高到低排序。
+
+预期输出：
+
+python: 3
+pytorch: 2
+rag: 1
+docker: 1
+agent: 1
+transformer: 1
+
+
+十一、容器真假判断
+----------------------------------------
+
+Python会把空容器判断为False，非空容器判断为True。
+
+False：
+
+set()
+[]
+{}
+""
+
+True：
+
+{"python"}
+["python"]
+{"skill": "python"}
+"python"
+
+因此可以简洁地写：
+
+if required_skills:
+
+
+十二、Code Runner临时文件
+----------------------------------------
+
+选中局部代码并点击Run Code时，Code Runner可能生成：
+
+tempCodeRunnerFile.py
+
+它只是临时文件，不需要提交到Git。
+
+删除：
+
+Remove-Item -LiteralPath ".\tempCodeRunnerFile.py"
+
+运行完整文件建议使用：
+
+python .\day02.py
+
+或选择Run Python File in Terminal。
+
+.gitignore可以添加：
+
+tempCodeRunnerFile.py
+__pycache__/
+*.pyc
+
+
+十三、今日易错点
+----------------------------------------
+
+1. 调用函数要写函数名和括号，例如greet("小明")。
+2. 没有显式return的函数默认返回None。
+3. 默认参数是“没有提供对应实参时使用默认值”，不是“没有使用关键字参数”。
+4. 多个返回值整体是tuple，可以使用相同数量的变量解包。
+5. 局部变量不能直接在函数外使用。
+6. 计算比例前要检查分母是否为0。
+7. required_skills != 0虽然语法可运行，但集合与整数比较不能判断集合是否为空。
+8. 列表用于保存顺序，集合用于快速判断重复。
+9. 学习文件中为了演示可以多次定义同名函数；实际项目中后面的同名定义会覆盖前面的定义，应避免重复命名。
+10. 行内注释前建议保留两个空格，提高可读性。
+
+
+十四、Day 2最核心代码
+========================================
+
+定义与调用：
+
+def function_name(parameter):
+    return result
+
+value = function_name(argument)
+
+空集合保护：
+
+if required_skills:
+    match_rate = len(matched) / len(required_skills)
+else:
+    match_rate = 0.0
+
+多返回值解包：
+
+matched, missing, match_rate = analyze_match(
+    my_skills,
+    required_skills,
+)
+
+有序去重：
+
+if cleaned_skill and cleaned_skill not in seen_skills:
+    unique_skills.append(cleaned_skill)
+    seen_skills.add(cleaned_skill)
+
+字典计数：
+
+skill_counts[skill] = skill_counts.get(skill, 0) + 1
+
+按次数降序排列：
+
+sorted_skills = sorted(
+    skill_counts.items(),
+    key=lambda item: item[1],
+    reverse=True,
+)
+
+
+Day 2学习结论
+========================================
+
+已完成函数定义与调用、三种参数传递方式、print与return、多个返回值、元组解包、变量作用域、类型注解、文档字符串、岗位匹配函数、技能清洗函数和技能频率统计函数。
