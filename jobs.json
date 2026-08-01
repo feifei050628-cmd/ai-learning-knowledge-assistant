@@ -1,0 +1,29 @@
+[
+    {
+        "company": "百度",
+        "position": "大模型算法工程师",
+        "skills": [
+            "Python",
+            "PyTorch",
+            "RAG"
+        ]
+    },
+    {
+        "company": "阿里巴巴",
+        "position": "AI应用开发工程师",
+        "skills": [
+            "Python",
+            "Docker",
+            "Agent"
+        ]
+    },
+    {
+        "company": "字节跳动",
+        "position": "算法工程师",
+        "skills": [
+            "Python",
+            "Transformer",
+            "PyTorch"
+        ]
+    }
+]

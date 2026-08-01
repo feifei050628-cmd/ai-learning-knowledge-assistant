@@ -1,0 +1,13 @@
+# Code Runner 临时文件
+tempCodeRunnerFile.py
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# Python 虚拟环境
+.venv/
+venv/
+
+# API 密钥和环境变量
+.env

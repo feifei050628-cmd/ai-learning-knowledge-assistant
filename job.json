@@ -1,0 +1,11 @@
+{
+    "company": "百度",
+    "position": "大模型算法工程师",
+    "skills": [
+        "Python",
+        "PyTorch",
+        "RAG"
+    ],
+    "salary": 25000,
+    "is_campus": true
+}
