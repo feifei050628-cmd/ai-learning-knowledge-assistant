@@ -184,8 +184,8 @@ print("空岗位要求的匹配率：", match_rate)
 def clean_skills(raw_skills: str) -> list[str]:     #
     """清洗技能字符串，并按照原始顺序去重。"""
 
-    unique_skills = []  #
-    seen_skills = set()
+    unique_skills = []  #用于保存最终结果并保持原始顺序
+    seen_skills = set() #用于快速判断技能是否出现过
 
     for skill in raw_skills.split(","):
         cleaned_skill = skill.strip().lower()
