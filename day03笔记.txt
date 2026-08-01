@@ -1,0 +1,481 @@
+Python Day 3 学习笔记
+完成日期：2026-08-02
+主题：文件读写、JSON、异常处理、岗位数据管理器与 .gitignore
+
+============================================================
+一、今日完成内容
+============================================================
+
+1. 使用 open() 打开文件。
+2. 掌握 r、w、a 三种常见文件模式。
+3. 使用 with open() 自动关闭文件。
+4. 使用 write()、read() 和文件循环完成写入与读取。
+5. 使用 enumerate() 给逐行读取的内容编号。
+6. 使用 json.dump() 保存 Python 数据。
+7. 使用 json.load() 读取并解析 JSON 数据。
+8. 使用 try/except 处理文件不存在和 JSON 格式错误。
+9. 编写 save_jobs() 与 load_jobs() 岗位数据管理函数。
+10. 使用 .gitignore 忽略临时文件、缓存和密钥文件。
+
+
+============================================================
+二、文件读写基础
+============================================================
+
+1. 打开文件
+
+基本格式：
+
+with open("文件名", "模式", encoding="utf-8") as file:
+    # 在这里操作文件
+
+参数含义：
+
+- 文件名：需要打开的文件。
+- 模式：决定读取、覆盖写入还是追加写入。
+- encoding="utf-8"：使用 UTF-8 编码，避免中文乱码。
+- file：打开后得到的文件对象，可以调用 read()、write() 等方法。
+
+
+2. 三种常见模式
+
+r：read，读取模式。
+
+with open("skills.txt", "r", encoding="utf-8") as file:
+    content = file.read()
+
+w：write，写入模式。文件不存在时创建文件；文件存在时先清空旧内容，再写入新内容。
+
+with open("skills.txt", "w", encoding="utf-8") as file:
+    file.write("Python\n")
+
+a：append，追加模式。文件不存在时创建文件；文件存在时在末尾追加，不删除旧内容。
+
+with open("skills.txt", "a", encoding="utf-8") as file:
+    file.write("PyTorch\n")
+
+核心区别：
+
+- r：读取。
+- w：覆盖写入。
+- a：末尾追加。
+
+
+3. 为什么推荐使用 with open()
+
+普通写法需要手动关闭：
+
+file = open("skills.txt", "r", encoding="utf-8")
+content = file.read()
+file.close()
+
+使用 with 后，代码块结束时 Python 会自动关闭文件：
+
+with open("skills.txt", "r", encoding="utf-8") as file:
+    content = file.read()
+
+即使操作文件时发生异常，with 也会尽量正确释放文件资源。因此以后优先使用 with open()。
+
+
+4. read() 的返回值
+
+file.read() 会读取文件的全部内容，并返回一个字符串 str。
+
+with open("skills.txt", "r", encoding="utf-8") as file:
+    content = file.read()
+
+print(type(content))
+# <class 'str'>
+
+即使文件有很多行，read() 得到的仍然是一个字符串，换行以 \n 保存在字符串中。
+
+
+5. 逐行读取
+
+with open("skills.txt", "r", encoding="utf-8") as file:
+    for number, line in enumerate(file, start=1):
+        skill = line.strip()
+        print(f"{number}. {skill}")
+
+解释：
+
+- for line in file：每次读取一行。
+- enumerate(file, start=1)：同时得到从 1 开始的编号和每行内容。
+- number：当前行号。
+- line：当前行的字符串，通常包含末尾的 \n。
+- line.strip()：删除字符串首尾的空格和换行符。
+
+如果不用 strip()，line 自带一次换行，而 print() 又会换行，因此各项之间可能多出空白行。
+
+
+============================================================
+三、JSON 基础
+============================================================
+
+1. 导入模块
+
+import json
+
+JSON 是大模型开发中的常用数据格式。模型 API 的请求和响应、配置文件、数据集、评测结果经常使用 JSON。
+
+
+2. 保存 JSON
+
+job_data = {
+    "company": "百度",
+    "position": "大模型算法工程师",
+    "skills": ["Python", "PyTorch", "RAG"],
+    "salary": 25000,
+    "is_campus": True,
+}
+
+with open("job.json", "w", encoding="utf-8") as file:
+    json.dump(
+        job_data,
+        file,
+        ensure_ascii=False,
+        indent=4,
+    )
+
+json.dump()：把 Python 数据转换成 JSON，并写入文件。
+
+ensure_ascii=False：让中文直接正常显示，而不是转换成 Unicode 转义形式。
+
+indent=4：使用四个空格缩进，让 JSON 文件更易读。
+
+
+3. 读取 JSON
+
+with open("job.json", "r", encoding="utf-8") as file:
+    loaded_job = json.load(file)
+
+json.load()：读取 JSON 文件，解析内容，并转换成对应的 Python 数据类型。
+
+
+4. JSON 与 Python 类型对应关系
+
+JSON object {}       -> Python dict
+JSON array []        -> Python list
+JSON string          -> Python str
+JSON number          -> Python int 或 float
+JSON true / false    -> Python True / False
+JSON null            -> Python None
+
+重要区别：
+
+- file.read() 只读取文本，返回 str。
+- json.load(file) 会解析 JSON，可能返回 dict、list 等类型。
+- job.json 最外层是 {}，读取结果是 dict。
+- jobs.json 最外层是 []，读取结果是 list。
+
+
+============================================================
+四、异常处理 try/except
+============================================================
+
+1. 基本结构
+
+try:
+    # 尝试执行可能发生异常的代码
+except 某种异常:
+    # 出现指定异常时执行备用处理
+
+示例：
+
+try:
+    with open("not_exists.json", "r", encoding="utf-8") as file:
+        data = json.load(file)
+except FileNotFoundError:
+    print("指定的文件不存在")
+
+
+2. 正确认识 except
+
+except 不会让已经失败的代码重新成功执行。
+
+它的作用是：捕获匹配的异常，执行备用处理，避免整个程序直接终止，然后让程序有机会继续运行。
+
+例如，文件读取依然失败了，但程序可以返回 None 或空列表作为备用结果。
+
+
+3. 今日遇到的异常
+
+FileNotFoundError：指定的文件不存在。
+
+json.JSONDecodeError：文件存在，但内容不是合法的 JSON 格式。
+
+OSError：更广泛的操作系统或文件操作错误，例如没有写入权限。
+
+
+4. 为什么应该写具体异常名称
+
+不推荐：
+
+try:
+    ...
+except:
+    print("出错了")
+
+裸 except 会隐藏很多意料之外的问题，使调试变得困难。
+
+推荐：
+
+except FileNotFoundError:
+    print("文件不存在")
+except json.JSONDecodeError:
+    print("JSON 格式错误")
+
+
+============================================================
+五、None 与空列表 [] 的选择
+============================================================
+
+1. 读取单个岗位
+
+load_job() 成功时返回一个岗位字典 dict；失败时没有单个岗位可以返回，所以使用 None 表示“没有结果”。
+
+def load_job(filename):
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return None
+    except json.JSONDecodeError:
+        return None
+
+调用后应先判断：
+
+job = load_job("job.json")
+
+if job is None:
+    print("没有读取到岗位")
+else:
+    print(job["company"])
+
+
+2. 读取多个岗位
+
+load_jobs() 成功时返回岗位列表 list；失败时可以返回空列表 []，表示“读取到了零个岗位”。
+
+def load_jobs(filename):
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return []
+    except json.JSONDecodeError:
+        return []
+
+空列表支持 len() 和 for 循环：
+
+jobs = []
+
+print(len(jobs))  # 0
+
+for job in jobs:
+    print(job)
+
+循环不会报错，只会执行零次。
+
+设计原则：尽量让失败时的备用结果与成功结果的用途保持一致。
+
+- 单个对象：dict 或 None。
+- 多个对象：list 或空 list。
+
+
+============================================================
+六、函数调用顺序易错点
+============================================================
+
+代码：
+
+result1 = load_job("job.json")
+print("第一次读取结果：", result1)
+
+result2 = load_job("abc.json")
+print("第二次读取结果：", result2)
+
+执行顺序：
+
+1. 调用 load_job("job.json")。
+2. 成功返回字典并赋值给 result1。
+3. 打印第一次读取结果。
+4. 调用 load_job("abc.json")。
+5. 函数内部发现文件不存在，先打印错误信息。
+6. 函数返回 None 并赋值给 result2。
+7. 打印第二次读取结果：None。
+
+因此 abc.json 的错误属于第二次调用，与第一次读取结果无关。函数调用必须执行完右侧表达式，才能完成左侧赋值。
+
+
+============================================================
+七、相对路径与终端当前目录
+============================================================
+
+代码：
+
+with open("jobs.json", "w", encoding="utf-8") as file:
+    ...
+
+这里的 jobs.json 是相对路径。默认情况下，它相对于程序运行时的终端当前目录，而不一定相对于 day03.py 所在目录。
+
+如果终端显示：
+
+PS C:\Users\21855>
+
+那么 jobs.json 可能被创建在 C:\Users\21855 中。
+
+正确做法：
+
+cd "C:\Users\21855\Documents\python learning"
+python .\day03.py
+
+此时生成的相对路径文件会出现在 python learning 文件夹中。
+
+
+============================================================
+八、.gitignore
+============================================================
+
+.gitignore 是 Git 的排除规则文件，用来指定不应该被 Git 跟踪和提交的文件。
+
+建议内容：
+
+# Code Runner 临时文件
+tempCodeRunnerFile.py
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# Python 虚拟环境
+.venv/
+venv/
+
+# API 密钥和环境变量
+.env
+
+作用：
+
+1. 避免提交 Code Runner 临时文件。
+2. 避免提交 Python 缓存。
+3. 避免提交庞大的虚拟环境。
+4. 避免以后把大模型 API 密钥提交到 Git。
+5. 让 git status 更干净。
+
+注意：
+
+- .gitignore 不会删除文件。
+- .gitignore 不影响 Python 运行。
+- .gitignore 本身应该提交到 Git。
+- 它主要对尚未被 Git 跟踪的文件生效。
+- job.json、jobs.json 和 skills.txt 是本次学习成果，没有忽略。
+
+
+============================================================
+九、Day 3 综合核心代码
+============================================================
+
+import json
+
+
+jobs = [
+    {
+        "company": "百度",
+        "position": "大模型算法工程师",
+        "skills": ["Python", "PyTorch", "RAG"],
+    },
+    {
+        "company": "阿里巴巴",
+        "position": "AI应用开发工程师",
+        "skills": ["Python", "Docker", "Agent"],
+    },
+    {
+        "company": "字节跳动",
+        "position": "算法工程师",
+        "skills": ["Python", "Transformer", "PyTorch"],
+    },
+]
+
+
+def save_jobs(filename, jobs):
+    try:
+        with open(filename, "w", encoding="utf-8") as file:
+            json.dump(
+                jobs,
+                file,
+                ensure_ascii=False,
+                indent=4,
+            )
+        return True
+
+    except OSError as error:
+        print("保存失败：", error)
+        return False
+
+
+def load_jobs(filename):
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            return json.load(file)
+
+    except FileNotFoundError:
+        print(f"读取失败：找不到 {filename}")
+        return []
+
+    except json.JSONDecodeError:
+        print(f"读取失败：{filename} 的 JSON 格式错误")
+        return []
+
+
+save_success = save_jobs("jobs.json", jobs)
+
+if save_success:
+    print("岗位数据保存成功")
+
+loaded_jobs = load_jobs("jobs.json")
+
+print(f"共读取到 {len(loaded_jobs)} 个岗位")
+
+for number, job in enumerate(loaded_jobs, start=1):
+    print(f"\n岗位 {number}")
+    print("公司：", job["company"])
+    print("岗位：", job["position"])
+    print("技能：", job["skills"])
+
+missing_jobs = load_jobs("missing_jobs.json")
+print("不存在文件的读取结果：", missing_jobs)
+
+
+============================================================
+十、自测答案汇总
+============================================================
+
+1. r 读取；w 覆盖写入；a 追加写入。
+
+2. with open() 会在代码块结束后自动关闭文件，避免忘记 close()。
+
+3. file.read() 返回 str。
+
+4. json.dump() 把 Python 数据写入 JSON 文件；json.load() 读取并解析 JSON，转换成 Python 数据。
+
+5. ensure_ascii=False 让中文正常显示；indent=4 使用四空格缩进，提高可读性。
+
+6. try 尝试执行可能发生异常的代码；except 捕获匹配的异常并执行备用处理。except 不是让失败代码重新成功。
+
+7. FileNotFoundError 在找不到文件时产生；json.JSONDecodeError 在 JSON 内容格式不合法时产生。
+
+8. 单个岗位正常返回 dict，失败用 None；多个岗位正常返回 list，失败用 []，方便继续使用 len() 和 for。
+
+9. 对空列表执行 for 循环不会报错，循环体只会执行零次。
+
+10. file.read() 的结果是 str；最外层为 {} 的 JSON 解析为 dict；最外层为 [] 的 JSON 解析为 list。
+
+
+============================================================
+十一、Day 3 学习结论
+============================================================
+
+已完成文件的覆盖写入、追加、整体读取和逐行读取；掌握 JSON 的保存、解析和类型转换；能够使用具体的异常类型保护文件操作；完成了可保存、读取和展示多个岗位的岗位数据管理器；理解了相对路径、终端当前目录、.gitignore、None 与空列表的选择。
+
+这些能力会直接用于后续的大模型 API 配置、请求与响应处理、数据集读取、RAG 文档处理和项目结果持久化。
