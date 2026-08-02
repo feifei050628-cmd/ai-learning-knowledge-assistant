@@ -1,0 +1,637 @@
+Python Day 4 学习笔记
+完成日期：2026-08-03
+主题：NumPy、数组与矩阵、向量计算、余弦相似度和岗位排名
+
+============================================================
+一、今日完成内容
+============================================================
+
+1. 创建并激活 Python 虚拟环境 .venv。
+2. 在虚拟环境中安装 NumPy。
+3. 使用 requirements.txt 记录第三方依赖。
+4. 使用 np.array() 创建 NumPy 数组。
+5. 掌握 dtype、ndim、shape、size。
+6. 掌握数组索引、切片和元素修改。
+7. 使用 reshape() 创建二维数组。
+8. 掌握二维数组索引、按行和按列选择。
+9. 掌握矩阵转置 .T。
+10. 掌握 sum()、mean()、max()、min() 聚合计算。
+11. 理解 axis=0 与 axis=1。
+12. 使用 np.dot() 计算向量点积。
+13. 使用 np.linalg.norm() 计算向量模长。
+14. 编写余弦相似度函数并处理零向量。
+15. 完成多个岗位的相似度计算和降序排名。
+16. 理解当前练习与未来 Embedding、RAG 向量检索的联系。
+
+
+============================================================
+二、虚拟环境和依赖
+============================================================
+
+1. 创建虚拟环境
+
+在项目目录执行：
+
+python -m venv .venv
+
+.venv 是项目专属的 Python 环境。NumPy、PyTorch 等第三方库可以安装在这个环境中，不影响其他项目。
+
+
+2. 激活虚拟环境
+
+PowerShell：
+
+.\.venv\Scripts\Activate.ps1
+
+成功后终端开头会出现：
+
+(.venv) PS C:\Users\21855\Documents\python learning>
+
+检查当前 Python：
+
+python -c "import sys; print(sys.executable)"
+
+输出路径应包含：
+
+python learning\.venv\Scripts\python.exe
+
+
+3. 安装和验证 NumPy
+
+python -m pip install numpy
+
+python -c "import numpy as np; print(np.__version__)"
+
+
+4. 为什么 .venv 不提交到 Git
+
+虚拟环境通常体积大，并且可以根据依赖清单重新创建，因此 .gitignore 中应包含：
+
+.venv/
+
+
+5. requirements.txt
+
+记录当前环境依赖：
+
+python -m pip freeze > requirements.txt
+
+以后恢复依赖：
+
+python -m pip install -r requirements.txt
+
+requirements.txt 应提交到 Git，.venv 不提交。
+
+
+============================================================
+三、NumPy 数组基础
+============================================================
+
+1. 导入 NumPy
+
+import numpy as np
+
+np 是 NumPy 的常用别名。
+
+
+2. 创建数组
+
+skills_vector = np.array([1, 0, 1, 1])
+
+np.array() 可以把 Python 列表转换为 NumPy 数组 ndarray。
+
+print(type(skills_vector))
+# <class 'numpy.ndarray'>
+
+
+3. 数组常用属性
+
+print(skills_vector.dtype)
+print(skills_vector.ndim)
+print(skills_vector.shape)
+print(skills_vector.size)
+
+含义：
+
+- dtype：数组元素的数据类型。
+- ndim：数组有几个维度。
+- shape：每个维度的长度。
+- size：整个数组的元素总数。
+
+对于包含4个元素的一维数组：
+
+ndim = 1
+shape = (4,)
+size = 4
+
+(4,) 表示有4个元素的一维数组。逗号用于说明这是只有一个维度的形状元组。
+
+
+4. Python 列表与 NumPy 数组乘法
+
+python_list = [1, 2, 3]
+numpy_array = np.array([1, 2, 3])
+
+print(python_list * 2)
+# [1, 2, 3, 1, 2, 3]
+
+print(numpy_array * 2)
+# [2 4 6]
+
+区别：
+
+- Python 列表乘以2：列表内容重复两次。
+- NumPy 数组乘以2：数组中的每个元素分别乘以2。
+
+NumPy 能够一次对整个数组执行运算，这叫向量化计算。
+
+
+============================================================
+四、索引和切片
+============================================================
+
+skills_vector = np.array([1, 0, 1, 1])
+
+skills_vector[0]     # 第一个元素
+skills_vector[-1]    # 最后一个元素
+skills_vector[1:3]   # 索引1和2，也就是第二、第三个元素
+
+切片规则：包含起始位置，不包含结束位置。
+
+因此：
+
+array[1:3]
+
+取得索引1和2，不包含索引3。
+
+修改元素：
+
+skills_vector[1] = 1
+
+注意区分：
+
+- array[1:3] 是一维切片。
+- matrix[1, 3] 是二维索引，表示第二行第四列。
+
+
+============================================================
+五、reshape() 和二维数组
+============================================================
+
+numbers = np.array([1, 2, 3, 4, 5, 6])
+matrix = numbers.reshape(2, 3)
+
+结果：
+
+[[1 2 3]
+ [4 5 6]]
+
+属性：
+
+matrix.ndim   # 2
+matrix.shape  # (2, 3)
+matrix.size   # 6
+
+(2, 3) 表示2行3列。
+
+
+1. reshape() 的核心条件
+
+reshape() 只改变排列形状，不改变元素内容和元素总数。
+
+原数组有6个元素，所以可以：
+
+reshape(2, 3)
+reshape(3, 2)
+reshape(1, 6)
+reshape(6, 1)
+
+但不能：
+
+reshape(4, 2)
+
+因为4×2需要正好8个元素。不是“至少8个”，而是必须正好8个。
+
+
+2. 二维数组索引
+
+matrix[0]       # 第一行
+matrix[1]       # 第二行
+matrix[0, 1]    # 第一行第二列，值为2
+matrix[1, 2]    # 第二行第三列，值为6
+matrix[:, 0]    # 所有行的第一列
+matrix[:, 1]    # 所有行的第二列
+
+二维索引格式：
+
+matrix[行索引, 列索引]
+
+冒号 : 表示选取这个维度的全部元素。
+
+
+3. 转置
+
+transposed_matrix = matrix.T
+
+转置会交换行和列：
+
+转置前 shape = (2, 3)
+转置后 shape = (3, 2)
+
+
+============================================================
+六、聚合计算
+============================================================
+
+scores = np.array([
+    [80, 90, 70],
+    [60, 75, 85],
+])
+
+全部元素聚合：
+
+scores.sum()   # 460
+scores.mean()  # 76.666...
+scores.max()   # 90
+scores.min()   # 60
+
+含义：
+
+- sum()：求和。
+- mean()：求平均值。
+- max()：求最大值。
+- min()：求最小值。
+
+
+============================================================
+七、axis 按维度计算
+============================================================
+
+1. axis=0
+
+scores.sum(axis=0)
+
+压缩第0维，也就是把不同行向下合并，保留每一列的结果：
+
+[80 + 60, 90 + 75, 70 + 85]
+= [140, 165, 155]
+
+记忆：axis=0，每列一个结果。
+
+
+2. axis=1
+
+scores.sum(axis=1)
+
+压缩第1维，也就是把不同列横向合并，保留每一行的结果：
+
+[80 + 90 + 70, 60 + 75 + 85]
+= [240, 220]
+
+记忆：axis=1，每行一个结果。
+
+
+3. 每列平均值
+
+scores.mean(axis=0)
+
+结果不是单个70，而是每列各有一个结果：
+
+[(80 + 60) / 2, (90 + 75) / 2, (70 + 85) / 2]
+= [70.0, 82.5, 77.5]
+
+
+4. 聚合后的形状
+
+对于 shape=(4, 5) 的数组：
+
+sum(axis=0) -> shape=(5,)
+sum(axis=1) -> shape=(4,)
+
+对于 shape=(3, 4) 的数组：
+
+sum(axis=0) -> shape=(4,)
+sum(axis=1) -> shape=(3,)
+
+默认聚合会删除被压缩的维度，所以结果不是 (1, 5) 或 (4, 1)。
+
+如果确实想保留维度，可以了解：
+
+scores.sum(axis=0, keepdims=True)
+
+但当前阶段先掌握默认行为。
+
+
+============================================================
+八、点积、模长与余弦相似度
+============================================================
+
+my_vector = np.array([1, 1, 0, 1], dtype=float)
+job_vector = np.array([1, 0, 1, 1], dtype=float)
+
+
+1. 点积
+
+dot_product = np.dot(my_vector, job_vector)
+
+计算：
+
+1×1 + 1×0 + 0×1 + 1×1
+= 2
+
+点积是两个向量对应位置元素乘积的总和。
+
+
+2. 向量模长
+
+my_length = np.linalg.norm(my_vector)
+job_length = np.linalg.norm(job_vector)
+
+向量 [1, 1, 0, 1] 的模长：
+
+sqrt(1² + 1² + 0² + 1²)
+= sqrt(3)
+= 1.732...
+
+np.linalg.norm() 用于计算向量的几何长度，也叫范数或模长。
+
+
+3. 两种“长度”不要混淆
+
+元素个数或维度数量：
+
+vector.shape[0]
+len(vector)
+
+几何长度或模长：
+
+np.linalg.norm(vector)
+
+计算点积时，两个向量必须有相同的元素个数，并且每个位置必须表达相同含义。
+
+例如技能顺序固定为：
+
+[Python, PyTorch, RAG, Docker, Agent]
+
+所有技能向量都必须包含5个对应位置。
+
+
+4. 余弦相似度
+
+公式：
+
+余弦相似度 = 点积 /（向量1模长 × 向量2模长）
+
+cosine_similarity = dot_product / (my_length * job_length)
+
+当前示例：
+
+2 / (sqrt(3) × sqrt(3))
+= 2 / 3
+= 0.6666...
+= 66.67%
+
+
+5. 为什么除以模长
+
+点积会受到数值大小和向量模长影响。除以两个向量的模长可以消除整体大小的影响，更侧重比较两个向量的方向是否接近。
+
+一个非零向量与自身方向完全相同，余弦相似度通常为1，也就是100%。
+
+
+6. 零向量问题
+
+零向量的模长为0。如果分母为0，继续除法会产生除零问题。
+
+def calculate_cosine_similarity(vector1, vector2):
+    dot_product = np.dot(vector1, vector2)
+
+    length1 = np.linalg.norm(vector1)
+    length2 = np.linalg.norm(vector2)
+
+    denominator = length1 * length2
+
+    if denominator == 0:
+        return 0.0
+
+    return dot_product / denominator
+
+
+============================================================
+九、岗位相似度排名
+============================================================
+
+技能顺序：
+
+skill_names = [
+    "Python",
+    "PyTorch",
+    "RAG",
+    "Docker",
+    "Agent",
+]
+
+1表示拥有或要求该技能，0表示没有或不要求。
+
+my_skills = np.array([1, 1, 0, 1, 0], dtype=float)
+
+jobs = [
+    {
+        "company": "百度",
+        "position": "大模型算法工程师",
+        "vector": np.array([1, 1, 1, 0, 0], dtype=float),
+    },
+    {
+        "company": "阿里巴巴",
+        "position": "AI应用开发工程师",
+        "vector": np.array([1, 0, 1, 1, 1], dtype=float),
+    },
+    {
+        "company": "字节跳动",
+        "position": "PyTorch算法工程师",
+        "vector": np.array([1, 1, 0, 0, 0], dtype=float),
+    },
+]
+
+计算：
+
+results = []
+
+for job in jobs:
+    similarity = calculate_cosine_similarity(
+        my_skills,
+        job["vector"],
+    )
+
+    results.append({
+        "company": job["company"],
+        "position": job["position"],
+        "similarity": similarity,
+    })
+
+排序：
+
+results.sort(
+    key=lambda item: item["similarity"],
+    reverse=True,
+)
+
+解释：
+
+- results 中每一项是字典 dict。
+- key=lambda item: item["similarity"]：提取每个字典的 similarity 作为排序依据。
+- reverse=True：按相似度从大到小降序排列。
+
+输出：
+
+for rank, result in enumerate(results, start=1):
+    print(
+        f"{rank}. "
+        f"{result['company']} - "
+        f"{result['position']} - "
+        f"{result['similarity']:.2%}"
+    )
+
+
+============================================================
+十、与 Embedding 和 RAG 的联系
+============================================================
+
+今天的流程：
+
+个人技能 -> 手工二进制向量 -> 与岗位向量计算相似度 -> 排序
+
+未来 RAG 的流程：
+
+用户问题 -> Embedding 模型生成向量
+文档片段 -> Embedding 模型生成相同维度向量
+问题向量与文档向量 -> 计算相似度
+按相似度排序 -> 取最相关的文档片段
+相关文档和问题 -> 交给大模型生成答案
+
+共同点：
+
+1. 查询对象和候选对象都转换成相同维度的向量。
+2. 对应维度必须具有统一的含义。
+3. 计算相似度。
+4. 从高到低排序。
+5. 选择最相似的结果。
+
+区别：今天的向量由0和1组成并由人工设计；真实 Embedding 向量由模型生成，通常包含大量连续数值。
+
+
+============================================================
+十一、自测答案与易错点
+============================================================
+
+1. NumPy 数组乘以2会让每个元素乘以2；Python 列表乘以2会重复列表内容。
+
+2. 对 shape=(2, 3) 的数组：ndim=2，shape=(2, 3)，size=6。
+
+3. array[1:3] 取得索引1和2，也就是第二、第三个元素，不是“第二行第四列”。
+
+4. reshape() 前后元素总数必须完全相同，只改变排列形状。
+
+5. matrix[:, 1] 表示所有行的第二列。
+
+6. shape=(3, 4) 时，sum(axis=0) 的结果 shape=(4,)，sum(axis=1) 的结果 shape=(3,)。形状中不写冒号。
+
+7. 点积是对应元素乘积之和；模长是元素平方和的平方根；余弦相似度是点积除以模长之积。
+
+8. 零向量模长为0，需要防止除零。
+
+9. 非零向量与自身的余弦相似度通常是1。
+
+10. sort() 的 key 指定排序依据，reverse=True 指定降序排列。
+
+11. scores.mean(axis=0) 会得到每一列的平均值数组，不是只得到第一列的70。
+
+12. (2, 3) 的矩阵转置后形状为 (3, 2)。
+
+13. “向量有几个元素”和“向量的模长”是两个不同概念。
+
+
+============================================================
+十二、Day 4 核心整合代码
+============================================================
+
+import numpy as np
+
+
+def calculate_cosine_similarity(vector1, vector2):
+    dot_product = np.dot(vector1, vector2)
+
+    length1 = np.linalg.norm(vector1)
+    length2 = np.linalg.norm(vector2)
+
+    denominator = length1 * length2
+
+    if denominator == 0:
+        return 0.0
+
+    return dot_product / denominator
+
+
+skill_names = [
+    "Python",
+    "PyTorch",
+    "RAG",
+    "Docker",
+    "Agent",
+]
+
+my_skills = np.array([1, 1, 0, 1, 0], dtype=float)
+
+jobs = [
+    {
+        "company": "百度",
+        "position": "大模型算法工程师",
+        "vector": np.array([1, 1, 1, 0, 0], dtype=float),
+    },
+    {
+        "company": "阿里巴巴",
+        "position": "AI应用开发工程师",
+        "vector": np.array([1, 0, 1, 1, 1], dtype=float),
+    },
+    {
+        "company": "字节跳动",
+        "position": "PyTorch算法工程师",
+        "vector": np.array([1, 1, 0, 0, 0], dtype=float),
+    },
+]
+
+results = []
+
+for job in jobs:
+    similarity = calculate_cosine_similarity(
+        my_skills,
+        job["vector"],
+    )
+
+    results.append({
+        "company": job["company"],
+        "position": job["position"],
+        "similarity": similarity,
+    })
+
+results.sort(
+    key=lambda item: item["similarity"],
+    reverse=True,
+)
+
+for rank, result in enumerate(results, start=1):
+    print(
+        f"{rank}. "
+        f"{result['company']} - "
+        f"{result['position']} - "
+        f"{result['similarity']:.2%}"
+    )
+
+
+============================================================
+十三、Day 4 学习结论
+============================================================
+
+已完成 NumPy 环境配置、数组创建、数组属性、索引切片、reshape、二维数组、转置、聚合计算、axis、点积、向量模长、余弦相似度及岗位相似度排名。
+
+Day 4 的 NumPy ndarray、shape、axis 和向量计算概念，将直接迁移到下一阶段的 PyTorch Tensor。余弦相似度和向量排名也为以后学习 Embedding 与 RAG 检索建立了基础。
