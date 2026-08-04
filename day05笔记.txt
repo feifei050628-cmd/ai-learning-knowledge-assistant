@@ -1,0 +1,545 @@
+Python Day 5 学习笔记
+日期：2026-08-05
+主题：PyTorch Tensor、GPU、矩阵运算与岗位相似度排名
+
+============================================================
+一、今日学习成果
+============================================================
+
+今天完成了 PyTorch 入门，并成功配置了支持 NVIDIA GPU 的 PyTorch 环境。
+
+当前环境：
+- Python：3.14.5
+- NumPy：2.5.1
+- PyTorch：2.11.0+cu128
+- PyTorch 使用的 CUDA 版本：12.8
+- 显卡：NVIDIA GeForce RTX 4060 Laptop GPU
+- torch.cuda.is_available()：True
+
+这说明 PyTorch 已能使用本机 GPU 进行计算。
+
+
+============================================================
+二、Tensor 是什么
+============================================================
+
+Tensor（张量）是 PyTorch 中保存和计算数据的核心对象。
+
+可以把它理解为 NumPy 数组的 PyTorch 版本：
+- 0 维 Tensor：一个数（标量）
+- 1 维 Tensor：一个向量
+- 2 维 Tensor：一个矩阵
+- 更高维 Tensor：批量数据、图像、模型参数等
+
+创建 Tensor：
+
+import torch
+
+skills_tensor = torch.tensor(
+    [1, 0, 1, 1],
+    dtype=torch.float32,
+)
+
+常用属性：
+
+print(skills_tensor.dtype)    # 元素的数据类型
+print(skills_tensor.shape)    # 每个维度的长度
+print(skills_tensor.ndim)     # 维度数量
+print(skills_tensor.numel())  # 元素总数
+print(skills_tensor.device)   # 位于 CPU 还是 GPU
+
+对于形状为 torch.Size([4]) 的 Tensor：
+- 它是一维 Tensor
+- 一共有 4 个元素
+
+
+============================================================
+三、为什么常用 float32
+============================================================
+
+dtype=torch.float32 表示每个元素使用 32 位浮点数。
+
+深度学习中常用 float32，主要原因是：
+1. 可以表示小数，适合权重、概率、损失值和梯度。
+2. 大多数 GPU 对 float32 有良好的计算支持。
+3. 在计算精度、运行速度和显存占用之间比较平衡。
+
+整数类型虽然可以表示 0、1 等数据，但不能完整表示训练时产生的小数梯度。
+
+
+============================================================
+四、CPU、GPU 与 device
+============================================================
+
+自动选择设备：
+
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+含义：
+- CUDA 可用时，选择 NVIDIA GPU。
+- CUDA 不可用时，退回 CPU，代码仍然可以运行。
+
+把 Tensor 移动到设备：
+
+skills_tensor = skills_tensor.to(device)
+
+需要重新赋值，是因为 .to(device) 会返回移动后的 Tensor，不能依赖原变量自动改变。
+
+.to(device) 不仅可以从 CPU 移到 GPU，也可以按照指定设备在 CPU 和 GPU 之间移动。
+
+如果输出为：
+
+cuda:0
+
+含义是：
+- cuda：Tensor 位于 NVIDIA GPU
+- 0：系统中的第 0 张显卡，也就是第一张显卡
+
+
+============================================================
+五、Tensor 基础运算、索引和切片
+============================================================
+
+skills_tensor = torch.tensor(
+    [1, 0, 1, 1],
+    dtype=torch.float32,
+    device=device,
+)
+
+print(skills_tensor * 2)     # 每个元素乘以 2
+print(skills_tensor + 1)     # 每个元素加 1
+print(skills_tensor.sum())   # 所有元素的和
+print(skills_tensor.mean())  # 所有元素的平均值
+
+print(skills_tensor[0])      # 第一个元素
+print(skills_tensor[-1])     # 最后一个元素
+print(skills_tensor[1:3])    # 索引 1 到索引 2，不包含索引 3
+
+切片仍遵循“左闭右开”：包含起始位置，不包含结束位置。
+
+
+============================================================
+六、二维 Tensor 与 dim
+============================================================
+
+scores = torch.tensor(
+    [
+        [80, 90, 70],
+        [60, 75, 85],
+    ],
+    dtype=torch.float32,
+    device=device,
+)
+
+这个 Tensor 的形状是 (2, 3)：
+- 2 行
+- 3 列
+
+索引示例：
+
+scores[0]       # 第一行
+scores[1]       # 第二行
+scores[1, 2]    # 第二行第三列，结果为 85
+scores[:, 0]    # 所有行的第一列
+scores[:, 1]    # 所有行的第二列
+
+按维度计算：
+
+scores.sum()        # 所有元素之和，只得到一个结果
+scores.sum(dim=0)   # 压缩行，保留每一列的结果，共 3 个结果
+scores.sum(dim=1)   # 压缩列，保留每一行的结果，共 2 个结果
+
+记忆方法：
+- dim=0：沿着行的方向合并，最终看每一列。
+- dim=1：沿着列的方向合并，最终看每一行。
+
+NumPy 中常用 axis，PyTorch 中常用 dim：
+
+array.sum(axis=0)
+tensor.sum(dim=0)
+
+
+============================================================
+七、.item() 的作用
+============================================================
+
+.item() 用于把“只包含一个元素的 Tensor”转换成普通 Python 数字。
+
+示例：
+
+total_tensor = scores.sum()
+total_number = total_tensor.item()
+
+为什么 scores.sum().item() 可以运行？
+因为 scores.sum() 的结果只包含一个元素。
+
+为什么 scores.sum(dim=0).item() 会报错？
+因为 scores.sum(dim=0) 得到 3 个元素，不能转换成一个 Python 数字。
+
+常见用途：
+- 把损失值转换成 Python 数字
+- 把准确率转换成 Python 数字
+- 把 GPU 中的单个索引取出，用来访问 Python 列表
+
+
+============================================================
+八、按元素乘法、点积和矩阵乘法
+============================================================
+
+1. 按元素乘法：*
+
+a = torch.tensor([1, 2, 3])
+b = torch.tensor([4, 5, 6])
+
+print(a * b)  # tensor([4, 10, 18])
+
+两个 Tensor 对应位置的元素分别相乘，保留每一个结果。
+
+2. 向量点积：@
+
+print(a @ b)  # 1×4 + 2×5 + 3×6 = 32
+
+点积会把对应位置相乘后再求和，因此两个一维向量点积得到一个结果。
+
+3. 矩阵乘法
+
+matrix_a 的形状为 (2, 3)
+matrix_b 的形状为 (3, 2)
+
+result = matrix_a @ matrix_b
+
+矩阵乘法条件：
+前一个矩阵的列数必须等于后一个矩阵的行数。
+
+形状规律：
+(m, n) @ (n, p) -> (m, p)
+
+例如：
+(2, 3) @ (3, 4) -> (2, 4)
+
+torch.matmul(matrix_a, matrix_b) 和 matrix_a @ matrix_b 在此场景中作用相同。
+
+注意：@ 不一定总是只得到一个结果。
+- 一维向量 @ 一维向量：点积，得到一个标量。
+- 二维矩阵 @ 二维矩阵：矩阵乘法，得到一个矩阵。
+
+
+============================================================
+九、矩阵转置与 unsqueeze
+============================================================
+
+1. 转置
+
+matrix_a.T
+
+如果 matrix_a 的形状是 (2, 3)，转置后形状是 (3, 2)。
+转置会交换行和列。
+
+2. unsqueeze
+
+my_skills 的原形状：
+
+(5,)
+
+执行：
+
+my_skills_batch = my_skills.unsqueeze(0)
+
+新形状：
+
+(1, 5)
+
+unsqueeze(0) 在第 0 维增加一个长度为 1 的维度。
+它不会增加或修改元素，只改变数据的形状。
+
+这里的 (1, 5) 可以理解为：
+- 1 个人
+- 每个人有 5 个技能特征
+
+
+============================================================
+十、NumPy 与 Tensor 相互转换
+============================================================
+
+1. NumPy 转 Tensor
+
+numpy_array = np.array([1, 2, 3], dtype=np.float32)
+tensor_from_numpy = torch.from_numpy(numpy_array)
+
+torch.from_numpy() 创建的 Tensor 默认位于 CPU。
+
+在满足条件时，NumPy 数组与 torch.from_numpy() 创建的 Tensor 会共享底层内存。因此修改其中一个，另一个也可能跟着变化。
+
+2. Tensor 转 NumPy
+
+numpy_array = tensor.cpu().numpy()
+
+NumPy 只能直接处理 CPU 内存中的数据，不能直接处理 CUDA Tensor。
+因此 GPU Tensor 必须先调用 .cpu() 移回 CPU，再调用 .numpy()。
+
+常用写法：
+
+numpy_array = gpu_tensor.cpu().numpy()
+
+
+============================================================
+十一、批量计算岗位余弦相似度
+============================================================
+
+技能顺序：
+
+skill_names = [
+    "Python",
+    "PyTorch",
+    "RAG",
+    "Docker",
+    "Agent",
+]
+
+个人技能向量：
+
+my_skills = torch.tensor([1, 1, 0, 1, 0])
+
+含义：
+- 1：掌握该技能
+- 0：不掌握该技能
+
+岗位技能矩阵：
+
+job_vectors = torch.tensor(
+    [
+        [1, 1, 1, 0, 0],
+        [1, 0, 1, 1, 1],
+        [1, 1, 0, 0, 0],
+    ],
+    dtype=torch.float32,
+    device=device,
+)
+
+job_vectors 的形状是 (3, 5)：
+- 3 代表 3 个岗位，每一行是一个岗位。
+- 5 代表每个岗位使用 5 个技能特征表示。
+
+为了让一个个人向量与 3 个岗位向量批量比较：
+
+my_skills_batch = my_skills.unsqueeze(0)  # (5,) -> (1, 5)
+
+然后计算余弦相似度：
+
+similarities = F.cosine_similarity(
+    job_vectors,
+    my_skills_batch,
+    dim=1,
+)
+
+dim=1 表示沿技能这一维计算。每个岗位的 5 个技能会与个人的 5 个技能进行比较。
+
+最终 similarities 的形状是 (3,)，因为 3 个岗位分别得到一个相似度。
+
+批量计算的价值：
+- 代码更短
+- 不需要手动逐个岗位计算
+- 底层向量化运算更高效
+- 数据放在 GPU 时可以利用并行计算
+
+
+============================================================
+十二、相似度排序与索引
+============================================================
+
+ranking_indices = torch.argsort(
+    similarities,
+    descending=True,
+)
+
+torch.argsort() 返回的是排序后的“索引”，不是直接返回岗位名称。
+
+descending=True 表示按相似度从高到低排序。
+
+输出岗位排名：
+
+for rank, index_tensor in enumerate(ranking_indices, start=1):
+    index = index_tensor.item()
+    similarity = similarities[index].item()
+
+    print(
+        f"{rank}. "
+        f"{job_names[index]} - "
+        f"{similarity:.2%}"
+    )
+
+这里调用 .item() 的原因：
+- index_tensor 是只包含一个元素的 Tensor。
+- Python 列表 job_names 需要普通整数索引。
+- similarities[index] 也只有一个元素，可以转换为 Python 浮点数。
+
+
+============================================================
+十三、今日自测答案整理
+============================================================
+
+1. Tensor 的常用信息有哪些？
+答：元素类型 dtype、形状 shape、维度数量 ndim、元素总数 numel()、所在设备 device。
+
+2. 为什么深度学习通常使用 float32？
+答：float32 可以表示权重、概率和梯度等小数；GPU 对它支持良好；它在精度、速度和显存占用之间较均衡。
+
+3. .to(device) 的作用是什么？
+答：把 Tensor 移动到指定设备，可在 CPU 和 GPU 之间移动。通常需要写成 tensor = tensor.to(device)，保存返回的新 Tensor。
+
+4. cuda:0 表示什么？
+答：Tensor 位于 CUDA GPU，并且使用系统中的第 0 张显卡，也就是第一张显卡。
+
+5. PyTorch 用什么参数指定计算维度？
+答：dim，例如 sum(dim=0) 或 sum(dim=1)。
+
+6. 什么情况下可以调用 .item()？
+答：Tensor 中只能有一个元素。
+
+7. (2, 3) 与 (3, 4) 的矩阵相乘结果形状是什么？
+答：(2, 4)。
+
+8. * 和 @ 的区别是什么？
+答：* 通常表示对应位置元素相乘；@ 表示向量点积或矩阵乘法，会执行乘积求和。
+
+9. 为什么 CUDA Tensor 不能直接调用 .numpy()？
+答：NumPy 只能直接处理 CPU 内存，必须先调用 .cpu()。
+
+10. torch.from_numpy() 有什么重要特点？
+答：在满足条件时会与 NumPy 数组共享内存，修改其中一个可能影响另一个。
+
+11. unsqueeze() 会不会增加新数据？
+答：不会，只会增加一个长度为 1 的维度，从而改变形状。
+
+12. F.cosine_similarity() 的作用是什么？
+答：计算两个 Tensor 沿指定维度的余弦相似度。
+
+13. torch.argsort(..., descending=True) 返回什么？
+答：返回按照数值从高到低排序后的索引。
+
+14. 为什么岗位匹配适合批量 Tensor 计算？
+答：代码更简洁，避免逐个岗位循环计算，并能利用向量化和 GPU 并行能力提高效率。
+
+
+============================================================
+十四、常见问题与纠正
+============================================================
+
+1. 输出中浮点数间距变大
+这通常只是 PyTorch 为了让各列对齐而进行的显示格式调整，不代表 Tensor 中多了空格，也不影响数值。
+
+2. .to(device) 后原变量是否一定自动改变
+不能这样假设。稳妥写法是：
+
+tensor = tensor.to(device)
+
+3. @ 是否一定只返回一个结果
+不是。一维向量点积返回一个数，二维矩阵相乘通常返回一个矩阵。
+
+4. NumPy 与 Tensor 是否总是完全独立
+不是。torch.from_numpy() 创建的 CPU Tensor 通常与原 NumPy 数组共享内存。
+
+5. Code Runner 产生 tempCodeRunnerFile.py
+这是运行选中代码时由 Code Runner 临时生成的文件，不是 Python 或 PyTorch 的错误。
+可以运行完整脚本来减少临时文件：
+
+python .\day05.py
+
+若文件仍存在，可以删除：
+
+Remove-Item -LiteralPath ".\tempCodeRunnerFile.py"
+
+并在 .gitignore 中加入：
+
+tempCodeRunnerFile.py
+
+
+============================================================
+十五、核心综合代码
+============================================================
+
+import torch
+import torch.nn.functional as F
+
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+job_names = [
+    "百度 - 大模型算法工程师",
+    "阿里巴巴 - AI应用开发工程师",
+    "字节跳动 - PyTorch算法工程师",
+]
+
+my_skills = torch.tensor(
+    [1, 1, 0, 1, 0],
+    dtype=torch.float32,
+    device=device,
+)
+
+job_vectors = torch.tensor(
+    [
+        [1, 1, 1, 0, 0],
+        [1, 0, 1, 1, 1],
+        [1, 1, 0, 0, 0],
+    ],
+    dtype=torch.float32,
+    device=device,
+)
+
+my_skills_batch = my_skills.unsqueeze(0)
+
+similarities = F.cosine_similarity(
+    job_vectors,
+    my_skills_batch,
+    dim=1,
+)
+
+ranking_indices = torch.argsort(
+    similarities,
+    descending=True,
+)
+
+for rank, index_tensor in enumerate(ranking_indices, start=1):
+    index = index_tensor.item()
+    similarity = similarities[index].item()
+    print(f"{rank}. {job_names[index]} - {similarity:.2%}")
+
+
+============================================================
+十六、依赖环境记录
+============================================================
+
+requirements.txt：
+
+--extra-index-url https://download.pytorch.org/whl/cu128
+numpy==2.5.1
+torch==2.11.0+cu128
+
+作用：
+- 记录项目依赖及版本，方便以后重新安装相同环境。
+- extra-index-url 指定 PyTorch CUDA 12.8 软件包所在的额外下载源。
+- 固定版本可以降低不同电脑或不同时间安装后出现兼容性差异的概率。
+
+重新安装时，可在激活虚拟环境后运行：
+
+python -m pip install -r requirements.txt
+
+
+============================================================
+十七、今日最重要的知识链
+============================================================
+
+Python/NumPy 数据
+    -> 转换为 Tensor
+    -> 选择 CPU 或 GPU
+    -> 调整 Tensor 形状
+    -> 批量执行向量计算
+    -> 得到相似度 Tensor
+    -> argsort 获得排名索引
+    -> item() 转成 Python 数值并输出
+
+这条知识链已经接近真实 AI 项目中的数据处理方式，也是后续学习神经网络、Embedding、Transformer 和 RAG 检索计算的重要基础。
+
