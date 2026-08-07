@@ -330,7 +330,7 @@ test_data = torch.tensor(
 model.eval()
 
 
-with torch.no_grad():
+with torch.no_grad():   #torch.no_grad() 用于禁用梯度计算，提高推理速度
     # 模型原始输出
     test_logits = model(test_data)
 
