@@ -1,0 +1,861 @@
+Python Day 8 学习笔记
+日期：2026-08-07
+主题：TensorDataset、DataLoader、小批量训练与分批推理
+
+============================================================
+一、今日学习成果
+============================================================
+
+今天把 Day 7 的“整批训练”改造成了更接近真实项目的“小批量训练”，完成了以下内容：
+
+1. 使用 TensorDataset 按索引配对特征和标签。
+2. 使用 DataLoader 从 Dataset 中读取数据并划分批次。
+3. 理解 batch_size、batch 和 epoch。
+4. 理解 shuffle=True 不会破坏特征和标签的对应关系。
+5. 将完整数据保存在 CPU，只把当前批次移动到 GPU。
+6. 使用 DataLoader 完成小批量二分类训练。
+7. 统计每个 epoch 的平均损失和训练准确率。
+8. 使用 DataLoader 对新候选人分批推理。
+9. 使用 torch.cat() 合并多个批次的预测结果。
+10. 理解单元素元组中的结尾逗号。
+11. 进一步区分 model.train()、model.eval() 和 torch.no_grad()。
+
+今天最重要的变化：
+
+Day 7：一次把全部训练数据交给模型。
+Day 8：DataLoader 每次只取一小批数据，模型逐批训练并更新参数。
+
+
+============================================================
+二、为什么需要 Dataset 和 DataLoader
+============================================================
+
+真实项目中的数据量可能非常大，不能总是一次性把全部数据放入 GPU。
+
+更常见的处理方式：
+
+完整数据保存在 CPU
+-> Dataset 组织样本
+-> DataLoader 划分批次
+-> 当前批次移动到 GPU
+-> 模型训练当前批次
+-> 继续读取下一个批次
+
+这样可以：
+
+1. 控制显存占用。
+2. 处理远大于 GPU 显存的数据集。
+3. 让模型在一个 epoch 内更新多次参数。
+4. 配合 shuffle 改变每个 epoch 的样本顺序。
+
+GPU 很适合大规模并行计算，但显存容量有限。不能说“GPU 不适合大量数据”，更准确的说法是：GPU 适合计算，但不一定能同时容纳整个大型数据集。
+
+
+============================================================
+三、原始特征和标签
+============================================================
+
+今天的数据：
+
+x_data.shape == (10, 2)
+y_data.shape == (10, 1)
+
+含义：
+
+10：共有 10 个候选人样本。
+2：每名候选人有 Python 和 PyTorch 两个输入特征。
+1：每名候选人有一个二分类标签。
+
+标签含义：
+
+0.0：不匹配
+1.0：匹配
+
+数据首先保存在 CPU：
+
+x_data.device == cpu
+y_data.device == cpu
+
+这不是错误。DataLoader 通常在 CPU 侧组织数据，训练循环再把当前批次移动到模型所在的设备。
+
+
+============================================================
+四、TensorDataset
+============================================================
+
+创建方式：
+
+dataset = TensorDataset(
+    x_data,
+    y_data,
+)
+
+TensorDataset 会按照相同索引配对多个 Tensor：
+
+x_data[0] 与 y_data[0] 组成第 1 个样本。
+x_data[1] 与 y_data[1] 组成第 2 个样本。
+
+因此：
+
+first_features, first_label = dataset[0]
+
+可以同时取得第一个样本的特征和标签。
+
+重要要求：传入 TensorDataset 的 Tensor，其第一维长度必须一致。
+
+例如：
+
+x_data.shape == (10, 2)
+y_data.shape == (10, 1)
+
+两者第一维都是 10，所以可以一一配对。
+
+核心记忆：
+
+TensorDataset 负责组织和配对数据，不负责训练模型。
+
+
+============================================================
+五、DataLoader
+============================================================
+
+创建方式：
+
+data_loader = DataLoader(
+    dataset,
+    batch_size=3,
+    shuffle=False,
+)
+
+DataLoader 的主要职责：
+
+1. 从 Dataset 中读取样本。
+2. 把样本划分成多个批次。
+3. 根据 shuffle 设置决定是否打乱样本顺序。
+4. 让训练循环逐批取得特征和标签。
+
+DataLoader 本身不负责：
+
+1. 建立神经网络。
+2. 计算损失。
+3. 反向传播。
+4. 更新模型参数。
+
+这些工作仍由模型、损失函数和优化器负责。
+
+
+============================================================
+六、batch_size、batch 和 epoch
+============================================================
+
+batch_size=3 表示：
+
+每个批次最多包含 3 个样本。
+
+今天共有 10 个样本，因此一个 epoch 被划分为：
+
+第 1 批：3 个样本
+第 2 批：3 个样本
+第 3 批：3 个样本
+第 4 批：1 个样本
+
+所以：
+
+len(dataset) == 10
+len(data_loader) == 4
+
+前三批形状：
+
+batch_features.shape == (3, 2)
+batch_labels.shape == (3, 1)
+
+最后一批形状：
+
+batch_features.shape == (1, 2)
+batch_labels.shape == (1, 1)
+
+概念区别：
+
+batch：完整训练数据中的一小批。
+epoch：模型完整使用一次全部训练数据。
+
+在今天的设置下：
+
+一个 epoch = 4 个 batch
+
+由于每个 batch 都会执行一次 optimizer.step()，所以一个 epoch 会更新 4 次模型参数。
+
+
+============================================================
+七、为什么最后一个批次可以不足 batch_size
+============================================================
+
+batch_size 表示每批最多包含多少样本，并不要求每批必须正好达到该数量。
+
+10 个样本无法被 3 整除：
+
+10 = 3 + 3 + 3 + 1
+
+所以最后一批只有一个样本，这是正常现象。
+
+DataLoader 默认不会丢弃最后一个不足 batch_size 的批次。
+
+如果明确设置：
+
+drop_last=True
+
+则最后一个不足 batch_size 的批次会被丢弃。今天没有使用这个设置，因此 10 个样本都会被训练。
+
+
+============================================================
+八、shuffle 如何打乱数据
+============================================================
+
+训练时通常使用：
+
+shuffle=True
+
+它会打乱样本的读取顺序，有助于避免模型总是按固定顺序看到数据。
+
+重点：shuffle 不会分别打乱特征和标签。
+
+TensorDataset 已经把相同索引的特征和标签组成一个样本。DataLoader 打乱的是样本索引，所以特征与标签会一起移动，不会破坏对应关系。
+
+可以理解为：
+
+打乱前：
+
+样本A = 特征A + 标签A
+样本B = 特征B + 标签B
+
+打乱后：
+
+样本B
+样本A
+
+样本内部的特征和标签不会分开。
+
+训练时通常 shuffle=True：
+
+减少固定样本顺序对训练的影响，使小批量梯度更有随机性。
+
+预测时通常 shuffle=False：
+
+保持输入顺序和输出顺序一致，方便把预测结果对应回候选人姓名、文件编号或原始记录。
+
+预测时不使用 shuffle 的主要原因不是“测试数据没有标签”，而是需要保持结果顺序可追踪。即使测试数据带标签，评估阶段通常也不需要打乱。
+
+
+============================================================
+九、逐批读取数据
+============================================================
+
+核心代码：
+
+for batch_index, (
+    batch_features,
+    batch_labels,
+) in enumerate(
+    data_loader,
+    start=1,
+):
+    print(batch_index)
+    print(batch_features.shape)
+    print(batch_labels.shape)
+
+每循环一次，DataLoader 就提供一个批次。
+
+变量含义：
+
+batch_index：当前是第几个批次。
+batch_features：当前批次的输入特征。
+batch_labels：当前批次的真实标签。
+
+enumerate(..., start=1) 让批次编号从 1 开始，更符合日常阅读习惯。它不会改变 DataLoader 中的数据。
+
+
+============================================================
+十、CPU 和 GPU 的分工
+============================================================
+
+今天采用的方式：
+
+完整 Dataset：保存在 CPU。
+当前 batch：训练前移动到 GPU。
+模型：保存在 GPU。
+
+代码：
+
+batch_features = batch_features.to(device)
+batch_labels = batch_labels.to(device)
+
+为什么特征要移动到 GPU：
+
+模型位于 GPU，特征要参与模型的前向传播，因此必须与模型位于同一设备。
+
+为什么标签也要移动到 GPU：
+
+标签虽然不直接传给 model，但会与 GPU 上的 logits 一起传给损失函数：
+
+logits = model(batch_features)
+loss = loss_fn(logits, batch_labels)
+
+如果 logits 在 GPU、标签在 CPU，就无法直接计算损失。
+
+设备规则：
+
+参与同一次 Tensor 运算的数据必须位于兼容的同一设备。
+
+
+============================================================
+十一、小批量训练循环
+============================================================
+
+一个 epoch 内部还需要遍历全部 batch：
+
+for epoch in range(epochs):
+    model.train()
+
+    for batch_features, batch_labels in train_loader:
+        batch_features = batch_features.to(device)
+        batch_labels = batch_labels.to(device)
+
+        logits = model(batch_features)
+        loss = loss_fn(logits, batch_labels)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+每个批次的五个核心步骤：
+
+1. 前向传播。
+2. 计算损失。
+3. 清空上一批次的梯度。
+4. 反向传播，计算当前批次梯度。
+5. 根据当前梯度更新参数。
+
+完整过程：
+
+epoch 1
+-> batch 1：预测、损失、梯度、更新
+-> batch 2：预测、损失、梯度、更新
+-> batch 3：预测、损失、梯度、更新
+-> batch 4：预测、损失、梯度、更新
+-> epoch 1 完成
+
+然后进入下一个 epoch，DataLoader 会重新提供全部批次。
+
+
+============================================================
+十二、为什么每个批次都要清空梯度
+============================================================
+
+PyTorch 默认累加梯度。
+
+如果不清空：
+
+上一批次梯度 + 当前批次梯度
+-> optimizer 使用累加结果更新参数
+-> 参数更新不再只对应当前批次
+
+因此每个批次反向传播前都需要：
+
+optimizer.zero_grad()
+
+准确表述：
+
+它是清空上一批次保存在模型参数中的梯度，避免无意的梯度累加影响训练。
+
+它不是清空模型参数，也不会删除训练结果。
+
+
+============================================================
+十三、平均损失为什么乘当前批次大小
+============================================================
+
+BCEWithLogitsLoss 默认返回当前批次的平均损失：
+
+loss.item()
+
+但今天最后一批只有 1 个样本，而前三批各有 3 个样本。如果直接把四个批次的平均损失再次平均，就会让最后一个样本拥有和前三个样本组成的批次相同的权重。
+
+今天使用：
+
+current_batch_size = batch_features.shape[0]
+total_loss += loss.item() * current_batch_size
+
+最后：
+
+average_loss = total_loss / len(dataset)
+
+这样得到的是按照样本数量加权的整个 epoch 平均损失。
+
+现阶段记忆：
+
+批次平均损失 × 当前批次样本数
+-> 恢复该批次的样本损失总和
+-> 所有批次相加
+-> 除以完整样本数
+
+
+============================================================
+十四、训练模式和评估模式
+============================================================
+
+训练前：
+
+model.train()
+
+表示将模型切换到训练模式。
+
+评估或预测前：
+
+model.eval()
+
+表示将模型切换到评估模式。
+
+它们主要影响 Dropout、BatchNorm 等网络层的行为。
+
+重要：
+
+model.eval() 不会禁用梯度计算。
+
+关闭梯度记录需要：
+
+with torch.no_grad():
+    logits = model(features)
+
+两者区别：
+
+model.eval()：改变部分网络层的工作模式。
+torch.no_grad()：禁用梯度和计算图记录。
+
+预测时通常一起使用：
+
+model.eval()
+
+with torch.no_grad():
+    predictions = model(test_features)
+
+
+============================================================
+十五、为什么训练准确率 100% 不等于真实可靠
+============================================================
+
+今天的训练数据只有 10 条，模型很容易把这些样本记住，因此训练准确率可能达到 100%。
+
+这并不能证明模型能够准确预测所有真实候选人。
+
+原因：
+
+1. 数据量非常少。
+2. 数据是人工构造的。
+3. 只有两个输入特征。
+4. 没有独立且带标签的测试集。
+5. 模型可能过拟合训练数据。
+
+截图中出现接近 0% 或 100% 的预测概率是正常计算结果，但不能把它理解为模型在现实中真的拥有接近 100% 的可信度。
+
+泛化能力必须通过没有参与训练、同时拥有真实标签的数据进行评估。
+
+
+============================================================
+十六、使用 DataLoader 分批推理
+============================================================
+
+新候选人只有输入特征：
+
+test_dataset = TensorDataset(test_features)
+
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=2,
+    shuffle=False,
+)
+
+4 名候选人、batch_size=2，因此分成两个预测批次：
+
+第 1 批形状：(2, 2)
+第 2 批形状：(2, 2)
+
+推理流程：
+
+model.eval()
+all_probabilities = []
+
+with torch.no_grad():
+    for (batch_features,) in test_loader:
+        batch_features = batch_features.to(device)
+
+        batch_logits = model(batch_features)
+        batch_probabilities = torch.sigmoid(batch_logits)
+
+        all_probabilities.append(
+            batch_probabilities.cpu()
+        )
+
+步骤：
+
+1. DataLoader 取出当前测试批次。
+2. 当前批次移动到 GPU。
+3. 模型产生 logits。
+4. Sigmoid 把 logits 转换为概率。
+5. 概率移回 CPU。
+6. 保存每个批次的结果。
+
+
+============================================================
+十七、单元素元组与结尾逗号
+============================================================
+
+训练 Dataset 中有两个 Tensor：
+
+TensorDataset(x_data, y_data)
+
+因此每批返回两个元素：
+
+for batch_features, batch_labels in train_loader:
+    ...
+
+测试 Dataset 中只有一个 Tensor：
+
+TensorDataset(test_features)
+
+但 TensorDataset 仍然以元组形式返回样本，因此使用：
+
+for (batch_features,) in test_loader:
+    ...
+
+结尾逗号表示从单元素元组中解包 batch_features。
+
+Python 中，元组主要由逗号决定：
+
+value1 = (10)
+type(value1) == int
+
+value2 = (10,)
+type(value2) == tuple
+
+多元素元组也需要逗号，只不过逗号位于元素之间：
+
+value3 = (10, 20)
+
+所以不能记成“非单元素元组不需要逗号”。正确记忆：
+
+单元素元组必须有结尾逗号；多元素元组使用元素之间的逗号。
+
+也可以不直接解包：
+
+for batch in test_loader:
+    batch_features = batch[0]
+
+
+============================================================
+十八、为什么把预测结果移回 CPU
+============================================================
+
+代码：
+
+batch_probabilities.cpu()
+
+主要作用：
+
+1. 减少长期占用的 GPU 显存。
+2. 方便保存大量预测结果。
+3. 方便转换成 NumPy。
+4. 方便后续普通 Python 数据处理。
+
+注意：
+
+.cpu() 不是为了让 torch.cat() 能够拼接。
+
+GPU Tensor 之间也可以直接使用 torch.cat()，前提是参与拼接的 Tensor 位于同一设备并且形状兼容。
+
+
+============================================================
+十九、torch.cat() 拼接批次结果
+============================================================
+
+每批预测概率的形状：
+
+第 1 批：(2, 1)
+第 2 批：(2, 1)
+
+把它们保存在列表中：
+
+all_probabilities = [
+    第1批概率,
+    第2批概率,
+]
+
+然后：
+
+probabilities = torch.cat(
+    all_probabilities,
+    dim=0,
+)
+
+dim=0 表示沿行方向拼接：
+
+(2,1) + (2,1) -> (4,1)
+
+torch.cat() 是拼接 Tensor，不是数学加法。
+
+拼接后顺序保持为：
+
+第 1 批的结果
+-> 第 2 批的结果
+
+由于 test_loader 使用 shuffle=False，最终结果仍可按照原始顺序对应 candidate_names。
+
+
+============================================================
+二十、从概率得到分类结果
+============================================================
+
+predictions = (
+    probabilities >= 0.5
+).int()
+
+步骤：
+
+1. probabilities >= 0.5 得到 True 或 False。
+2. .int() 把 True 转为 1，把 False 转为 0。
+
+随后：
+
+result_text = "匹配" if prediction == 1 else "不匹配"
+
+得到便于阅读的中文结果。
+
+
+============================================================
+二十一、今日自测答案汇总
+============================================================
+
+1. TensorDataset 的作用是什么？
+将相同索引的特征和标签自动配对，组织成可按索引读取的样本。
+
+2. DataLoader 的作用是什么？
+从 Dataset 读取样本、划分批次、按设置打乱顺序，并让训练循环逐批处理数据。
+
+3. batch_size=3 表示什么？
+每个批次最多包含 3 个样本。
+
+4. 10 个样本、batch_size=3，一个 epoch 有几批？
+4 批，数量分别是 3、3、3、1。
+
+5. 最后一批的形状？
+特征为 (1,2)，标签为 (1,1)。
+
+6. shuffle 会破坏特征和标签的对应关系吗？
+不会。DataLoader 打乱的是已经配对的样本索引，特征和标签会一起移动。
+
+7. 为什么训练 shuffle=True、预测 shuffle=False？
+训练时打乱可以减少固定顺序的影响；预测时保持顺序，方便把输出对应回原始输入。
+
+8. 为什么完整数据通常保存在 CPU？
+CPU 内存通常更大，可以减少 GPU 显存占用；训练时只把当前批次送入 GPU 计算。
+
+9. 为什么模型、特征和标签要在同一设备？
+特征要与模型进行前向计算，标签要与 logits 计算损失，参与同一次 Tensor 运算的数据必须在兼容的同一设备。
+
+10. 一个批次训练的五步？
+前向传播、计算损失、清空梯度、反向传播、更新参数。
+
+11. batch 与 epoch 的区别？
+batch 是完整数据的一部分；epoch 是模型完整使用一次全部训练数据。
+
+12. 为什么每批清空梯度？
+PyTorch 默认累加梯度，若不清空，上一批梯度会影响当前批参数更新。
+
+13. (batch_features,) 的逗号是什么意思？
+表示从 DataLoader 返回的单元素元组中解包 batch_features。
+
+14. 两个 (2,1) Tensor 沿 dim=0 拼接后的形状？
+(4,1)。
+
+15. .cpu() 的主要作用？
+把结果移到 CPU，减少显存占用，方便保存、NumPy 转换和普通 Python 处理。
+
+16. model.eval() 与 torch.no_grad() 的区别？
+eval() 切换部分网络层的工作模式；no_grad() 禁用梯度和计算图记录。eval() 本身不会关闭梯度。
+
+17. 为什么训练准确率 100% 不代表真实可靠？
+数据量少时模型可能过拟合，只擅长已见训练数据；必须用独立测试数据评估泛化能力。
+
+
+============================================================
+二十二、常见易错点
+============================================================
+
+1. 错误：GPU 不适合处理大量数据。
+修正：GPU 很适合并行计算，但显存有限，因此大型数据要分批处理。
+
+2. 错误：测试数据没有标签，所以不能 shuffle。
+修正：技术上可以打乱，但通常为了保持输入与输出顺序一致而使用 shuffle=False。
+
+3. 错误：标签也要交给 model。
+修正：特征交给 model；标签与 logits 一起交给 loss_fn。
+
+4. 错误：不清空梯度会立刻让预测代码出错。
+修正：它会导致梯度意外累加，使参数更新和训练过程受到影响。
+
+5. 错误：model.eval() 会关闭梯度。
+修正：eval() 切换层模式；no_grad() 才关闭梯度记录。
+
+6. 错误：.cpu() 是为了让 torch.cat() 能运行。
+修正：GPU Tensor 也能拼接；移到 CPU 主要用于节省显存和后续处理。
+
+7. 错误：非单元素元组不需要逗号。
+修正：所有元组都由逗号构成；单元素元组需要结尾逗号。
+
+8. 错误：batch_size=3 表示每批一定有 3 个样本。
+修正：表示最多 3 个，最后一批可能更少。
+
+
+============================================================
+二十三、核心综合代码
+============================================================
+
+import torch
+import torch.nn as nn
+from torch.utils.data import TensorDataset, DataLoader
+
+torch.manual_seed(42)
+
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+x_data = torch.tensor(
+    [
+        [0.0, 0.0],
+        [0.0, 1.0],
+        [1.0, 0.0],
+        [1.0, 1.0],
+        [0.2, 0.3],
+        [0.3, 0.9],
+        [0.9, 0.3],
+        [0.8, 0.8],
+        [0.9, 0.7],
+        [0.7, 0.9],
+    ],
+    dtype=torch.float32,
+)
+
+y_data = torch.tensor(
+    [[0.0], [0.0], [0.0], [1.0], [0.0],
+     [0.0], [0.0], [1.0], [1.0], [1.0]],
+    dtype=torch.float32,
+)
+
+dataset = TensorDataset(x_data, y_data)
+
+train_loader = DataLoader(
+    dataset,
+    batch_size=3,
+    shuffle=True,
+)
+
+model = nn.Sequential(
+    nn.Linear(2, 4),
+    nn.ReLU(),
+    nn.Linear(4, 1),
+).to(device)
+
+loss_fn = nn.BCEWithLogitsLoss()
+
+optimizer = torch.optim.Adam(
+    model.parameters(),
+    lr=0.05,
+)
+
+for epoch in range(1000):
+    model.train()
+    total_loss = 0.0
+
+    for batch_features, batch_labels in train_loader:
+        batch_features = batch_features.to(device)
+        batch_labels = batch_labels.to(device)
+
+        logits = model(batch_features)
+        loss = loss_fn(logits, batch_labels)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        current_batch_size = batch_features.shape[0]
+        total_loss += loss.item() * current_batch_size
+
+    if (epoch + 1) % 200 == 0:
+        average_loss = total_loss / len(dataset)
+        print(epoch + 1, average_loss)
+
+test_features = torch.tensor(
+    [
+        [0.95, 0.85],
+        [0.85, 0.20],
+        [0.25, 0.95],
+        [0.75, 0.75],
+    ],
+    dtype=torch.float32,
+)
+
+test_dataset = TensorDataset(test_features)
+
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=2,
+    shuffle=False,
+)
+
+model.eval()
+all_probabilities = []
+
+with torch.no_grad():
+    for (batch_features,) in test_loader:
+        batch_features = batch_features.to(device)
+
+        batch_logits = model(batch_features)
+        batch_probabilities = torch.sigmoid(batch_logits)
+
+        all_probabilities.append(
+            batch_probabilities.cpu()
+        )
+
+probabilities = torch.cat(
+    all_probabilities,
+    dim=0,
+)
+
+predictions = (
+    probabilities >= 0.5
+).int()
+
+print(probabilities)
+print(predictions)
+
+
+============================================================
+二十四、今日最重要的知识链
+============================================================
+
+CPU 中的完整特征和标签
+-> TensorDataset 按索引配对
+-> DataLoader 打乱并划分批次
+-> 当前批次移动到 GPU
+-> 模型前向传播
+-> BCEWithLogitsLoss 计算损失
+-> 清空上一批梯度
+-> backward() 计算当前批梯度
+-> optimizer.step() 更新参数
+-> 完成全部批次即一个 epoch
+-> eval() + no_grad() 分批推理
+-> 每批结果移回 CPU
+-> torch.cat() 合并完整预测结果
+
+Dataset 和 DataLoader 是后续训练真实图像、文本数据以及 Transformer/大语言模型数据管道的基础。以后即使数据对象变成 tokenizer 输出的 input_ids、attention_mask 和 labels，核心思想仍然是：组织样本、分批、移动当前批次到设备、训练或推理。
+

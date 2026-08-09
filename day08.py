@@ -286,7 +286,7 @@ model.eval()
 all_probabilities = []
 
 with torch.no_grad():
-    for batch_index, (batch_features,) in enumerate(
+    for batch_index, (batch_features,) in enumerate(    #batch_features表示批次特征，batch_index表示批次索引
         test_loader,    
         start=1,
     ):
@@ -295,14 +295,14 @@ with torch.no_grad():
             f"形状={batch_features.shape}"
         )
 
-        batch_features = batch_features.to(device)
+        batch_features = batch_features.to(device)  #to(device)表示将张量移动到指定设备（CPU或GPU）
 
         batch_logits = model(batch_features)
         batch_probabilities = torch.sigmoid(batch_logits)   #torch.sigmoid()表示对logits进行Sigmoid激活函数处理，将其转换为概率值
 
         # 从GPU移回CPU，再保存每一批结果
         all_probabilities.append(       #all_probabilities表示保存所有批次的预测概率
-            batch_probabilities.cpu()   # 将结果移回CPU
+            batch_probabilities.cpu()   # 将结果移回CPU;减少GPU显存占用；方便长期保存结果；方便转换成 NumPy；方便进行后续普通 Python 数据处理。
         )
 
 # 将多个批次的结果拼接起来
