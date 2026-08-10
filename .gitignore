@@ -11,3 +11,6 @@ venv/
 
 # API 密钥和环境变量
 .env
+
+
+*.pth
