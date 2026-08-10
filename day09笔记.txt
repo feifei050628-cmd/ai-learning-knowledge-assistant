@@ -1,0 +1,1078 @@
+Python Day 9 学习笔记
+日期：2026-08-10
+主题：训练集/验证集/测试集、训练与评估函数、最佳模型保存和加载
+
+============================================================
+一、今日学习成果
+============================================================
+
+今天把前一天的小批量训练进一步整理成了较规范的机器学习训练流程，完成了以下内容：
+
+1. 生成 200 条模拟二分类数据。
+2. 使用 TensorDataset 组织特征和标签。
+3. 使用 random_split() 划分训练集、验证集和测试集。
+4. 分别为三个数据集创建 DataLoader。
+5. 封装 create_model()，方便重复创建相同结构的模型。
+6. 封装 train_one_epoch()，完成一个 epoch 的训练。
+7. 封装 evaluate()，在不更新参数的情况下评估模型。
+8. 同时观察训练损失、训练准确率、验证损失和验证准确率。
+9. 根据最低验证损失保存最佳模型权重。
+10. 使用 state_dict()、torch.save()、torch.load() 和 load_state_dict() 管理模型参数。
+11. 使用 Path(__file__).resolve().parent 构造稳定的模型保存路径。
+12. 理解过拟合、泛化能力和测试集信息泄漏。
+13. 将 *.pth 加入 .gitignore，避免提交模型二进制文件。
+
+今天最重要的进步：
+
+以前只关注“训练损失是否下降”；今天开始区分训练效果、验证效果和最终测试效果，并保存验证表现最好的模型，而不是默认使用最后一轮模型。
+
+
+============================================================
+二、三类数据集的职责
+============================================================
+
+完整数据集通常划分为：
+
+训练集（train set）
+验证集（validation set）
+测试集（test set）
+
+1. 训练集
+
+作用：更新模型参数。
+
+训练集会执行：
+
+前向传播
+-> 计算损失
+-> 清空梯度
+-> 反向传播
+-> 更新参数
+
+2. 验证集
+
+作用：在训练过程中检查模型效果、比较不同 epoch、选择最佳模型。
+
+验证集可以计算损失和准确率，但不能执行：
+
+loss.backward()
+optimizer.step()
+
+3. 测试集
+
+作用：训练、调参和模型选择全部结束后，进行最终客观评估。
+
+测试集不能用于：
+
+1. 更新模型参数。
+2. 选择最佳 epoch。
+3. 反复调整学习率或网络结构。
+
+如果反复根据测试集表现调整模型，即使没有对测试集执行反向传播，也会造成测试集信息泄漏。测试集会失去“真正未见数据”的客观评估作用。
+
+核心关系：
+
+训练集：学习
+验证集：选择
+测试集：最终考试
+
+
+============================================================
+三、创建模拟数据
+============================================================
+
+今天生成：
+
+sample_count = 200
+
+每名候选人有两个特征：
+
+第 1 列：Python 能力
+第 2 列：PyTorch 能力
+
+代码：
+
+features = torch.rand(
+    sample_count,
+    2,
+    dtype=torch.float32,
+)
+
+形状：
+
+features.shape == (200, 2)
+
+人工标签规则：
+
+Python 能力 + PyTorch 能力 >= 1.0
+-> 标签为 1
+
+否则：
+
+-> 标签为 0
+
+代码：
+
+labels = (
+    features[:, 0] + features[:, 1] >= 1.0
+).float().unsqueeze(dim=1)
+
+计算过程：
+
+features[:,0]：取全部样本的第 1 个特征。
+features[:,1]：取全部样本的第 2 个特征。
+>= 1.0：得到 bool Tensor。
+.float()：True 转为 1.0，False 转为 0.0。
+.unsqueeze(dim=1)：把形状从 (200,) 变成 (200,1)。
+
+标签形状：
+
+labels.shape == (200, 1)
+
+
+============================================================
+四、随机种子与可复现性
+============================================================
+
+代码：
+
+torch.manual_seed(42)
+
+计算机生成的通常是伪随机数。设置相同的随机种子，可以让程序尽可能重复相同的随机过程，例如：
+
+1. 生成相同的模拟数据。
+2. 创建相同的模型初始参数。
+3. 得到相同的数据集划分。
+
+意义：
+
+当修改训练代码后，如果随机数据、划分和初始参数保持一致，结果差异更可能来自代码或超参数变化，而不是随机波动。
+
+数据划分还单独使用：
+
+split_generator = (
+    torch.Generator().manual_seed(42)
+)
+
+然后传入：
+
+random_split(
+    full_dataset,
+    [140, 30, 30],
+    generator=split_generator,
+)
+
+这样每次运行都尽可能得到相同的训练、验证和测试索引。
+
+注意：在更复杂的 GPU 训练中，设置随机种子并不一定保证所有硬件和算子百分之百确定，但它是实现可复现实验的基础。
+
+
+============================================================
+五、random_split() 与 Subset
+============================================================
+
+今天的划分：
+
+训练集：140 条
+验证集：30 条
+测试集：30 条
+
+代码：
+
+train_dataset, validation_dataset, test_dataset = random_split(
+    full_dataset,
+    [140, 30, 30],
+    generator=split_generator,
+)
+
+random_split() 返回的不是复制后的新 Tensor，而是 Subset 对象。
+
+Subset 内部主要保存：
+
+1. 原始 Dataset 的引用。
+2. 属于当前子集的索引列表。
+
+可以简化理解为：
+
+train_dataset.dataset
+train_dataset.indices
+
+当读取 train_dataset[0] 时，Subset 会根据自己的索引列表找到 full_dataset 中对应的原始样本。
+
+这种设计的优点：
+
+1. 不需要复制全部 Tensor。
+2. 减少内存占用。
+3. 划分速度快。
+4. 多个子集可以共享同一个原始 Dataset。
+
+
+============================================================
+六、三个 DataLoader
+============================================================
+
+训练集：
+
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=16,
+    shuffle=True,
+)
+
+验证集和测试集：
+
+validation_loader = DataLoader(
+    validation_dataset,
+    batch_size=16,
+    shuffle=False,
+)
+
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=16,
+    shuffle=False,
+)
+
+训练集打乱的原因：
+
+改变每个 epoch 的样本顺序和批次组合，使小批量梯度更具随机性，减少固定顺序带来的影响。
+
+验证集和测试集不打乱的原因：
+
+它们不参与参数更新，并且通常需要保持输出顺序稳定，方便复查结果。
+
+训练集有 140 条，batch_size=16：
+
+140 = 16×8 + 12
+
+因此一个 epoch 有 9 个训练批次，也会执行 9 次 optimizer.step()。
+
+第一个完整批次形状：
+
+特征：(16,2)
+标签：(16,1)
+
+
+============================================================
+七、iter() 和 next()
+============================================================
+
+代码：
+
+first_features, first_labels = next(
+    iter(train_loader)
+)
+
+iter(train_loader)：创建 DataLoader 的迭代器。
+next(...)：从迭代器中取出下一批数据。
+
+第一次调用 next() 得到第一个批次。
+
+这适合检查数据形状和内容，但正式训练通常直接使用 for 循环遍历全部批次。
+
+
+============================================================
+八、为什么封装 create_model()
+============================================================
+
+代码：
+
+def create_model():
+    return nn.Sequential(
+        nn.Linear(2, 8),
+        nn.ReLU(),
+        nn.Linear(8, 1),
+    )
+
+作用：统一模型结构，方便创建多个结构完全相同但参数独立的模型。
+
+例如：
+
+model = create_model()
+new_model = create_model()
+
+两个模型结构相同，但刚创建时参数都是各自随机初始化的。
+
+重要：
+
+create_model() 不会自动加载旧模型权重。
+
+必须执行：
+
+new_model.load_state_dict(...)
+
+新模型才会获得保存的参数。
+
+今天正式训练前重新创建模型，是因为前面的单轮训练实验已经修改过旧模型参数。重新创建可以让正式训练从新的随机参数开始，避免受到测试训练的影响。
+
+
+============================================================
+九、train_one_epoch() 训练函数
+============================================================
+
+函数：
+
+def train_one_epoch(
+    model,
+    data_loader,
+    loss_fn,
+    optimizer,
+    device,
+):
+    ...
+
+每调用一次，模型会完整使用一次 data_loader 中的全部训练数据，也就是完成一个 epoch。
+
+核心步骤：
+
+model.train()
+
+for batch_features, batch_labels in data_loader:
+    batch_features = batch_features.to(device)
+    batch_labels = batch_labels.to(device)
+
+    logits = model(batch_features)
+    loss = loss_fn(logits, batch_labels)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+五个训练步骤：
+
+1. 前向传播。
+2. 计算损失。
+3. 清空上一批梯度。
+4. 反向传播，计算当前梯度。
+5. 根据梯度更新参数。
+
+真正负责计算梯度和更新参数的两行：
+
+loss.backward()：计算梯度。
+optimizer.step()：更新参数。
+
+logits = model(batch_features) 只是前向传播，不负责计算并保存参数梯度。
+
+
+============================================================
+十、model.train() 的准确含义
+============================================================
+
+model.train() 把模型切换到训练模式，主要影响 Dropout、BatchNorm 等层的行为。
+
+它本身不会：
+
+1. 自动计算损失。
+2. 自动反向传播。
+3. 自动调整模型参数。
+
+真正更新参数仍然需要：
+
+loss.backward()
+optimizer.step()
+
+今天的网络没有 Dropout 和 BatchNorm，因此 train() 暂时不会明显改变输出，但在规范训练代码中仍应调用。
+
+
+============================================================
+十一、整个数据集的平均损失和准确率
+============================================================
+
+每个批次的 BCEWithLogitsLoss 默认给出批次平均损失。
+
+为了正确统计整个数据集：
+
+current_batch_size = batch_features.shape[0]
+
+total_loss += (
+    loss.item() * current_batch_size
+)
+
+先把批次平均损失乘以当前批次实际样本数，恢复该批次的样本损失总和。
+
+最后：
+
+average_loss = total_loss / total_samples
+
+这样最后不足 batch_size 的批次也会得到正确权重。
+
+准确率统计：
+
+total_correct += (
+    predictions == batch_labels
+).sum().item()
+
+accuracy = total_correct / total_samples
+
+total_samples 不应该写死为 140，因为函数可能在其他数据集、其他 batch_size 或其他划分上复用。
+
+
+============================================================
+十二、evaluate() 评估函数
+============================================================
+
+函数：
+
+def evaluate(
+    model,
+    data_loader,
+    loss_fn,
+    device,
+):
+    ...
+
+评估过程：
+
+model.eval()
+
+with torch.no_grad():
+    for batch_features, batch_labels in data_loader:
+        logits = model(batch_features)
+        loss = loss_fn(logits, batch_labels)
+        ...
+
+evaluate() 不接收 optimizer，因为验证和测试阶段不更新参数。
+
+验证集仍需要标签，因为需要比较预测结果和真实答案，计算验证损失与准确率。
+
+验证函数不能包含：
+
+loss.backward()
+optimizer.step()
+
+否则验证集就会参与模型训练，导致评估不再客观。
+
+
+============================================================
+十三、eval() 与 no_grad() 的区别
+============================================================
+
+model.eval()：
+
+把模型切换到评估模式，改变 Dropout、BatchNorm 等层的行为。
+
+torch.no_grad()：
+
+禁用梯度和计算图记录，减少内存、显存和计算开销。
+
+重要区别：
+
+model.eval() 不会自动禁用梯度。
+torch.no_grad() 不会自动切换网络层模式。
+
+规范评估通常两者一起使用：
+
+model.eval()
+
+with torch.no_grad():
+    logits = model(features)
+
+
+============================================================
+十四、多轮训练与验证
+============================================================
+
+正式训练：
+
+for epoch in range(epochs):
+    train_loss, train_accuracy = train_one_epoch(
+        model,
+        train_loader,
+        loss_fn,
+        optimizer,
+        device,
+    )
+
+    validation_loss, validation_accuracy = evaluate(
+        model,
+        validation_loader,
+        loss_fn,
+        device,
+    )
+
+每轮训练完成后立即使用验证集检查当前模型，但验证集不会改变参数。
+
+需要同时观察：
+
+训练损失
+训练准确率
+验证损失
+验证准确率
+
+如果训练损失持续下降，而验证损失开始上升，通常意味着模型可能过拟合。
+
+
+============================================================
+十五、为什么保存最佳模型而不是最后一轮
+============================================================
+
+最后一个 epoch 不一定拥有最好的泛化能力。
+
+可能出现：
+
+训练损失继续下降
+验证损失先下降后上升
+
+这说明后面的模型更加拟合训练数据，但对未见数据的效果变差。
+
+所以使用：
+
+if validation_loss < best_validation_loss:
+    best_validation_loss = validation_loss
+
+    torch.save(
+        model.state_dict(),
+        best_model_path,
+    )
+
+只有当前验证损失刷新最低纪录时，才覆盖保存文件。
+
+如果当前验证损失没有变小：
+
+1. 不保存当前模型。
+2. 原来的最佳权重文件保持不变。
+3. 继续训练下一轮。
+
+
+============================================================
+十六、为什么 best_validation_loss 初始为正无穷
+============================================================
+
+代码：
+
+best_validation_loss = float("inf")
+
+float("inf") 表示正无穷大。
+
+任何正常有限的第一次验证损失都会满足：
+
+validation_loss < float("inf")
+
+所以第一次验证后一定会保存一个初始最佳模型。
+
+之后只有更小的验证损失才能更新最佳纪录。
+
+
+============================================================
+十七、state_dict() 与最佳权重文件
+============================================================
+
+代码：
+
+model.state_dict()
+
+它返回一个字典，包含：
+
+1. 模型权重。
+2. 模型偏置。
+3. 某些网络层的持久状态，例如 BatchNorm 的统计值。
+
+今天的模型主要包含 Linear 层的权重和偏置。
+
+保存：
+
+torch.save(
+    model.state_dict(),
+    best_model_path,
+)
+
+torch.save() 只负责把数据写入文件，不会改变模型参数。
+
+
+============================================================
+十八、稳定的模型保存路径
+============================================================
+
+代码：
+
+best_model_path = (
+    Path(__file__).resolve().parent
+    / "best_model.pth"
+)
+
+逐步解释：
+
+__file__：当前 Python 脚本文件路径。
+Path(__file__)：转换成 Path 对象。
+.resolve()：取得规范化的绝对路径。
+.parent：取得脚本所在文件夹。
+/ "best_model.pth"：拼接模型文件名。
+
+对于：
+
+C:\Users\21855\Documents\python learning\day09.py
+
+最终得到：
+
+C:\Users\21855\Documents\python learning\best_model.pth
+
+这样无论 PowerShell 当前位于哪个目录，模型都会保存在 day09.py 旁边。
+
+Path 对象中的 / 是路径拼接运算符，不是数学除法。
+
+
+============================================================
+十九、加载模型权重
+============================================================
+
+当前 day09.py 已完成最佳权重保存。加载最佳权重的标准模板如下，可在以后需要推理或最终测试时使用：
+
+best_model = create_model().to(device)
+
+best_state_dict = torch.load(
+    best_model_path,
+    map_location=device,
+    weights_only=True,
+)
+
+best_model.load_state_dict(
+    best_state_dict
+)
+
+三步关系：
+
+create_model()
+-> 创建结构相同、随机参数的新模型
+
+torch.load()
+-> 从文件读取 state_dict
+
+load_state_dict()
+-> 把读取出的参数装入新模型
+
+注意：
+
+torch.load() 只是读取文件，不会自动把参数装进模型。
+
+load_state_dict() 才负责让新模型获得读取出的参数。
+
+
+============================================================
+二十、为什么加载时模型结构必须相同
+============================================================
+
+state_dict 中的参数按照名称和形状保存，例如：
+
+0.weight
+0.bias
+2.weight
+2.bias
+
+新模型必须拥有能够接收这些参数的对应网络层。
+
+可以理解为：
+
+模型结构：容器
+state_dict：装入容器的参数
+
+如果保存时使用：
+
+nn.Linear(2,8)
+
+加载时改成：
+
+nn.Linear(2,16)
+
+参数形状不一致，通常会出现 RuntimeError。
+
+常见加载错误：
+
+Missing key：新模型需要某个参数，但文件中没有。
+Unexpected key：文件中有新模型不需要的参数。
+size mismatch：参数名称可能相同，但 Tensor 形状不同。
+
+
+============================================================
+二十一、map_location 与 weights_only
+============================================================
+
+map_location=device：
+
+把读取出的 Tensor 映射到当前指定设备。
+
+例如，即使权重以前在 GPU 保存，也可以根据当前环境加载到 CPU 或当前 GPU。
+
+weights_only=True：
+
+使用更受限制、更安全的方式读取权重类数据，适合读取 model.state_dict() 保存的文件。
+
+它不是让任意模型文件自动只保留一部分参数，而是限制加载方式。今天保存的本来就是 state_dict，所以这个选项很合适。
+
+
+============================================================
+二十二、使用最佳模型进行最终测试
+============================================================
+
+加载最佳模型后，可以使用已经定义的 evaluate()：
+
+test_loss, test_accuracy = evaluate(
+    best_model,
+    test_loader,
+    loss_fn,
+    device,
+)
+
+测试集应该在以下工作完成后使用：
+
+1. 模型训练完成。
+2. 超参数调整完成。
+3. 根据验证集选出最佳模型。
+
+然后测试集只负责最终评估泛化能力。
+
+最终测试不执行反向传播，也不更新任何参数。
+
+
+============================================================
+二十三、过拟合与泛化能力
+============================================================
+
+过拟合的典型现象：
+
+训练损失继续下降
+训练准确率继续提高
+但验证损失上升或验证准确率下降
+
+含义：
+
+模型越来越擅长训练数据，但对没有见过的数据表现变差。
+
+泛化能力：
+
+模型对未参与训练的新数据仍能正确预测的能力。
+
+训练准确率很高而测试准确率较低，可能说明：
+
+1. 模型记住了训练样本。
+2. 数据量不足。
+3. 训练集与测试集分布不同。
+4. 模型过于复杂。
+5. 数据存在噪声或标签问题。
+
+
+============================================================
+二十四、为什么忽略 *.pth
+============================================================
+
+.gitignore 中加入：
+
+*.pth
+
+表示忽略所有扩展名为 .pth 的模型权重文件。
+
+主要原因：
+
+1. 模型文件可能很大。
+2. 它们是二进制文件，Git 无法直观展示参数修改。
+3. 多次提交会持续增大 Git 仓库体积。
+4. 训练代码通常可以重新生成权重。
+5. 大型权重一般使用模型平台、对象存储或发布附件管理。
+
+今天应该提交：
+
+day09.py
+.gitignore
+day09笔记.txt
+
+通常不提交：
+
+best_model.pth
+.venv/
+__pycache__/
+.env
+tempCodeRunnerFile.py
+
+
+============================================================
+二十五、今日自测答案汇总
+============================================================
+
+1. 训练集、验证集和测试集分别做什么？
+训练集更新参数；验证集检查训练过程并选择最佳模型；测试集进行最终客观评估。
+
+2. 为什么不能反复根据测试集调整模型？
+会造成测试集信息泄漏，使测试集失去客观最终评估作用。
+
+3. random_split() 返回什么？
+返回引用原 Dataset 的 Subset，并保存各子集索引，不复制全部 Tensor。
+
+4. 随机种子的作用？
+让数据生成、划分和初始化等随机过程尽可能可重复，方便比较实验。
+
+5. batch 与 epoch？
+batch 是完整训练数据中的一小批；epoch 是模型完整使用一次全部训练数据。
+
+6. 哪两行计算梯度和更新参数？
+loss.backward() 计算梯度；optimizer.step() 更新参数。
+
+7. 为什么清空梯度？
+PyTorch 默认累加梯度，清空上一批梯度可避免无意累加影响当前更新。
+
+8. 为什么 evaluate() 不需要 optimizer？
+评估只计算损失和指标，不更新参数。
+
+9. eval() 与 no_grad()？
+eval() 切换网络层工作模式；no_grad() 禁用梯度和计算图记录。
+
+10. 为什么保存最佳验证模型？
+最后一轮不一定具有最低验证损失和最佳泛化能力。
+
+11. float("inf")？
+正无穷大，保证第一次有限验证损失能刷新最佳纪录。
+
+12. state_dict()？
+保存模型参数和持久状态；今天主要是 Linear 权重和偏置。
+
+13. save、load 与 load_state_dict？
+save 写入参数文件；load 读取参数文件；load_state_dict 把参数装入模型。
+
+14. 为什么模型结构必须相同？
+新模型要有名称和形状兼容的网络层来接收保存的参数。
+
+15. map_location=device？
+把读取出的 Tensor 映射到当前指定设备。
+
+16. 训练损失下降、验证损失上升？
+可能发生过拟合。
+
+17. 为什么训练准确率高但测试准确率低？
+模型可能只擅长已见训练数据，泛化能力较差。
+
+18. 为什么忽略 *.pth？
+权重通常体积大、无法方便比较、会膨胀 Git 仓库，通常使用专门方式管理。
+
+
+============================================================
+二十六、常见易错点
+============================================================
+
+1. 错误：logits = model(features) 会计算并保存参数梯度。
+修正：它是前向传播；loss.backward() 才执行反向传播并计算梯度。
+
+2. 错误：model.train() 会自动更新参数。
+修正：它只切换层模式；optimizer.step() 才更新参数。
+
+3. 错误：验证集不更新参数，所以不需要标签。
+修正：验证集需要标签来计算损失和准确率，但不反向传播。
+
+4. 错误：测试集只要不 backward 就可以反复用于调参。
+修正：反复根据测试结果调参也会造成信息泄漏。
+
+5. 错误：random_split() 会复制三份完整数据。
+修正：它返回记录原 Dataset 和索引列表的 Subset。
+
+6. 错误：create_model() 会自动加载旧参数。
+修正：新模型参数随机；必须调用 load_state_dict()。
+
+7. 错误：最后一轮必然是最佳模型。
+修正：后期可能过拟合，应根据验证指标保存最佳权重。
+
+8. 错误：torch.load() 后模型已经拥有参数。
+修正：还需要 best_model.load_state_dict(state_dict)。
+
+9. 错误：state_dict() 只包含“所有可学习参数”。
+修正：还可能包含 BatchNorm 等层的持久缓冲状态。
+
+10. 错误：.pth 很小也应该始终提交 Git。
+修正：权重属于二进制产物，通常通过专门存储管理并在 Git 中忽略。
+
+
+============================================================
+二十七、核心综合代码
+============================================================
+
+import torch
+import torch.nn as nn
+
+from pathlib import Path
+from torch.utils.data import TensorDataset, DataLoader, random_split
+
+torch.manual_seed(42)
+
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+features = torch.rand(
+    200,
+    2,
+    dtype=torch.float32,
+)
+
+labels = (
+    features[:,0] + features[:,1] >= 1.0
+).float().unsqueeze(dim=1)
+
+full_dataset = TensorDataset(features, labels)
+
+generator = torch.Generator().manual_seed(42)
+
+train_dataset, validation_dataset, test_dataset = random_split(
+    full_dataset,
+    [140, 30, 30],
+    generator=generator,
+)
+
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=16,
+    shuffle=True,
+)
+
+validation_loader = DataLoader(
+    validation_dataset,
+    batch_size=16,
+    shuffle=False,
+)
+
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=16,
+    shuffle=False,
+)
+
+def create_model():
+    return nn.Sequential(
+        nn.Linear(2,8),
+        nn.ReLU(),
+        nn.Linear(8,1),
+    )
+
+def train_one_epoch(model, loader, loss_fn, optimizer, device):
+    model.train()
+    total_loss = 0.0
+    total_correct = 0
+    total_samples = 0
+
+    for batch_features, batch_labels in loader:
+        batch_features = batch_features.to(device)
+        batch_labels = batch_labels.to(device)
+
+        logits = model(batch_features)
+        loss = loss_fn(logits, batch_labels)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        predictions = (
+            torch.sigmoid(logits) >= 0.5
+        ).float()
+
+        batch_size = batch_features.shape[0]
+        total_loss += loss.item() * batch_size
+        total_correct += (
+            predictions == batch_labels
+        ).sum().item()
+        total_samples += batch_size
+
+    return (
+        total_loss / total_samples,
+        total_correct / total_samples,
+    )
+
+def evaluate(model, loader, loss_fn, device):
+    model.eval()
+    total_loss = 0.0
+    total_correct = 0
+    total_samples = 0
+
+    with torch.no_grad():
+        for batch_features, batch_labels in loader:
+            batch_features = batch_features.to(device)
+            batch_labels = batch_labels.to(device)
+
+            logits = model(batch_features)
+            loss = loss_fn(logits, batch_labels)
+
+            predictions = (
+                torch.sigmoid(logits) >= 0.5
+            ).float()
+
+            batch_size = batch_features.shape[0]
+            total_loss += loss.item() * batch_size
+            total_correct += (
+                predictions == batch_labels
+            ).sum().item()
+            total_samples += batch_size
+
+    return (
+        total_loss / total_samples,
+        total_correct / total_samples,
+    )
+
+model = create_model().to(device)
+loss_fn = nn.BCEWithLogitsLoss()
+optimizer = torch.optim.Adam(
+    model.parameters(),
+    lr=0.01,
+)
+
+best_validation_loss = float("inf")
+best_model_path = (
+    Path(__file__).resolve().parent
+    / "best_model.pth"
+)
+
+for epoch in range(100):
+    train_loss, train_accuracy = train_one_epoch(
+        model,
+        train_loader,
+        loss_fn,
+        optimizer,
+        device,
+    )
+
+    validation_loss, validation_accuracy = evaluate(
+        model,
+        validation_loader,
+        loss_fn,
+        device,
+    )
+
+    if validation_loss < best_validation_loss:
+        best_validation_loss = validation_loss
+        torch.save(
+            model.state_dict(),
+            best_model_path,
+        )
+
+best_model = create_model().to(device)
+
+best_state_dict = torch.load(
+    best_model_path,
+    map_location=device,
+    weights_only=True,
+)
+
+best_model.load_state_dict(best_state_dict)
+
+test_loss, test_accuracy = evaluate(
+    best_model,
+    test_loader,
+    loss_fn,
+    device,
+)
+
+print("测试损失：", test_loss)
+print("测试准确率：", test_accuracy)
+
+
+============================================================
+二十八、今日最重要的知识链
+============================================================
+
+完整 Dataset
+-> random_split 按索引划分 Subset
+-> train/validation/test DataLoader
+-> train_one_epoch 使用训练集更新参数
+-> evaluate 使用验证集检查效果但不更新参数
+-> 比较 validation_loss
+-> 保存最低验证损失对应的 state_dict
+-> 创建相同结构的新模型
+-> torch.load 读取权重
+-> load_state_dict 装入权重
+-> 使用测试集进行一次最终评估
+
+这一流程是后续训练文本分类器、Transformer、微调预训练模型和大模型项目时都会反复使用的标准骨架。
+
