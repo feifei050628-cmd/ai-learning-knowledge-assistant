@@ -1,0 +1,779 @@
+Python Day 10 学习笔记
+主题：文本分词、词表、Token ID、Padding、Attention Mask、Embedding、句子向量与余弦相似度
+
+============================================================
+一、今天完成了什么
+============================================================
+
+今天完成了一条简化的 NLP 文本处理流程：
+
+原始 JD 文本
+→ 文本清洗与分词
+→ 构建词表
+→ 把 Token 转换为 Token ID
+→ 截断与 Padding
+→ 生成 Attention Mask
+→ Embedding 词向量
+→ Masked Mean Pooling 得到句子向量
+→ 计算个人技能与各个 JD 的余弦相似度
+→ 按相似度从高到低排序
+
+今天最重要的结论：
+
+1. 计算流程本身是正确的。
+2. 但当前 nn.Embedding 没有经过训练，词向量基本是随机初始值。
+3. 因此当前相似度只能用于理解代码流程，不能当作真实、可靠的岗位语义匹配结果。
+4. 真正的大模型文本匹配通常会使用经过训练的预训练模型生成有语义的向量。
+
+
+============================================================
+二、文本清洗与分词
+============================================================
+
+1. 什么是 Token
+
+Token 是文本被切分后得到的基本单位。在今天的简化代码中，一个英文单词就是一个 Token。
+
+例如：
+
+原始文本：Python, PyTorch, RAG, Docker
+分词结果：["python", "pytorch", "rag", "docker"]
+
+2. 核心代码
+
+def tokenize(text: str) -> list[str]:
+    cleaned_text = text.lower()
+    cleaned_text = cleaned_text.replace(",", " ")
+    cleaned_text = cleaned_text.replace("/", " ")
+    tokens = cleaned_text.split()
+    return tokens
+
+3. 每一步的作用
+
+text.lower()
+把字符串中的英文字符统一转换为小写，避免把 Python 和 python 当成两个不同的词。
+
+replace(",", " ") 和 replace("/", " ")
+把逗号和斜杠替换为空格，使 split() 能够按空白正确分词。
+
+split()
+不传参数时，默认按照空格、换行等连续空白字符切分，并返回列表。
+
+4. return 和 print 的区别
+
+return tokens：把分词结果返回给调用者，后续代码还可以继续使用。
+print(tokens)：只把结果显示在终端里，默认返回 None。
+
+重要修正：
+tokenize() 返回的是 list[str]，不是一个字符串。
+
+
+============================================================
+三、构建词表 Vocabulary
+============================================================
+
+1. 词表是什么
+
+词表是一个字典：
+
+键：Token，也就是单词。
+值：Token ID，也就是该单词对应的整数编号。
+
+示例：
+
+{
+    "<PAD>": 0,
+    "<UNK>": 1,
+    "python": 2,
+    "pytorch": 3,
+    "rag": 4,
+    "docker": 5,
+}
+
+重要修正：词表字典中的值是“整数 Token ID”，不是“序列”。
+
+2. 两个特殊 Token
+
+<PAD>，编号 0：
+用于把不同长度的文本补齐到相同长度。它不是原文中的真实单词。
+
+<UNK>，编号 1：
+表示词表中没有出现过的未知单词。虽然不知道它具体是什么词，但它仍然对应原文中的真实位置。
+
+3. 构建词表的核心代码
+
+def build_vocab(texts: list[str]) -> dict[str, int]:
+    vocab = {
+        "<PAD>": 0,
+        "<UNK>": 1,
+    }
+
+    for text in texts:
+        for token in tokenize(text):
+            if token not in vocab:
+                vocab[token] = len(vocab)
+
+    return vocab
+
+4. 为什么使用 len(vocab)
+
+每加入一个新词，当前词表长度正好可以作为新词的下一个编号。
+
+例如词表已有 0 和 1 两个编号，len(vocab) 等于 2，那么第一个普通单词就得到编号 2。
+
+5. 今天示例词表的编号
+
+<PAD> = 0
+<UNK> = 1
+python = 2
+pytorch = 3
+rag = 4
+docker = 5
+transformer = 6
+agent = 7
+nlp = 8
+
+总词表大小为 9。
+
+
+============================================================
+四、把 Token 转换为 Token ID
+============================================================
+
+1. 为什么模型需要 Token ID
+
+神经网络不能直接对 python、pytorch 这样的字符串做矩阵运算，所以要先把单词转换成整数编号。
+
+2. 核心代码
+
+def encode(text: str, vocab: dict[str, int]) -> list[int]:
+    tokens = tokenize(text)
+    token_ids = [
+        vocab.get(token, vocab["<UNK>"])
+        for token in tokens
+    ]
+    return token_ids
+
+3. vocab.get() 的含义
+
+vocab.get(token, vocab["<UNK>"])
+
+如果 token 在词表中，返回它的 Token ID。
+如果 token 不在词表中，返回 <UNK> 的编号 1。
+
+4. 示例
+
+假设：
+python = 2
+pytorch = 3
+<UNK> = 1
+
+输入：Python PyTorch LangChain
+输出：[2, 3, 1]
+
+因为 LangChain 没有出现在词表中，所以使用 <UNK> 的编号 1。
+
+5. Token 与 Token ID 的区别
+
+Token：文本单位，例如 "python"。
+Token ID：该 Token 在词表中的整数编号，例如 2。
+
+
+============================================================
+五、截断、Padding 与 Attention Mask
+============================================================
+
+1. 为什么要 Padding
+
+一个批次中的文本长度可能不同，但 Tensor 的每一行必须具有相同长度，才能进行批量矩阵运算。因此需要：
+
+文本过长：截断。
+文本过短：使用 <PAD> 补齐。
+
+2. 核心代码
+
+def encode_and_pad(
+    text: str,
+    vocab: dict[str, int],
+    max_length: int,
+) -> tuple[list[int], list[int]]:
+    token_ids = encode(text, vocab)
+    token_ids = token_ids[:max_length]
+
+    attention_mask = [1] * len(token_ids)
+
+    padding_length = max_length - len(token_ids)
+    token_ids += [vocab["<PAD>"]] * padding_length
+    attention_mask += [0] * padding_length
+
+    return token_ids, attention_mask
+
+3. 截断
+
+token_ids[:max_length]
+
+只保留前 max_length 个 Token ID，超过的部分会被删除。
+
+4. Attention Mask 的数值如何得到
+
+它不是模型随机计算出来的，而是根据“这个位置是不是真实 Token”直接生成的：
+
+真实 Token，包括 <UNK>：1
+补充的 <PAD>：0
+
+例如原文只有两个 Token，最大长度为 5：
+
+Token ID：[2, 4, 0, 0, 0]
+Mask：    [1, 1, 0, 0, 0]
+
+注意：<UNK> 代表未知单词，但它仍来自真实文本，因此 <UNK> 的 Mask 是 1。
+
+5. 重要修正
+
+题目询问具体编码结果时，应回答实际内容：
+
+[2, 4, 0, 0, 0]
+[1, 1, 0, 0, 0]
+
+而不是只回答形状 (2, 5)。
+
+
+============================================================
+六、Embedding：从 Token ID 得到词向量
+============================================================
+
+1. Embedding 是什么
+
+Embedding 可以理解为一个可学习的二维参数表：
+
+行数 = 词表大小
+列数 = 每个词向量的维度
+
+如果：
+
+vocab_size = 9
+embedding_dim = 4
+
+那么 Embedding 参数表形状就是：
+
+(9, 4)
+
+词表中的每一个 Token ID 对应其中的一行。
+
+2. 核心代码
+
+embedding = nn.Embedding(
+    num_embeddings=len(vocab),
+    embedding_dim=4,
+    padding_idx=vocab["<PAD>"],
+).to(device)
+
+token_id_tensor = torch.tensor(
+    [token_ids],
+    dtype=torch.long,
+    device=device,
+)
+
+token_vectors = embedding(token_id_tensor)
+
+3. 为什么 Token ID 必须使用 torch.long
+
+Token ID 的作用是指出要取 Embedding 参数表的哪一行，它是索引，不是连续数值特征。因此需要整数类型 torch.long。
+
+4. 形状变化
+
+输入 Token ID 形状：
+(batch_size, token_count)
+
+Embedding 输出形状：
+(batch_size, token_count, embedding_dim)
+
+例如：
+
+(1, 5) → (1, 5, 4)
+
+这里的 4 表示每个 Token 用 4 个数描述，即词向量有 4 个数值维度；不是“每个 Token 有 4 个词向量”。
+
+5. 词向量每个位置的数值从哪里来
+
+刚创建 nn.Embedding 时，这些参数通常由 PyTorch 随机初始化。
+
+例如 python 的初始向量可能是：
+
+[0.32, -0.71, 0.18, 0.55]
+
+这些初始数字本身没有可靠语义。训练时，损失函数通过反向传播计算梯度，优化器不断调整这些数字，词向量才可能逐渐学到有用关系。
+
+6. 同一个词的向量是否相同
+
+在同一个 Embedding、同一次程序运行中：
+同一个 Token ID 每次都查同一行，所以得到相同向量。
+
+重新运行程序时：
+如果没有固定随机种子、没有保存并加载训练后的参数，Embedding 会重新随机初始化，所以向量可能变化。
+
+7. padding_idx=0 的作用
+
+它告诉 Embedding：编号 0 是 Padding。Padding 行通常保持为零，并且训练时不更新该行。
+
+
+============================================================
+七、Masked Mean Pooling：把多个词向量合成句子向量
+============================================================
+
+1. 为什么需要句子向量
+
+Embedding 输出的是每个 Token 的向量，而岗位匹配需要比较整段个人技能文本和整段 JD。因此要把多个 Token 向量合成为一个句子向量。
+
+今天使用的是 Masked Mean Pooling，也就是只对真实 Token 的向量求平均。
+
+2. 核心代码
+
+def masked_mean_pooling(
+    token_vectors: torch.Tensor,
+    attention_mask: torch.Tensor,
+) -> torch.Tensor:
+    expanded_mask = attention_mask.unsqueeze(-1)
+    masked_vectors = token_vectors * expanded_mask
+
+    vector_sum = masked_vectors.sum(dim=1)
+    valid_token_count = expanded_mask.sum(dim=1).clamp(min=1.0)
+
+    sentence_vectors = vector_sum / valid_token_count
+    return sentence_vectors
+
+3. unsqueeze(-1) 的作用
+
+原 Mask 形状：
+(batch_size, token_count)
+
+增加最后一个维度后：
+(batch_size, token_count, 1)
+
+例如：
+
+(1, 5) → (1, 5, 1)
+
+这样 Mask 就可以广播到每个词向量的所有维度，与形状 (1, 5, 4) 的 token_vectors 相乘。
+
+4. Mask 相乘的结果
+
+真实 Token：向量 × 1，保留。
+PAD Token：向量 × 0，清零。
+
+5. 为什么 sum(dim=1)
+
+token_vectors 的形状为：
+
+(batch_size, token_count, embedding_dim)
+
+dim=1 是 Token 维度。沿 dim=1 求和，会把同一句话中的多个 Token 合并：
+
+(1, 5, 4) → (1, 4)
+
+6. 为什么还要除以真实 Token 数量
+
+只求和会使较长句子的向量通常更大。除以真实 Token 数量后，得到平均向量，减小句子长度带来的影响。
+
+7. clamp(min=1.0) 的作用
+
+如果输入文本为空，真实 Token 数量可能为 0。为了避免除以 0，把分母的最小值限制为 1.0。
+
+8. 重要修正
+
+Masked Mean Pooling 不是只调用 sum(dim=1)，完整步骤是：
+
+用 Mask 把 PAD 位置清零
+→ 沿 Token 维度求和
+→ 统计真实 Token 数量
+→ 用向量和除以真实 Token 数量
+
+
+============================================================
+八、批量编码与形状
+============================================================
+
+1. 批量编码核心思路
+
+def encode_batch(
+    texts: list[str],
+    vocab: dict[str, int],
+    max_length: int,
+    device: torch.device,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    all_token_ids = []
+    all_attention_masks = []
+
+    for text in texts:
+        token_ids, attention_mask = encode_and_pad(
+            text,
+            vocab,
+            max_length,
+        )
+        all_token_ids.append(token_ids)
+        all_attention_masks.append(attention_mask)
+
+    token_id_tensor = torch.tensor(
+        all_token_ids,
+        dtype=torch.long,
+        device=device,
+    )
+    attention_mask_tensor = torch.tensor(
+        all_attention_masks,
+        dtype=torch.float32,
+        device=device,
+    )
+
+    return token_id_tensor, attention_mask_tensor
+
+2. 三维 Tensor 每一维的含义
+
+假设有 8 句话，每句话最多 10 个 Token，每个词向量有 16 个数值维度：
+
+Embedding 输出形状为：
+
+(8, 10, 16)
+
+dim=0：8 句话，也就是 batch。
+dim=1：每句话 10 个 Token。
+dim=2：每个 Token 的向量有 16 个数值维度。
+
+3. 例子
+
+3 条 JD，每条最多 5 个 Token，词向量维度为 4：
+
+Token IDs：(3, 5)
+Attention Masks：(3, 5)
+Token Vectors：(3, 5, 4)
+Sentence Vectors：(3, 4)
+
+
+============================================================
+九、余弦相似度与排序
+============================================================
+
+1. 余弦相似度公式
+
+cosine_similarity(A, B)
+= A 与 B 的点积 ÷（A 的模长 × B 的模长）
+
+点积：
+A 和 B 对应位置相乘，再把所有乘积相加。
+
+模长：
+向量中每个元素平方后求和，再开平方。
+
+2. 手算示例
+
+A = [1, 1, 0, 0]
+B = [1, 0, 1, 0]
+
+点积：
+1×1 + 1×0 + 0×1 + 0×0 = 1
+
+A 的模长：√2
+B 的模长：√2
+
+余弦相似度：
+1 ÷ (√2 × √2) = 0.5
+
+3. 它主要比较什么
+
+余弦相似度主要比较两个向量的方向是否接近，而不是只比较数值大小。
+
+方向越接近，相似度越高。
+方向越不接近，相似度越低。
+
+4. 个人技能与多个 JD 批量比较
+
+个人技能句子向量形状：(1, 4)
+三个 JD 句子向量形状：(3, 4)
+
+先扩展个人技能向量：
+
+expanded_user_vector = user_sentence_vector.expand_as(job_sentence_vectors)
+
+(1, 4) → (3, 4)
+
+然后逐行计算：
+
+similarities = F.cosine_similarity(
+    expanded_user_vector,
+    job_sentence_vectors,
+    dim=1,
+)
+
+输出形状为 (3,)，因为三个 JD 各得到一个相似度。
+
+5. 排序
+
+ranked_indices = torch.argsort(
+    similarities,
+    descending=True,
+)
+
+torch.argsort() 返回排序后的索引，而不是排序后的原文本。
+
+descending=True 表示按相似度从高到低排列。
+
+6. .item()
+
+index_tensor.item()
+把只包含一个元素的 Tensor 转换为普通 Python 整数。
+
+similarities[index].item()
+把只包含一个元素的 Tensor 转换为普通 Python 浮点数。
+
+
+============================================================
+十、为什么当前相似度不能用于真实岗位匹配
+============================================================
+
+当前代码中的 nn.Embedding 是刚创建的，参数没有经过训练。
+
+因此：
+
+1. 每个词的初始向量基本是随机的。
+2. 模型不知道 Python 和 PyTorch 在语义上相关。
+3. 模型不知道 Agent 与智能体相关。
+4. 不同词的向量可能偶然方向接近，产生虚假的高相似度。
+5. 相同词会查询同一行向量，所以词面重叠可能带来一些信号，但这仍不等于可靠的语义理解。
+
+所以应该准确地表达为：
+
+余弦相似度的数学计算是正确的；
+但输入的句子向量没有学到语义，因此匹配结果不可靠。
+
+要得到有意义的岗位匹配结果，可以采用：
+
+1. 训练当前 Embedding 和后续模型。
+2. 使用已经训练好的预训练文本向量模型。
+3. 后续学习 Transformer，由上下文生成更有语义的表示。
+
+
+============================================================
+十一、今天自测中的重点修正
+============================================================
+
+1. tokenize() 返回什么？
+
+正确答案：返回字符串列表 list[str]。
+
+2. 词表是什么结构？
+
+正确答案：字典；键是 Token，值是整数 Token ID。
+
+3. Token IDs 和形状不要混淆
+
+如果题目问实际编码内容，要回答类似：
+[2, 4, 0, 0, 0]
+
+如果题目问 Tensor 形状，才回答类似：
+(2, 5)
+
+4. (8, 10, 16) 中 16 的含义
+
+正确答案：每个 Token 由 16 个数值特征组成，也就是 embedding_dim=16。
+
+5. unsqueeze(-1) 为什么必要
+
+它把 Mask 从 (batch, tokens) 变为 (batch, tokens, 1)，从而能够在词向量维度上广播。
+
+6. 同一个词是否使用同一向量
+
+同一个 Embedding、同一次运行中：是。
+重新随机初始化后：不一定相同。
+
+7. 当前岗位排序是否可信
+
+不可信。代码流程可用于练习，但随机 Embedding 没有真实语义。
+
+
+============================================================
+十二、容易混淆的概念对照
+============================================================
+
+Token
+文本被切分后的单位，例如 python。
+
+Token ID
+Token 在词表中的整数编号，例如 2。
+
+Vocabulary
+Token 到 Token ID 的映射字典。
+
+Padding
+用 <PAD> 补齐文本长度。
+
+Attention Mask
+标记真实 Token 和 Padding：真实位置为 1，Padding 为 0。
+
+Embedding
+根据 Token ID 查询可学习参数表，得到词向量。
+
+Token Vector
+一个 Token 对应的数值向量。
+
+Sentence Vector
+把一句话中的多个 Token Vector 汇总后得到的向量。
+
+Masked Mean Pooling
+忽略 PAD，只对真实 Token 向量求平均。
+
+Cosine Similarity
+通过向量夹角衡量方向接近程度。
+
+
+============================================================
+十三、完整关键代码骨架
+============================================================
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+def tokenize(text: str) -> list[str]:
+    text = text.lower().replace(",", " ").replace("/", " ")
+    return text.split()
+
+
+def build_vocab(texts: list[str]) -> dict[str, int]:
+    vocab = {"<PAD>": 0, "<UNK>": 1}
+
+    for text in texts:
+        for token in tokenize(text):
+            if token not in vocab:
+                vocab[token] = len(vocab)
+
+    return vocab
+
+
+def encode(text: str, vocab: dict[str, int]) -> list[int]:
+    return [
+        vocab.get(token, vocab["<UNK>"])
+        for token in tokenize(text)
+    ]
+
+
+def encode_and_pad(
+    text: str,
+    vocab: dict[str, int],
+    max_length: int,
+) -> tuple[list[int], list[int]]:
+    token_ids = encode(text, vocab)[:max_length]
+    attention_mask = [1] * len(token_ids)
+
+    padding_length = max_length - len(token_ids)
+    token_ids += [vocab["<PAD>"]] * padding_length
+    attention_mask += [0] * padding_length
+
+    return token_ids, attention_mask
+
+
+def masked_mean_pooling(
+    token_vectors: torch.Tensor,
+    attention_mask: torch.Tensor,
+) -> torch.Tensor:
+    # 增加最后一个维度，使 Mask 能广播到每个词向量维度。
+    expanded_mask = attention_mask.unsqueeze(-1)
+
+    masked_vectors = token_vectors * expanded_mask
+    vector_sum = masked_vectors.sum(dim=1)
+
+    # 避免空文本导致除以 0。
+    valid_count = expanded_mask.sum(dim=1).clamp(min=1.0)
+    return vector_sum / valid_count
+
+
+# Token ID 必须用 long，因为它用于查询 Embedding 参数表的行。
+token_id_tensor = torch.tensor(token_ids, dtype=torch.long, device=device)
+mask_tensor = torch.tensor(attention_masks, dtype=torch.float32, device=device)
+
+embedding = nn.Embedding(
+    num_embeddings=len(vocab),
+    embedding_dim=4,
+    padding_idx=vocab["<PAD>"],
+).to(device)
+
+token_vectors = embedding(token_id_tensor)
+sentence_vectors = masked_mean_pooling(token_vectors, mask_tensor)
+
+
+# 个人技能向量需要扩展到和多个 JD 向量相同的批次数量。
+expanded_user_vector = user_vector.expand_as(job_vectors)
+
+similarities = F.cosine_similarity(
+    expanded_user_vector,
+    job_vectors,
+    dim=1,
+)
+
+ranked_indices = torch.argsort(similarities, descending=True)
+
+
+============================================================
+十四、复习题与标准答案
+============================================================
+
+1. tokenize() 为什么先 lower()？
+答：统一大小写，避免同一个词因为大小写不同重复进入词表。
+
+2. tokenize() 返回什么类型？
+答：字符串列表 list[str]。
+
+3. <PAD> 和 <UNK> 有什么区别？
+答：<PAD> 是补齐位置，不是真实 Token；<UNK> 是原文中的未知 Token，仍是真实位置。
+
+4. 为什么 Token ID 要用 torch.long？
+答：Token ID 是 Embedding 参数表的行索引，索引必须是整数。
+
+5. Attention Mask 中 1 和 0 各代表什么？
+答：1 代表真实 Token，需要参与计算；0 代表 Padding，不参与句子向量计算。
+
+6. (3, 5, 4) 分别代表什么？
+答：3 条文本，每条最多 5 个 Token，每个 Token 的向量有 4 个数值维度。
+
+7. unsqueeze(-1) 做了什么？
+答：在末尾增加一个维度，例如 (3,5) 变为 (3,5,1)，方便与 (3,5,4) 广播相乘。
+
+8. 为什么句子向量要除以真实 Token 数？
+答：得到真实 Token 向量的平均值，减少文本长度的影响。
+
+9. 余弦相似度如何计算？
+答：两向量点积除以两向量模长之积。
+
+10. torch.argsort() 返回什么？
+答：排序后的索引。
+
+11. 当前代码为什么不能提供可靠的语义匹配？
+答：Embedding 仍是随机初始参数，没有训练出词语和句子的语义关系。
+
+12. 同一个 Token 在同一次运行中是否使用同一个向量？
+答：是，因为同一个 Token ID 总是查询 Embedding 参数表中的同一行。
+
+
+============================================================
+十五、今天应该真正记住的五句话
+============================================================
+
+1. 文本必须先转换成 Token ID，神经网络才能处理。
+2. Padding 负责统一长度，Attention Mask 负责告诉模型哪些位置是真的。
+3. Embedding 是一张可学习的参数表，Token ID 用来查询其中的一行。
+4. Masked Mean Pooling 会忽略 PAD，把多个 Token 向量平均成句子向量。
+5. 数学上能计算相似度，不代表向量已经包含可靠语义；未经训练的随机 Embedding 不能用于真实岗位匹配。
+
+
+============================================================
+十六、下一步学习方向
+============================================================
+
+下一阶段应进入 Transformer 的核心基础：
+
+1. 为什么普通平均池化无法充分理解上下文。
+2. Self-Attention 的作用。
+3. Query、Key、Value 的基本含义。
+4. Attention Score 如何计算。
+5. Mask 在 Transformer 中如何参与注意力计算。
+
+Day 10 已完成。
