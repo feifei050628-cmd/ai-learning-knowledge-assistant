@@ -1,0 +1,722 @@
+Python Day 11 学习笔记
+主题：单头 Self-Attention、Q/K/V、缩放点积、Softmax、Padding Mask 与维度变化
+
+============================================================
+一、今天完成了什么
+============================================================
+
+今天完整实现了单头 Self-Attention（自注意力）的核心计算流程：
+
+输入向量 X
+→ 分别生成 Query、Key、Value
+→ Q @ K 的转置，得到注意力分数
+→ 除以 √d_k 进行缩放
+→ 使用 Key Mask 屏蔽 PAD 列
+→ Softmax 得到注意力权重
+→ 注意力权重 @ Value
+→ 得到每个 Token 的上下文向量
+→ 使用 Query Mask 清零 PAD 位置的输出
+
+今天最重要的理解：
+
+1. Q 和 K 决定“关注谁、关注多少”。
+2. V 提供真正需要被加权汇总的信息。
+3. Q @ K转置会消除向量特征维度 d_k，保留 Query 数量和 Key 数量。
+4. 权重 @ V 会消除 Key 数量维度，保留 Query 数量和 Value 向量维度 d_v。
+5. 当前 Linear 层参数仍是随机初始化的，因此计算流程正确，但注意力权重还不具有可靠语义。
+
+
+============================================================
+二、为什么需要 Self-Attention
+============================================================
+
+Day 10 中，Embedding 根据 Token ID 查询参数表，得到每个 Token 的初始表示。
+
+Embedding 本身的局限是：
+
+同一个 Token ID 在同一个 Embedding 中总是查询同一行参数，因此它还没有根据当前句子中的其他 Token 改变自己的表示。
+
+Self-Attention 的目标是：
+
+让每个 Token 查看句子中的其他 Token，并按照重要程度汇总它们的信息，从而生成包含上下文的新向量。
+
+例如句子中有：
+
+python、pytorch、rag
+
+那么 pytorch 的新向量不再只来自 pytorch 原来的输入向量，而是可能同时汇总：
+
+python 的信息
+pytorch 自己的信息
+rag 的信息
+
+
+============================================================
+三、Q、K、V 分别是什么
+============================================================
+
+每个输入 Token 向量会经过三个不同的 Linear 层：
+
+Q = XW_q
+K = XW_k
+V = XW_v
+
+可以这样理解：
+
+Query（Q）：当前 Token 想寻找什么信息。
+Key（K）：当前 Token 能提供什么匹配线索。
+Value（V）：当前 Token 真正携带、准备被汇总的内容。
+
+Q 和 K 的比较结果决定注意力权重，V 则根据这些权重被加权求和。
+
+核心代码：
+
+query_layer = nn.Linear(
+    embedding_dim,
+    query_dim,
+    bias=False,
+).to(device)
+
+key_layer = nn.Linear(
+    embedding_dim,
+    query_dim,
+    bias=False,
+).to(device)
+
+value_layer = nn.Linear(
+    embedding_dim,
+    query_dim,
+    bias=False,
+).to(device)
+
+query = query_layer(input_vectors)
+key = key_layer(input_vectors)
+value = value_layer(input_vectors)
+
+三个 Linear 层拥有不同的参数 W_q、W_k、W_v，因此输入相同，生成的 Q、K、V 数值也不同。
+
+需要准确区分：
+
+Q、K、V 是计算得到的向量。
+随机初始化的是三个 Linear 层的参数 W_q、W_k、W_v。
+
+
+============================================================
+四、Q、K、V 的维度组成
+============================================================
+
+一般形式：
+
+Q：(batch_size, query_count, d_k)
+K：(batch_size, key_count, d_k)
+V：(batch_size, key_count, d_v)
+
+各维度含义：
+
+batch_size：一次处理多少句话。
+query_count：有多少个 Token 正在查询信息。
+key_count：有多少个 Token 可以被查询。
+d_k：每个 Query 和 Key 向量的特征维度。
+d_v：每个 Value 向量的特征维度。
+
+在 Self-Attention 中，Q、K、V 来自同一组 Token，因此通常：
+
+query_count = key_count = token_count
+
+今天的输入形状为：
+
+(1, 3, 4)
+
+含义是：
+
+1：有 1 个句子。
+3：每句话有 3 个 Token。
+4：每个 Token 的输入向量有 4 个数值特征。
+
+三个 Linear 层都是 nn.Linear(4, 4)，因此：
+
+Q：(1, 3, 4)
+K：(1, 3, 4)
+V：(1, 3, 4)
+
+Linear 层只处理最后一个特征维度，不改变 batch 数量和 Token 数量。
+
+如果改成 nn.Linear(4, 8)，则输出形状变为：
+
+(1, 3, 8)
+
+
+============================================================
+五、为什么要对 Key 转置
+============================================================
+
+原始形状：
+
+Q：(batch, query_count, d_k)
+K：(batch, key_count, d_k)
+
+我们需要让每个 Query 与所有 Key 计算点积。矩阵乘法要求相接的两个维度相等，因此要交换 K 的最后两个维度：
+
+key_transposed = key.transpose(-2, -1)
+
+转置前：
+
+K：(batch, key_count, d_k)
+
+转置后：
+
+K转置：(batch, d_k, key_count)
+
+然后：
+
+Q @ K转置
+
+(batch, query_count, d_k)
+@
+(batch, d_k, key_count)
+
+得到：
+
+(batch, query_count, key_count)
+
+注意：transpose(-2, -1) 交换的是最后两个维度，不是笼统地说“把整个 Tensor 的行列全部交换”。batch 维度保持不变。
+
+
+============================================================
+六、矩阵乘法保留和消除哪些维度
+============================================================
+
+最核心的矩阵乘法规则：
+
+(a, b) @ (b, c) → (a, c)
+
+两个矩阵相接的 b 维度，会逐项相乘并求和，因此结果中不再保留这个维度；外侧的 a 和 c 会被保留。
+
+1. Q @ K转置
+
+暂时忽略 batch：
+
+(query_count, d_k)
+@
+(d_k, key_count)
+
+得到：
+
+(query_count, key_count)
+
+因此：
+
+保留 Q 的 query_count。
+保留 K 转置后的 key_count。
+d_k 被逐项相乘并求和，因此被消除。
+batch 不参与点积，继续保留。
+
+最终形状：
+
+(batch, query_count, key_count)
+
+2. 一个分数是怎样算出来的
+
+假设：
+
+Q[0, 1] = [q1, q2, q3, q4]
+K[0, 2] = [k1, k2, k3, k4]
+
+那么：
+
+scores[0, 1, 2]
+= q1×k1 + q2×k2 + q3×k3 + q4×k4
+
+原来 4 个特征位置经过乘积求和，变成 1 个注意力分数。
+
+其中：
+
+0：第 0 个句子。
+1：第 1 个 Query Token，例如 pytorch。
+2：第 2 个 Key Token，例如 rag。
+
+3. 使用不同数字观察更清楚
+
+假设：
+
+Q：(2, 5, 6)
+K：(2, 5, 6)
+
+K 转置后：
+
+(2, 6, 5)
+
+相乘：
+
+(2, 5, 6) @ (2, 6, 5)
+→ (2, 5, 5)
+
+被消除的是 6，也就是 d_k。
+保留的是 batch=2、Query数量=5、Key数量=5。
+
+
+============================================================
+七、缩放点积注意力
+============================================================
+
+未缩放注意力分数：
+
+raw_scores = query @ key.transpose(-2, -1)
+
+d_k 是 Query 和 Key 的向量维度：
+
+d_k = query.shape[-1]
+
+缩放：
+
+scaled_scores = raw_scores / (d_k ** 0.5)
+
+完整注意力公式：
+
+Attention(Q, K, V)
+= Softmax(Q @ K转置 / √d_k) @ V
+
+为什么除以 √d_k：
+
+当向量维度较大时，点积绝对值可能随维度增大。过大的分数经过 Softmax 后，权重可能过度集中，例如：
+
+[0.9999, 0.0001, 0.0000]
+
+这可能导致梯度和训练不够稳定。缩放可以让 Softmax 输入更适中，使权重分布相对平缓。
+
+缩放不会改变原始分数的相对大小和排序，因为所有分数都除以同一个正数；但会改变 Softmax 后权重的集中程度。
+
+
+============================================================
+八、Softmax 如何生成注意力权重
+============================================================
+
+原始注意力分数可能：
+
+小于 0
+等于 0
+大于 1
+每行之和不等于 1
+
+因此不能直接当作权重。
+
+核心代码：
+
+attention_weights = torch.softmax(
+    scaled_scores,
+    dim=-1,
+)
+
+Softmax 后：
+
+每个权重位于 0 到 1 之间。
+同一个 Query 对所有 Key 的权重之和等于 1。
+
+为什么使用 dim=-1：
+
+注意力分数形状为：
+
+(batch, query_count, key_count)
+
+最后一个维度是 key_count，而不是词向量特征维度。
+
+dim=-1 表示：对每个 Query 的所有 Key 分数做 Softmax，使每一行权重和为 1。
+
+注意力矩阵的读取规则：
+
+行：谁在查询，也就是 Query。
+列：谁被查询，也就是 Key。
+
+例如：
+
+attention_weights[0, 1, 2]
+
+表示第 0 个句子中，第 1 个 Token 的 Query 对第 2 个 Token 的 Key 的注意力权重。
+
+
+============================================================
+九、注意力权重与 Value 相乘
+============================================================
+
+核心代码：
+
+context_vectors = attention_weights @ value
+
+一般形状：
+
+weights：(batch, query_count, key_count)
+V：      (batch, key_count, d_v)
+
+相乘后：
+
+context：(batch, query_count, d_v)
+
+这里：
+
+key_count 被逐项相乘并求和，因此被消除。
+query_count 被保留。
+d_v 被保留。
+batch 被保留。
+
+实际含义：
+
+每个 Query 根据注意力权重，对所有 Token 的 Value 进行加权求和，得到自己的上下文向量。
+
+例如：
+
+pytorch的新上下文向量
+= 20% × python的Value
++ 50% × pytorch的Value
++ 30% × rag的Value
+
+因此，上下文向量不只包含当前 Token 自己的信息，还可能混合句子中其他 Token 的信息。
+
+
+============================================================
+十、Padding Mask
+============================================================
+
+如果文本经过补齐：
+
+["python", "pytorch", "rag", "<PAD>"]
+
+Attention Mask 为：
+
+[1, 1, 1, 0]
+
+其中：
+
+1：真实 Token，需要参与计算。
+0：PAD，不应作为有效信息参与计算。
+
+1. 为什么不能不屏蔽 PAD
+
+PAD 即使使用全零输入向量，也可能在注意力分数中获得权重。尤其当其他分数为负数时，PAD 的 0 分反而可能相对较高。
+
+2. Key Mask：屏蔽 PAD 列
+
+原 Mask 形状：
+
+(batch, key_count)
+
+增加 Query 广播维度：
+
+key_mask = attention_mask.unsqueeze(1)
+
+得到：
+
+(batch, 1, key_count)
+
+它会广播到所有 Query 行，使所有真实 Token 都不能关注 PAD 所在的 Key 列。
+
+代码：
+
+scaled_scores = scaled_scores.masked_fill(
+    ~key_mask,
+    float("-inf"),
+)
+
+必须在 Softmax 之前设置：
+
+PAD 分数被改为 -∞。
+Softmax 中 e^(-∞) = 0。
+因此 PAD 列的最终权重为 0。
+
+如果先做 Softmax，再屏蔽 PAD，剩余权重之和就不再自然等于 1，还需要重新归一化。
+
+3. Query Mask：清零 PAD 行的上下文输出
+
+Key Mask 只解决“Token 不应该关注 PAD”的问题，它不会自动删除 PAD 对应的 Query 行。
+
+因此：
+
+query_mask = attention_mask.unsqueeze(-1).to(
+    context_vectors.dtype
+)
+
+context_vectors = context_vectors * query_mask
+
+形状：
+
+attention_mask：(batch, query_count)
+query_mask：    (batch, query_count, 1)
+context：       (batch, query_count, d_v)
+
+通过广播相乘：
+
+真实 Token 行 × 1，保留。
+PAD 行 × 0，清零。
+
+需要准确表述：PAD Query 行仍可能计算出注意力权重，但其上下文输出最后被 Query Mask 清零。
+
+4. Key Mask 与 Query Mask 的区别
+
+Key Mask：
+屏蔽注意力分数矩阵的 PAD 列，解决真实 Token 可能关注 PAD 的问题。
+
+Query Mask：
+清零上下文向量的 PAD 行，解决 PAD 位置仍会产生无用输出的问题。
+
+
+============================================================
+十一、完整单头缩放点积注意力函数
+============================================================
+
+def scaled_dot_product_attention(
+    query: torch.Tensor,
+    key: torch.Tensor,
+    value: torch.Tensor,
+    attention_mask: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """计算单头缩放点积注意力。"""
+
+    d_k = query.shape[-1]
+
+    # d_k 特征维度在点积求和中被消除，保留 Query 数量和 Key 数量。
+    scores = torch.matmul(
+        query,
+        key.transpose(-2, -1),
+    )
+    scaled_scores = scores / (d_k ** 0.5)
+
+    if attention_mask is not None:
+        # (batch, key_count) → (batch, 1, key_count)，屏蔽 PAD 列。
+        key_mask = attention_mask.unsqueeze(1).bool()
+        scaled_scores = scaled_scores.masked_fill(
+            ~key_mask,
+            float("-inf"),
+        )
+
+    # 在 Key 维度归一化，让每个 Query 的一行权重和为 1。
+    attention_weights = torch.softmax(
+        scaled_scores,
+        dim=-1,
+    )
+
+    # Key 数量维度在加权求和中被消除，得到每个 Query 的上下文向量。
+    context_vectors = torch.matmul(
+        attention_weights,
+        value,
+    )
+
+    if attention_mask is not None:
+        # (batch, query_count) → (batch, query_count, 1)，清零 PAD 输出行。
+        query_mask = attention_mask.unsqueeze(-1).to(
+            context_vectors.dtype
+        )
+        context_vectors = context_vectors * query_mask
+
+    return context_vectors, attention_weights
+
+函数返回：
+
+context_vectors：每个 Query 的上下文向量。
+attention_weights：每个 Query 对所有 Key 的注意力权重。
+
+
+============================================================
+十二、完整形状流程
+============================================================
+
+假设：
+
+batch_size = B
+Token 数量 = T
+Query/Key 维度 = d_k
+Value 维度 = d_v
+
+则：
+
+输入 X：                (B, T, input_dim)
+Q：                     (B, T, d_k)
+K：                     (B, T, d_k)
+V：                     (B, T, d_v)
+K转置：                 (B, d_k, T)
+Q @ K转置：             (B, T, T)
+缩放后的分数：          (B, T, T)
+Key Mask 后的分数：     (B, T, T)
+Softmax 权重：          (B, T, T)
+权重 @ V：              (B, T, d_v)
+Query Mask 后的输出：   (B, T, d_v)
+
+用今天加入 PAD 后的数据：
+
+Q、K、V：               (1, 4, 4)
+注意力分数：            (1, 4, 4)
+注意力权重：            (1, 4, 4)
+上下文向量：            (1, 4, 4)
+
+注意：形状中的数字恰好都为 4，但含义不同。必须根据所在位置判断：
+
+Q 的最后一个 4 是 d_k。
+注意力权重的第一个 4 是 Query 数量。
+注意力权重的第二个 4 是 Key 数量。
+上下文向量的最后一个 4 是 d_v。
+
+
+============================================================
+十三、pytorch 如何得到新的上下文向量
+============================================================
+
+完整过程：
+
+1. pytorch 的输入向量经过 query_layer，生成 pytorch 的 Query。
+2. pytorch 的 Query 分别与 python、pytorch、rag 的 Key 计算点积。
+3. 得到 pytorch 对各个 Key 的原始注意力分数。
+4. 所有分数除以 √d_k。
+5. Key Mask 把 PAD 对应的分数设置为 -∞。
+6. Softmax 把分数转换为和为 1 的注意力权重。
+7. 根据这些权重，对 python、pytorch、rag 的 Value 加权求和。
+8. 得到 pytorch 新的上下文向量。
+
+注意：必须同时提到 Q、K、V：
+
+Q 与 K 决定权重；
+权重用于汇总 V；
+最后得到上下文向量。
+
+
+============================================================
+十四、自测中的重点纠正
+============================================================
+
+1. 完整注意力公式
+
+正确：
+
+Softmax(Q @ K转置 / √d_k) @ V
+
+2. Softmax 的 dim=-1
+
+最后一个维度是 Key 数量，不是 Token 的向量特征维度。
+
+3. attention_weights @ value 的含义
+
+不是只回答“得到上下文向量”，还要理解为：每个 Query 按照权重对所有 Value 加权求和。
+
+4. 输入向量与上下文向量
+
+输入向量：每个 Token 原来的独立表示，尚未汇总其他 Token。
+上下文向量：经过注意力计算后，汇总了其他 Token 的 Value。
+
+当前参数未经训练，所以不能说输入向量已经可靠理解词义，也不能说上下文向量已经可靠理解语境。
+
+5. 随机初始化的对象
+
+随机初始化的是 W_q、W_k、W_v，也就是 Linear 层参数。
+Q、K、V 是输入经过这些参数计算得到的结果。
+
+6. PAD Query 行
+
+当前实现不是禁止 PAD Query 计算权重，而是在计算上下文向量后，把 PAD 对应的输出行清零。
+
+
+============================================================
+十五、常见易错点
+============================================================
+
+1. 把注意力矩阵的最后一维误认为词向量维度。
+
+注意力矩阵形状是：
+
+(batch, query_count, key_count)
+
+最后一维是 Key 数量。
+
+2. 看到转置前后形状一样，就认为没有变化。
+
+例如 (1,4,4) 转置后仍是 (1,4,4)，只是因为 token_count 和 d_k 恰好都为 4；它们的维度含义已经交换。
+
+3. 把 K 的转置称为“整个 Tensor 的普通行列转置”。
+
+准确说法：交换最后两个维度，batch 维度保持不变。
+
+4. 认为被消除的维度是直接删除。
+
+它不是简单删除，而是沿该维度逐项相乘并求和，最终变成一个数值。
+
+5. 在 Softmax 之后才 Mask。
+
+应在 Softmax 之前把 PAD 分数设置为 -∞，这样归一化时 PAD 权重自然为 0，其他真实 Token 权重之和仍为 1。
+
+6. 认为当前注意力权重已经代表真实语言关系。
+
+当前 W_q、W_k、W_v 未训练，权重主要用于理解运算过程，不能解释为可靠语义。
+
+7. 所有 Key 都被 Mask 的特殊情况。
+
+如果一整行所有 Key 都被设置成 -∞，Softmax 可能产生 NaN。今天的数据至少有真实 Token，所以没有触发；真实工程中需要避免全 PAD 样本或单独处理这种情况。
+
+
+============================================================
+十六、复习题与标准答案
+============================================================
+
+1. 为什么生成 Q、K、V？
+答：Q 与 K 用于计算关注对象和关注程度，V 提供被加权汇总的实际内容。
+
+2. 输入形状 (2,5,8) 表示什么？
+答：2 个句子，每句 5 个 Token，每个 Token 的输入向量有 8 个数值特征。
+
+3. 使用 nn.Linear(8,6) 后，Q 的形状是什么？
+答：(2,5,6)，因为 Linear 只把最后一个维度从 8 变为 6。
+
+4. 为什么转置 K？
+答：把 K 从 (batch,key_count,d_k) 变成 (batch,d_k,key_count)，使 d_k 与 Q 的最后一维相接，能够进行批量点积。
+
+5. Q @ K转置消除什么维度？
+答：消除 d_k；保留 batch、Query 数量和 Key 数量。
+
+6. 注意力分数形状 (2,5,5) 中两个 5 是什么？
+答：第一个是 Query 数量，第二个是 Key 数量。
+
+7. 为什么除以 √d_k？
+答：避免点积过大导致 Softmax 权重过度集中，提高训练稳定性。
+
+8. 为什么 Softmax 使用 dim=-1？
+答：最后一维是所有 Key，让每个 Query 对所有 Key 的权重和为 1。
+
+9. 权重 @ V 消除什么维度？
+答：消除 Key 数量维度；保留 batch、Query 数量和 d_v。
+
+10. Key Mask 做什么？
+答：屏蔽 PAD 对应的 Key 列，使真实 Token 不会关注 PAD。
+
+11. Query Mask 做什么？
+答：把 PAD 对应的上下文输出行清零。
+
+12. 为什么 PAD 分数设置为 -∞？
+答：因为 e^(-∞)=0，Softmax 后该位置权重为 0。
+
+13. 注意力权重每一行之和是多少？
+答：1。
+
+14. 当前注意力权重是否有可靠语义？
+答：没有，因为 W_q、W_k、W_v 尚未训练。
+
+
+============================================================
+十七、今天必须记住的六句话
+============================================================
+
+1. Q 表示想找什么，K 表示能提供什么线索，V 表示真正被汇总的内容。
+2. Q @ K转置用于计算每个 Query 对所有 Key 的注意力分数。
+3. Q @ K转置消除 d_k，得到 (batch, Query数量, Key数量)。
+4. Softmax 在 Key 维度上归一化，使每个 Query 的一行权重和为 1。
+5. 权重 @ V 消除 Key 数量维度，得到每个 Query 的上下文向量。
+6. Key Mask 屏蔽 PAD 列，Query Mask 清零 PAD 输出行。
+
+
+============================================================
+十八、下一步学习方向
+============================================================
+
+接下来应学习：
+
+1. 为什么一个注意力头不够。
+2. Multi-Head Attention 如何把特征拆成多个头。
+3. 每个头如何从不同角度学习关系。
+4. 多个头怎样拼接回原来的 embedding_dim。
+5. 位置编码为什么必不可少。
+
+Day 11 已完成。
