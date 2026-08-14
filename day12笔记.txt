@@ -1,0 +1,743 @@
+Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）
+
+一、今天完成了什么
+
+今天在 Day 11 单头自注意力的基础上，完成了多头自注意力的完整计算流程：
+
+1. 把完整的 token 向量投影成 Q、K、V。
+2. 把 embed_dim 平均拆分到多个注意力头中。
+3. 每个头独立计算缩放点积注意力。
+4. 使用 Key Mask 屏蔽 PAD 列。
+5. 把每个头的上下文向量重新拼接起来。
+6. 使用输出线性层混合不同注意力头的信息。
+7. 使用 Query Mask 把 PAD 位置的最终输出清零。
+8. 把整个过程封装成继承 nn.Module 的可复用模块。
+
+当前代码已经搭建出了 Transformer 中“多头自注意力”这一核心部件。不过，Q、K、V 和输出层的参数目前仍是随机初始化的，没有经过训练，所以当前注意力权重只能用于理解计算过程，不能解释成可靠的语义关系。
+
+
+二、单头注意力与多头注意力
+
+1. 单头注意力
+
+单头注意力只有一套 Q、K、V 投影，只从一个表示空间计算 token 之间的关系。
+
+2. 多头注意力
+
+多头注意力会把完整向量拆成多个较小的子空间，每个头分别计算注意力，最后再把多个头的结果拼接、混合。
+
+多头注意力的优势是：它为不同注意力头学习不同关系提供了可能。例如，经过充分训练后，某些头可能更关注技能搭配，某些头可能更关注岗位名称，某些头可能更关注上下文依赖。
+
+但要注意：
+
+- “某个头一定负责某种关系”并不是预先规定的。
+- 每个头学习什么取决于训练数据、损失函数和训练结果。
+- 未训练的注意力头只有随机参数，不能说明它学会了任何语义。
+
+
+三、三个核心维度
+
+假设：
+
+embed_dim = 8
+num_heads = 2
+head_dim = 4
+
+它们的含义分别是：
+
+- embed_dim：一个完整 token 向量的维度。
+- num_heads：注意力头的数量。
+- head_dim：每个注意力头分到的向量维度。
+
+三者必须满足：
+
+embed_dim = num_heads * head_dim
+
+所以：
+
+head_dim = embed_dim // num_heads
+
+必须检查 embed_dim 能否被 num_heads 整除：
+
+assert embed_dim % num_heads == 0
+
+如果 embed_dim=8、num_heads=2，那么每个头得到 4 个特征。
+
+重要理解：拆头不会增加或删除元素，它只是重新解释 Tensor 的结构。
+
+原来每个 token 有 8 个连续特征：
+
+[特征1, 特征2, 特征3, 特征4, 特征5, 特征6, 特征7, 特征8]
+
+拆成两个头后，可以理解为：
+
+头1：[特征1, 特征2, 特征3, 特征4]
+头2：[特征5, 特征6, 特征7, 特征8]
+
+
+四、Q、K、V 的形状
+
+在自注意力中，Q、K、V 都来自同一份输入，但会分别经过不同的线性层：
+
+Q = Wq(X)
+K = Wk(X)
+V = Wv(X)
+
+三个向量的职责可以这样记：
+
+- Q（Query）：当前 token 想寻找什么信息。
+- K（Key）：当前 token 能提供什么匹配线索。
+- V（Value）：当前 token 真正携带、准备被汇总的内容。
+
+拆头以后，一般形状为：
+
+Q：(batch_size, num_heads, query_count, head_dim)
+K：(batch_size, num_heads, key_count, head_dim)
+V：(batch_size, num_heads, key_count, head_dim)
+
+在自注意力中，Query、Key、Value 都来自同一句输入，因此通常：
+
+query_count = key_count = value_count = token_count
+
+例如：
+
+Q.shape = (1, 2, 3, 4)
+
+表示：
+
+- 1 个句子；
+- 2 个注意力头；
+- 每个头有 3 个 Query，也就是 3 个 token；
+- 每个 Query 的子向量维度是 4。
+
+
+五、拆分多个注意力头
+
+原始 Q 的形状：
+
+(batch_size, token_count, embed_dim)
+
+第一步，用 reshape 拆分完整向量维度：
+
+Q = Q.reshape(batch_size, token_count, num_heads, head_dim)
+
+形状变化：
+
+(B, T, E) -> (B, T, H, Dh)
+
+第二步，交换 token 维度和 head 维度：
+
+Q = Q.transpose(1, 2)
+
+形状变化：
+
+(B, T, H, Dh) -> (B, H, T, Dh)
+
+这样做的原因是把 num_heads 放到 token 前面，PyTorch 就能让所有头并行、独立地完成矩阵乘法。
+
+示例：输入形状是 (8, 10, 16)，头数为 4：
+
+reshape 后：(8, 10, 4, 4)
+transpose 后：(8, 4, 10, 4)
+
+其中：
+
+- 8 是 batch_size；
+- 4 是 num_heads；
+- 10 是 token_count；
+- 最后一个 4 是 head_dim。
+
+
+六、每个头如何计算注意力分数
+
+核心代码：
+
+attention_scores = query_heads @ key_heads.transpose(-2, -1)
+attention_scores = attention_scores / (head_dim ** 0.5)
+
+假设：
+
+query_heads.shape = (B, H, Q, Dh)
+key_heads.shape   = (B, H, K, Dh)
+
+转置 Key 的最后两个维度：
+
+key_heads.transpose(-2, -1).shape = (B, H, Dh, K)
+
+矩阵乘法：
+
+(B, H, Q, Dh) @ (B, H, Dh, K)
+
+得到：
+
+(B, H, Q, K)
+
+这里的维度变化非常重要：
+
+- 被消除（收缩、求和）的维度：head_dim。
+- 被保留的维度：batch、head、query_count、key_count。
+
+为什么 head_dim 会消失？
+
+因为一个 Query 向量和一个 Key 向量做点积时，会把对应位置相乘后求和：
+
+q · k = q1*k1 + q2*k2 + ... + qDh*kDh
+
+最终只得到一个分数，所以向量维度 Dh 被求和消除了。
+
+例如：
+
+Q.shape = (1, 2, 3, 4)
+K^T.shape = (1, 2, 4, 3)
+
+结果：
+
+attention_scores.shape = (1, 2, 3, 3)
+
+这里两个 3 的含义不同：
+
+- 第一个 3：Query 的数量，对应注意力矩阵的行。
+- 第二个 3：Key 的数量，对应注意力矩阵的列。
+
+它们不是向量维度，也不是因为“3×3矩阵所以得到3×3”，而是由 Query 数量和 Key 数量共同决定的。
+
+
+七、为什么除以根号 head_dim
+
+缩放点积注意力公式：
+
+scores = (Q @ K^T) / sqrt(head_dim)
+
+每个注意力头只使用 head_dim 个特征做点积，因此缩放因子使用 sqrt(head_dim)，不是 sqrt(embed_dim)。
+
+如果向量维度较大，点积结果的绝对值可能很大。把很大的分数直接交给 Softmax，可能让概率过于接近 0 或 1，使梯度很小、训练不稳定。
+
+除以 sqrt(head_dim) 可以让分数更平缓，帮助 Softmax 和梯度计算保持稳定。
+
+缩放不会改变分数之间的相对大小和排序，只会调整数值尺度。
+
+
+八、Softmax 如何得到注意力权重
+
+原始注意力分数可能：
+
+- 小于 0；
+- 等于 0；
+- 大于 1；
+- 每一行的总和不等于 1。
+
+因此原始分数不能直接当作权重，需要使用：
+
+attention_weights = torch.softmax(attention_scores, dim=-1)
+
+dim=-1 表示在最后一维 key_count 上执行 Softmax。
+
+对每一个 Query 来说，它需要在所有 Key 之间分配关注比例，因此注意力矩阵的每一行之和应为 1。
+
+注意力权重形状仍然是：
+
+(B, H, Q, K)
+
+其中：
+
+- 行表示“当前 Query 正在查询谁”；
+- 列表示“这个 Key 被当前 Query 关注了多少”。
+
+例如：
+
+attention_weights[0, 1, 2, 0]
+
+表示：
+
+- 第 1 个句子（索引0）；
+- 第 2 个注意力头（索引1）；
+- 第 3 个 Query（索引2）；
+- 对第 1 个 Key（索引0）的注意力权重。
+
+
+九、注意力权重与 V 相乘
+
+核心代码：
+
+context_heads = attention_weights @ value_heads
+
+形状：
+
+attention_weights：(B, H, Q, K)
+value_heads：      (B, H, K, Dh)
+
+矩阵乘法：
+
+(B, H, Q, K) @ (B, H, K, Dh)
+
+得到：
+
+(B, H, Q, Dh)
+
+这里：
+
+- 被消除的维度：key_count。
+- 被保留的维度：batch、head、query_count、head_dim。
+
+含义是：每个 Query 使用注意力权重，对所有 Key 对应的 Value 向量进行加权求和，得到自己的上下文向量。
+
+上下文向量不再只表示 token 本身，还混合了它关注的其他 token 信息。
+
+
+十、把多个头重新拼接
+
+每个头独立计算后：
+
+context_heads.shape = (B, H, T, Dh)
+
+第一步，把 token 维度移回 head 前面：
+
+context = context_heads.transpose(1, 2)
+
+形状：
+
+(B, H, T, Dh) -> (B, T, H, Dh)
+
+第二步，确保内存排列连续并合并最后两个维度：
+
+context = context.contiguous().reshape(B, T, E)
+
+形状：
+
+(B, T, H, Dh) -> (B, T, E)
+
+这里 embed_dim = num_heads * head_dim。
+
+需要区分三个操作：
+
+- transpose：交换维度顺序。
+- contiguous：创建内存连续的 Tensor，方便之后安全地重新解释形状；它本身不负责交换维度。
+- reshape：把 heads 和 head_dim 两个维度合并为 embed_dim。
+
+“拼接”不是把头首尾变成更多 token，而是把同一个 token 在所有头里的特征首尾合并，恢复成完整 token 向量。
+
+
+十一、输出线性层的作用
+
+合并多个头后，还要经过输出投影：
+
+output = output_layer(context)
+
+通常：
+
+output_layer = nn.Linear(embed_dim, embed_dim)
+
+输入和输出形状都为：
+
+(B, T, E)
+
+输出线性层的作用是学习如何组合、混合来自不同注意力头的信息。
+
+注意：
+
+- output_layer 会改变数值，一般不会改变形状。
+- 它不负责让注意力权重之和等于 1。
+- 权重归一化是 Softmax 完成的。
+- output_layer 的参数也必须经过训练才有实际意义。
+
+
+十二、Padding Mask：Key Mask
+
+假设原来有 3 个真实 token，后来补了 1 个 PAD：
+
+attention_mask = [[1, 1, 1, 0]]
+
+形状：
+
+(B, K)
+
+其中：
+
+- 1 表示真实 token，需要参与计算。
+- 0 表示 PAD，不应被关注。
+
+注意力分数形状是：
+
+(B, H, Q, K)
+
+为了让 mask 能广播到每个头、每个 Query 行，需要变成：
+
+key_mask = attention_mask.unsqueeze(1).unsqueeze(1)
+
+形状变化：
+
+(B, K) -> (B, 1, K) -> (B, 1, 1, K)
+
+两个 1 的作用：
+
+- 第一个 1 广播到 num_heads。
+- 第二个 1 广播到 query_count。
+
+然后在 Softmax 之前执行：
+
+attention_scores = attention_scores.masked_fill(
+    ~key_mask.bool(),
+    float("-inf"),
+)
+
+PAD 列被设为负无穷大。Softmax 中有指数运算：
+
+exp(-inf) = 0
+
+所以 PAD 列最终权重变成 0。
+
+Key Mask 解决的问题是：防止真实 Query 关注 PAD Key。
+
+必须先 Mask，再 Softmax。如果先 Softmax，PAD 已经分走了一部分概率，再把它置零后，每行权重之和就可能不再等于 1。
+
+
+十三、Padding Mask：Query Mask
+
+Key Mask 只屏蔽 PAD 列，却不会自动让 PAD 所在的 Query 行消失。PAD Query 仍然可能关注真实 token，并产生一个上下文向量。
+
+所以输出阶段还要使用 Query Mask：
+
+query_mask = attention_mask.unsqueeze(-1)
+output = output * query_mask
+
+形状：
+
+(B, Q) -> (B, Q, 1)
+
+它会在 embed_dim 方向自动广播，把 PAD 位置的整行输出乘以 0。
+
+两种 Mask 的区别：
+
+- Key Mask：屏蔽 PAD 列，防止真实 token 关注 PAD。
+- Query Mask：清零 PAD 行，防止 PAD 位置的输出影响后续计算。
+
+记忆方法：
+
+- Key 对应注意力矩阵的列。
+- Query 对应注意力矩阵的行。
+
+
+十四、封装成 nn.Module
+
+核心结构：
+
+class MultiHeadSelfAttention(nn.Module):
+    def __init__(self, embed_dim: int, num_heads: int):
+        super().__init__()
+
+        if embed_dim % num_heads != 0:
+            raise ValueError("embed_dim 必须能被 num_heads 整除")
+
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+
+        self.query_layer = nn.Linear(embed_dim, embed_dim, bias=False)
+        self.key_layer = nn.Linear(embed_dim, embed_dim, bias=False)
+        self.value_layer = nn.Linear(embed_dim, embed_dim, bias=False)
+        self.output_layer = nn.Linear(embed_dim, embed_dim)
+
+    def split_heads(self, tensor):
+        batch_size, token_count, _ = tensor.shape
+
+        tensor = tensor.reshape(
+            batch_size,
+            token_count,
+            self.num_heads,
+            self.head_dim,
+        )
+
+        return tensor.transpose(1, 2)
+
+    def forward(self, input_vectors, attention_mask):
+        query = self.query_layer(input_vectors)
+        key = self.key_layer(input_vectors)
+        value = self.value_layer(input_vectors)
+
+        query_heads = self.split_heads(query)
+        key_heads = self.split_heads(key)
+        value_heads = self.split_heads(value)
+
+        attention_scores = (
+            query_heads @ key_heads.transpose(-2, -1)
+        ) / (self.head_dim ** 0.5)
+
+        key_mask = attention_mask.unsqueeze(1).unsqueeze(1).bool()
+        attention_scores = attention_scores.masked_fill(
+            ~key_mask,
+            float("-inf"),
+        )
+
+        attention_weights = torch.softmax(attention_scores, dim=-1)
+        context_heads = attention_weights @ value_heads
+
+        batch_size, _, token_count, _ = context_heads.shape
+        context = context_heads.transpose(1, 2)
+        context = context.contiguous().reshape(
+            batch_size,
+            token_count,
+            self.embed_dim,
+        )
+
+        output = self.output_layer(context)
+
+        query_mask = attention_mask.unsqueeze(-1)
+        output = output * query_mask
+
+        return output, attention_weights
+
+
+十五、nn.Module、super()、self 和 forward()
+
+1. nn.Module
+
+nn.Module 是 PyTorch 中所有神经网络模型和网络层的基础父类。继承它后，模块可以获得：
+
+- 自动登记 Linear 等子模块和可训练参数；
+- 使用 parameters() 把参数交给优化器；
+- 使用 .to(device) 移动模型；
+- 使用 train() 和 eval() 切换训练/预测模式；
+- 使用 state_dict() 保存参数；
+- 调用模型时自动执行 forward()。
+
+2. super().__init__()
+
+继承关系由下面这句建立：
+
+class MultiHeadSelfAttention(nn.Module):
+
+而 super().__init__() 的作用是执行父类 nn.Module 的初始化过程，建立 PyTorch 管理参数和子模块所需的内部结构。
+
+它不是“创建继承关系”，但如果不调用它，PyTorch 可能无法正确登记层和参数。
+
+3. self
+
+写成 self.query_layer 后，这个层会长期保存在对象中，并被 nn.Module 登记为子模块。
+
+如果只在某个函数里创建临时局部变量，它不会以同样方式成为模型的固定组成部分。
+
+4. forward()
+
+forward() 定义数据如何流过模型。
+
+通常使用：
+
+output = model(input_vectors, attention_mask)
+
+不要习惯性直接写：
+
+output = model.forward(input_vectors, attention_mask)
+
+因为 model(...) 会先经过 nn.Module 的 __call__ 机制，再自动调用 forward()，还能正确处理 hooks 等内部功能。
+
+5. 动态获取输入形状
+
+下面这句：
+
+batch_size, token_count, _ = input_vectors.shape
+
+获取的是当前传入 Tensor 的形状，而不是直接从原始文本中读取。
+
+
+十六、为什么返回 output 和 attention_weights
+
+return output, attention_weights
+
+两个结果用途不同：
+
+- output：传给后续网络层继续计算。
+- attention_weights：用于调试、检查 Mask、分析或可视化注意力分配。
+
+返回注意力权重并不意味着它一定具有可靠语义。只有经过合适训练并谨慎分析后，才可能从中获得一些解释信息。
+
+
+十七、今天容易混淆的地方与纠正
+
+1. 输入 (8,10,16) 拆成4头
+
+不完整答案：只写 (8,10,4,4)。
+
+完整过程：
+
+(8,10,16)
+-> reshape (8,10,4,4)
+-> transpose (8,4,10,4)
+
+2. 缩放因子
+
+使用 sqrt(head_dim)，因为每个头的点积只使用 head_dim 个特征。
+
+3. contiguous() 的作用
+
+contiguous() 不负责交换维度，也不负责拼接头；它负责确保内存连续。交换由 transpose 完成，合并由 reshape 完成。
+
+4. output_layer 的作用
+
+output_layer 混合不同头的特征，不负责把注意力权重归一化为和等于1。
+
+5. Attention Mask 的形状
+
+原始 mask 是 (batch_size, token_count)，不是 (batch_size, embed_dim)。
+
+6. 注意力分数最后两个维度
+
+(B,H,Q,K) 中最后两个维度是 Query 数量和 Key 数量，不是 head_dim。
+
+7. 多头不代表已经学会多个关系
+
+多头只提供多个子空间；真正的关系必须通过训练获得。
+
+8. Query Mask 不能替代 Key Mask
+
+Query Mask 清零 PAD 输出行；Key Mask 防止真实 token 把概率分给 PAD 列，两者解决的问题不同。
+
+
+十八、完整数据流
+
+输入向量 X：(B,T,E)
+-> 线性投影得到 Q、K、V：(B,T,E)
+-> reshape 拆头：(B,T,H,Dh)
+-> transpose：(B,H,T,Dh)
+-> Q @ K^T，收缩 Dh：(B,H,Q,K)
+-> 除以 sqrt(Dh)
+-> Key Mask 屏蔽 PAD 列
+-> Softmax(dim=-1) 得到注意力权重：(B,H,Q,K)
+-> 注意力权重 @ V，收缩 K：(B,H,Q,Dh)
+-> transpose：(B,Q,H,Dh)
+-> contiguous + reshape 拼接头：(B,Q,E)
+-> 输出线性层混合多头信息：(B,Q,E)
+-> Query Mask 清零 PAD 输出行
+-> 得到多头自注意力上下文向量
+
+
+十九、矩阵乘法维度速记
+
+矩阵乘法只看最后两个维度：
+
+(..., M, N) @ (..., N, P) -> (..., M, P)
+
+中间相同的 N 被相乘并求和，因此消失；外侧的 M 和 P 被保留。
+
+应用一：Q @ K^T
+
+(B,H,Q,Dh) @ (B,H,Dh,K) -> (B,H,Q,K)
+
+消除 Dh，保留 Q 和 K。
+
+应用二：Weights @ V
+
+(B,H,Q,K) @ (B,H,K,Dh) -> (B,H,Q,Dh)
+
+消除 K，保留 Q 和 Dh。
+
+
+二十、核心自测答案
+
+1. 多头注意力相比单头注意力有什么价值？
+
+它允许不同注意力头在不同子空间中学习不同的 token 关系，最后再融合信息；但具体关系由训练决定。
+
+2. embed_dim、num_heads、head_dim 的关系？
+
+embed_dim = num_heads * head_dim，并且 embed_dim 必须能被 num_heads 整除。
+
+3. 为什么要把 (B,T,H,Dh) 转成 (B,H,T,Dh)？
+
+把头维度放到 token 前，使各头能独立、并行地执行矩阵乘法。
+
+4. Q @ K^T 消除了什么维度？
+
+消除了 head_dim，保留 Query 数量与 Key 数量。
+
+5. Weights @ V 消除了什么维度？
+
+消除了 key_count，保留 Query 数量与 Value 的特征维度。
+
+6. Softmax 为什么用 dim=-1？
+
+最后一维是所有 Key。每个 Query 需要在所有 Key 之间分配权重，使每行权重总和为1。
+
+7. Key Mask 为什么在 Softmax 之前使用？
+
+先把 PAD 分数设为负无穷大，Softmax 后它的权重才会成为0，同时真实位置权重仍正确归一化。
+
+8. Key Mask 和 Query Mask 分别解决什么问题？
+
+Key Mask 防止真实 token 关注 PAD；Query Mask 清除 PAD 位置产生的输出。
+
+9. 为什么需要 output_layer？
+
+它负责学习如何组合不同注意力头提供的信息，并让输出保持 embed_dim 维度。
+
+10. 当前注意力权重能否说明模型理解了文本？
+
+不能。当前 Q、K、V 和输出层参数仍是随机初始化的，尚未通过训练学到可靠语义。
+
+
+二十一、Day 12 最核心代码
+
+拆头：
+
+def split_heads(tensor, num_heads, head_dim):
+    batch_size, token_count, _ = tensor.shape
+    tensor = tensor.reshape(batch_size, token_count, num_heads, head_dim)
+    return tensor.transpose(1, 2)
+
+缩放点积注意力：
+
+scores = query_heads @ key_heads.transpose(-2, -1)
+scores = scores / (head_dim ** 0.5)
+
+Key Mask 与 Softmax：
+
+key_mask = attention_mask.unsqueeze(1).unsqueeze(1).bool()
+scores = scores.masked_fill(~key_mask, float("-inf"))
+weights = torch.softmax(scores, dim=-1)
+
+加权汇总 Value：
+
+context_heads = weights @ value_heads
+
+拼接多个头：
+
+context = context_heads.transpose(1, 2)
+context = context.contiguous().reshape(batch_size, token_count, embed_dim)
+output = output_layer(context)
+
+清零 PAD 输出：
+
+query_mask = attention_mask.unsqueeze(-1)
+output = output * query_mask
+
+
+二十二、明天复习时优先检查
+
+1. 能否不看笔记写出拆头的 reshape 和 transpose。
+2. 能否根据 Q、K、V 的形状推导两次矩阵乘法的输出形状。
+3. 能否解释为什么缩放因子是 sqrt(head_dim)。
+4. 能否说清 Key Mask 与 Query Mask 的区别。
+5. 能否解释 contiguous、reshape 和 output_layer 各自负责什么。
+6. 能否用自己的话说明 nn.Module、super().__init__() 和 forward()。
+
+
+二十三、下一步预告
+
+完成多头自注意力后，下一步适合学习 Transformer 的其他关键结构：
+
+- 位置编码：让模型知道 token 的先后顺序。
+- 残差连接：保留原始信息并帮助深层网络训练。
+- LayerNorm：稳定每层输出的数值分布。
+- 前馈神经网络（FFN）：对每个 token 的特征做进一步非线性变换。
+
+把多头注意力、残差连接、LayerNorm 和 FFN 组合起来，就能形成一个基础的 Transformer Encoder Block。
+
+
+Day 12 总结
+
+今天最重要的不是记住某个具体数值，而是掌握形状变化和两个“维度收缩”：
+
+Q @ K^T：消除 head_dim，得到 token 对 token 的注意力分数。
+
+Weights @ V：消除 key_count，得到每个 Query 汇总后的上下文向量。
+
+随后把多个头重新拼接，通过输出线性层混合信息，并用两类 Mask 正确处理 PAD。这就是多头自注意力模块的完整主干。
