@@ -1,0 +1,759 @@
+Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block
+
+一、今天完成了什么
+
+今天在Day 12多头自注意力的基础上，继续补齐了Transformer Encoder的其他核心组件：
+
+1. 使用Position ID和位置Embedding，让模型获得token的顺序信息。
+2. 学习残差连接，保留进入子层之前的原始信息。
+3. 使用LayerNorm稳定每个token的特征分布。
+4. 搭建前馈神经网络FFN，对每个token内部的特征进行非线性处理。
+5. 使用PyTorch的nn.MultiheadAttention组装完整的Transformer Encoder Block。
+6. 使用Key Padding Mask屏蔽PAD列，并使用Query Mask清零PAD输出行。
+
+今天得到的完整主干是：
+
+词向量 + 位置向量
+→ 多头自注意力
+→ 第一次残差连接
+→ 第一次LayerNorm
+→ FFN
+→ 第二次残差连接
+→ 第二次LayerNorm
+→ Encoder输出
+
+当前代码已经能够正确完成Encoder的前向计算和Padding处理。不过模型参数仍然是随机初始化的，没有经过任务数据训练，因此当前输出只能验证程序流程和Tensor形状，不能用于可靠的文本语义匹配。
+
+
+二、Token ID与Position ID
+
+1. Token ID
+
+Token ID表示token在词表中的编号，用来从词Embedding表中找到对应的词向量。
+
+例如：
+
+词表 = {
+    "<PAD>": 0,
+    "<UNK>": 1,
+    "python": 2,
+    "pytorch": 3,
+}
+
+那么“python”的Token ID是2。
+
+2. Position ID
+
+Position ID表示token在句子或序列中的位置编号，例如：
+
+[0, 1, 2, 3, 4]
+
+Position ID不是词表编号，也不是特征编号。它只说明当前token位于序列的第几个位置。
+
+如果batch_size=2、token_count=5，那么：
+
+position_ids =
+[[0, 1, 2, 3, 4],
+ [0, 1, 2, 3, 4]]
+
+形状为：
+
+(2, 5)
+
+这里的2表示两句话，5表示每句话有五个token位置。
+
+
+三、为什么Transformer需要位置信息
+
+自注意力擅长比较token之间的内容，但如果不额外提供位置信息，它本身不会自然知道token的排列顺序。
+
+例如：
+
+我 喜欢 大模型
+大模型 喜欢 我
+
+两句话含有相同的一组token，但顺序不同，表达的含义也不同。因此Transformer的输入通常需要同时包含：
+
+最终输入向量 = 词向量 + 位置向量
+
+同一个词出现在不同位置时，词向量可以相同，但位置向量不同，所以相加后的最终表示不同。
+
+
+四、可学习位置Embedding
+
+今天使用的是可学习的位置Embedding：
+
+position_embedding_layer = nn.Embedding(
+    max_length,
+    embed_dim,
+)
+
+例如：
+
+nn.Embedding(10, 8)
+
+含义是：
+
+- 最多支持10个位置，即位置0～9。
+- 每个位置用一个8维向量表示。
+- 参数矩阵形状为(10,8)。
+
+如果当前只输入五个token，就只会根据Position ID取出其中五行，而不是必须使用全部十个位置。
+
+位置向量的生成：
+
+position_embeddings = position_embedding_layer(position_ids)
+
+形状变化：
+
+Position ID：(2,5)
+→ Position Embedding
+→ 位置向量：(2,5,8)
+
+词向量也是(2,5,8)，因此可以逐元素相加：
+
+transformer_input = token_embeddings + position_embeddings
+
+相加后的形状仍为：
+
+(2,5,8)
+
+相加只改变向量数值，不改变batch、token数量和特征维度。
+
+当前position_embedding_layer中的参数是随机初始化的可训练参数。训练过程中，损失函数会引导不同位置学习有用的位置表示。
+
+
+五、残差连接
+
+残差连接公式：
+
+残差输出 = 原始输入 + 子层输出
+
+也可以写成：
+
+y = x + Sublayer(x)
+
+在注意力子层中：
+
+x = x + Attention(x)
+
+在FFN子层中：
+
+x = x + FFN(x)
+
+残差连接的作用：
+
+1. 保留进入子层前的原始信息。
+2. 在原始信息基础上加入子层学习的新信息。
+3. 防止子层处理时完全覆盖或丢失输入信息。
+4. 为梯度提供直接传播路径，帮助更深的模型训练。
+
+可以把子层输出理解为对原始表示提出的“修改量”：
+
+新表示 = 原始表示 + 修改量
+
+如果子层暂时没有学好、输出接近0，残差输出仍然接近原始输入。
+
+
+六、为什么残差两侧形状必须相同
+
+残差连接是逐元素加法，所以两侧Tensor必须具有相同形状。
+
+例如：
+
+(2,5,8) + (2,5,8) → (2,5,8)
+
+可以相加。
+
+但是：
+
+(2,5,8) + (2,5,4)
+
+不能直接相加，因为每个token的特征数量不同。
+
+这也是为什么：
+
+- 多头注意力最终输出要恢复为embed_dim。
+- FFN虽然在中间扩大维度，最后仍要恢复为embed_dim。
+- Encoder Block通常保持输入和输出形状一致。
+
+
+七、模拟子层输出是怎么得到的
+
+学习残差连接时，使用了：
+
+simulated_attention_layer = nn.Linear(embed_dim, embed_dim)
+sublayer_output = simulated_attention_layer(residual_input)
+
+当embed_dim=8时，相当于：
+
+nn.Linear(8,8)
+
+线性层对每一个token的最后一个维度独立计算：
+
+子层输出 = x @ W转置 + b
+
+其中：
+
+- x是一个token的8维输入。
+- W是形状(8,8)的权重矩阵。
+- b是形状(8)的偏置向量。
+- 输出仍然是8维。
+
+输入形状：
+
+(2,5,8)
+
+Linear(8,8)会分别处理2×5个token，不会在这个普通Linear中混合不同token，输出形状仍为：
+
+(2,5,8)
+
+这段Linear只是为了模拟“子层对输入做了一次处理”，帮助理解残差连接。真正的注意力子层会通过Q、K、V让不同token之间交换信息。
+
+
+八、LayerNorm
+
+残差相加后，不同特征的数值范围可能差别较大。LayerNorm会稳定每个token的特征分布，帮助模型训练。
+
+代码：
+
+layer_norm = nn.LayerNorm(embed_dim)
+normalized_output = layer_norm(residual_output)
+
+如果输入形状为：
+
+(2,5,8)
+
+那么nn.LayerNorm(8)会对每个token最后的8个特征独立计算均值和方差。
+
+它不会：
+
+- 把不同句子混合计算。
+- 把不同token混合计算。
+- 改变Tensor形状。
+
+
+九、LayerNorm的计算过程
+
+假设一个token的特征向量为：
+
+x = [x1,x2,...,x8]
+
+第一步，计算这个token的特征均值：
+
+mean = sum(x) / 8
+
+第二步，计算总体方差：
+
+variance = sum((x - mean)²) / 8
+
+第三步，标准化：
+
+normalized = (x - mean) / sqrt(variance + epsilon)
+
+epsilon是很小的正数，用来防止方差为0时发生除零。
+
+在LayerNorm可学习参数的初始状态下，每个token标准化后通常：
+
+均值接近0
+标准差接近1
+
+验证标准差时使用：
+
+token.std(unbiased=False)
+
+原因是LayerNorm采用总体方差，即除以N。unbiased=True使用样本方差，会除以N-1，验证结果不会刚好接近1。
+
+
+十、LayerNorm的可训练参数
+
+LayerNorm还有两个可训练参数：
+
+- weight，也叫gamma，负责缩放。
+- bias，也叫beta，负责平移。
+
+完整计算可以理解为：
+
+输出 = weight × normalized + bias
+
+初始化时：
+
+LayerNorm.weight = 全部为1
+LayerNorm.bias = 全部为0
+
+这里不是“接近1和0”，初始化值就是准确的1和0。训练过程中，优化器可以更新它们。
+
+因此，训练后的LayerNorm最终输出不一定永远严格保持均值0、标准差1，因为可学习的weight和bias还会继续缩放和平移标准化结果。
+
+
+十一、前馈神经网络FFN
+
+Transformer Encoder中的第二个重要子层是Position-wise Feed-Forward Network，也就是逐位置前馈神经网络。
+
+常见结构：
+
+embed_dim
+→ Linear扩大特征
+→ 激活函数
+→ Linear恢复特征
+
+当前代码使用：
+
+8 → 32 → 8
+
+对应代码：
+
+feed_forward = nn.Sequential(
+    nn.Linear(embed_dim, ffn_hidden_dim),
+    nn.GELU(),
+    nn.Linear(ffn_hidden_dim, embed_dim),
+)
+
+其中：
+
+ffn_hidden_dim = embed_dim * 4
+
+
+十二、FFN中的形状变化
+
+输入为：
+
+(2,5,8)
+
+完整变化：
+
+(2,5,8)
+→ Linear(8,32)
+→ (2,5,32)
+→ GELU
+→ (2,5,32)
+→ Linear(32,8)
+→ (2,5,8)
+
+GELU只改变数值，不改变形状。
+
+第一层扩大特征空间，让模型可以组合出更多中间特征。第二层把特征恢复为embed_dim，使它能够：
+
+1. 与FFN输入进行残差相加。
+2. 继续传给下一个Transformer层。
+3. 保持整个Encoder输入输出维度一致。
+
+
+十三、FFN与多头注意力的职责区别
+
+多头注意力：
+
+负责不同token之间的信息交流和上下文汇总。
+
+FFN：
+
+负责对每个token内部的不同特征进行非线性处理。
+
+记忆方法：
+
+注意力：token之间
+FFN：token内部
+
+FFN会对每一个token独立执行相同的网络参数，不会直接让第一个token读取第二个token。token之间的信息交流已经在注意力子层完成。
+
+
+十四、为什么FFN后还要Add & Norm
+
+一个Encoder Block包含两个重要子层，每个子层都拥有自己的残差连接和LayerNorm：
+
+注意力部分：
+
+Attention
+→ 残差连接
+→ LayerNorm
+
+FFN部分：
+
+FFN
+→ 残差连接
+→ LayerNorm
+
+FFN后的残差连接公式：
+
+ffn_residual_output = normalized_output + ffn_output
+
+它保留进入FFN之前的表示，并加入FFN学习到的新特征，同时提供直接的梯度路径。
+
+
+十五、完整Transformer Encoder Block
+
+今天封装的类包含：
+
+class TransformerEncoderBlock(nn.Module):
+    def __init__(
+        self,
+        embed_dim,
+        num_heads,
+        ffn_hidden_dim,
+    ):
+        super().__init__()
+
+        self.attention = nn.MultiheadAttention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            batch_first=True,
+        )
+
+        self.norm_after_attention = nn.LayerNorm(embed_dim)
+
+        self.feed_forward = nn.Sequential(
+            nn.Linear(embed_dim, ffn_hidden_dim),
+            nn.GELU(),
+            nn.Linear(ffn_hidden_dim, embed_dim),
+        )
+
+        self.norm_after_ffn = nn.LayerNorm(embed_dim)
+
+
+十六、Encoder的forward流程
+
+核心计算：
+
+def forward(self, input_vectors, attention_mask):
+    key_padding_mask = attention_mask == 0
+
+    attention_output, attention_weights = self.attention(
+        query=input_vectors,
+        key=input_vectors,
+        value=input_vectors,
+        key_padding_mask=key_padding_mask,
+        need_weights=True,
+        average_attn_weights=False,
+    )
+
+    after_attention = self.norm_after_attention(
+        input_vectors + attention_output
+    )
+
+    ffn_output = self.feed_forward(after_attention)
+
+    encoder_output = self.norm_after_ffn(
+        after_attention + ffn_output
+    )
+
+    query_mask = attention_mask.unsqueeze(-1)
+    encoder_output = encoder_output * query_mask
+
+    return encoder_output, attention_weights
+
+这属于今天学习的Post-Norm形式：
+
+LayerNorm(x + Sublayer(x))
+
+实际模型中也经常看到Pre-Norm：
+
+x + Sublayer(LayerNorm(x))
+
+目前先掌握残差连接、LayerNorm以及完整的数据流即可。
+
+
+十七、为什么自注意力的Q、K、V都来自input_vectors
+
+这里实现的是Self-Attention，自注意力表示同一序列中的token互相关注，所以：
+
+query = input_vectors
+key = input_vectors
+value = input_vectors
+
+但是最终Q、K、V的数值并不相同，因为nn.MultiheadAttention内部有三套不同的可训练投影参数：
+
+Q = X @ Wq
+K = X @ Wk
+V = X @ Wv
+
+Wq、Wk和Wv不同，因此三个结果可以学习不同职责：
+
+- Q：当前token想寻找什么。
+- K：当前token能提供什么匹配线索。
+- V：当前token真正携带什么内容。
+
+以后学习Cross-Attention时，Q可能来自一组输入，K和V来自另一组输入。
+
+
+十八、注意力权重的形状
+
+当：
+
+batch_size = 4
+token_count = 10
+embed_dim = 16
+num_heads = 4
+
+每个头的维度为：
+
+head_dim = 16 / 4 = 4
+
+拆头后的Q、K形状：
+
+Q：(4,4,10,4)
+K：(4,4,10,4)
+K转置：(4,4,4,10)
+
+计算：
+
+(4,4,10,4) @ (4,4,4,10)
+→ (4,4,10,10)
+
+因此注意力权重形状为：
+
+(batch_size, num_heads, query_count, key_count)
+
+也就是：
+
+(4,4,10,10)
+
+注意不要把拆头后的Q形状和注意力权重形状混淆。
+
+
+十九、Attention Mask与Key Padding Mask的规则
+
+我们自己的attention_mask使用：
+
+1 = 真实token
+0 = PAD
+
+但是PyTorch的key_padding_mask使用：
+
+False = 保留
+True = 屏蔽
+
+两套规则含义相反，因此需要：
+
+key_padding_mask = attention_mask == 0
+
+例如：
+
+attention_mask：
+[1,1,1,0,0]
+
+转换后：
+
+key_padding_mask：
+[False,False,False,True,True]
+
+最后两个PAD Key会被屏蔽。
+
+
+二十、Key Padding Mask与Query Mask
+
+Key Padding Mask：
+
+- 屏蔽注意力矩阵中的PAD列。
+- 防止真实token关注PAD Key。
+- nn.MultiheadAttention会在内部处理这些PAD列。
+
+Query Mask：
+
+- 清零PAD位置产生的输出行。
+- 防止PAD Query的输出影响后续计算。
+
+代码：
+
+query_mask = attention_mask.unsqueeze(-1)
+encoder_output = encoder_output * query_mask
+
+原mask形状：
+
+(batch_size, token_count)
+
+增加维度后：
+
+(batch_size, token_count, 1)
+
+最后一个1会广播到embed_dim，使PAD位置整行输出乘以0。
+
+记忆：
+
+Key Mask屏蔽PAD列
+Query Mask清除PAD行
+
+
+二十一、完整形状示例
+
+当前代码：
+
+Encoder输入形状：(2,5,8)
+Attention Mask形状：(2,5)
+注意力权重形状：(2,2,5,5)
+Encoder输出形状：(2,5,8)
+
+注意力权重中的维度含义：
+
+2个句子
+2个注意力头
+5个Query
+5个Key
+
+完整Encoder不会改变batch_size、token_count和embed_dim，因为：
+
+1. 多头注意力最终输出恢复到embed_dim。
+2. FFN虽然扩大到4倍特征，最后也恢复到embed_dim。
+3. 残差连接要求子层输入和输出形状相同。
+4. LayerNorm和激活函数不改变形状。
+
+
+二十二、综合自测标准答案
+
+1. Token ID和Position ID分别表示什么？
+
+Token ID表示token在词表中的编号；Position ID表示token在序列中的位置编号。Position ID不是特征编号。
+
+2. nn.Embedding(20,16)作为位置Embedding时代表什么？
+
+最多支持20个位置，每个位置使用一个16维向量表示，参数表形状为(20,16)。
+
+3. 两个(4,10,16)向量相加后怎样？
+
+结果仍是(4,10,16)，数值改变，形状不变。
+
+4. 残差连接公式和作用？
+
+y = x + Sublayer(x)。它保留原始信息，加入子层的新信息，并帮助梯度直接传播。
+
+5. 为什么子层输出必须恢复到embed_dim？
+
+残差连接需要逐元素相加，两侧形状必须一致。
+
+6. nn.LayerNorm(16)在哪个维度计算？
+
+对每个token最后的16个特征独立计算均值和方差。
+
+7. LayerNorm后均值和标准差接近多少？
+
+初始化状态下，标准化结果的均值接近0、总体标准差接近1。
+
+8. LayerNorm的weight和bias是否可训练？
+
+可以训练，初始值分别是全1和全0。
+
+9. FFN形状如何变化？
+
+(4,10,16) → (4,10,64) → GELU后仍为(4,10,64) → (4,10,16)。
+
+10. 注意力和FFN分别负责什么？
+
+注意力处理token之间的信息；FFN处理每个token内部的特征。
+
+11. 输入(4,10,16)、4个头时注意力权重形状？
+
+(4,4,10,10)，分别是batch、heads、queries、keys。
+
+12. Encoder流程？
+
+输入 → 多头自注意力 → 残差 → LayerNorm → FFN → 残差 → LayerNorm → 输出。
+
+13. Key Padding Mask和Query Mask的区别？
+
+Key Padding Mask屏蔽PAD列，Query Mask清零PAD输出行。
+
+14. Q、K、V为何来自相同输入却不同？
+
+因为自注意力三者来自同一序列，但分别使用Wq、Wk、Wv三套不同投影参数。
+
+15. 当前Encoder为何不能可靠语义匹配？
+
+因为位置Embedding、注意力、FFN等参数仍为随机初始化，没有通过任务数据和损失函数训练。
+
+
+二十三、今天最容易混淆的错误
+
+错误1：Position ID表示特征编号。
+
+正确：Position ID表示token在序列中的位置编号。
+
+错误2：LayerNorm参数只是“接近”1和0。
+
+正确：weight初始化就是全1，bias初始化就是全0，之后可以训练更新。
+
+错误3：注意力权重形状是(4,10,4,4)。
+
+正确：拆头后的Q是(4,4,10,4)，注意力权重是(4,4,10,10)。
+
+错误4：普通Linear会混合不同token。
+
+正确：nn.Linear默认只处理最后一个特征维度，不会直接混合token维度。
+
+错误5：FFN残差只是因为前一个残差没有经过FFN。
+
+正确：每个重要子层都有独立的残差路径，用于保留该子层的输入并帮助梯度传播。
+
+错误6：key_padding_mask中1表示保留。
+
+正确：PyTorch布尔key_padding_mask中True表示屏蔽，所以需要把attention_mask中的0转换为True。
+
+
+二十四、Day 13核心代码速查
+
+位置向量：
+
+position_ids = torch.arange(token_count).unsqueeze(0)
+position_ids = position_ids.expand(batch_size, -1)
+
+position_layer = nn.Embedding(max_length, embed_dim)
+position_embeddings = position_layer(position_ids)
+
+transformer_input = token_embeddings + position_embeddings
+
+残差连接：
+
+residual_output = input_vectors + sublayer_output
+
+LayerNorm：
+
+normalized_output = nn.LayerNorm(embed_dim)(residual_output)
+
+FFN：
+
+ffn = nn.Sequential(
+    nn.Linear(embed_dim, embed_dim * 4),
+    nn.GELU(),
+    nn.Linear(embed_dim * 4, embed_dim),
+)
+
+注意力Add & Norm：
+
+after_attention = norm1(
+    input_vectors + attention_output
+)
+
+FFN Add & Norm：
+
+encoder_output = norm2(
+    after_attention + ffn(after_attention)
+)
+
+Padding处理：
+
+key_padding_mask = attention_mask == 0
+query_mask = attention_mask.unsqueeze(-1)
+encoder_output = encoder_output * query_mask
+
+
+二十五、下一步
+
+现在已经理解一个Transformer Encoder Block的完整前向结构。下一步适合：
+
+1. 把多个Encoder Block堆叠起来。
+2. 使用Encoder输出构造句子表示。
+3. 增加分类层，完成Transformer文本分类任务。
+4. 准备训练数据、损失函数和优化器，对整个模型进行训练。
+5. 对比训练前后的输出，理解参数如何从随机值变成有任务意义的表示。
+
+
+Day 13总结
+
+今天最核心的理解是：
+
+- 词向量说明“是什么词”，位置向量说明“词在哪里”。
+- 注意力负责token之间的信息交流。
+- 残差连接保留原始路径并帮助梯度传播。
+- LayerNorm稳定每个token的特征分布。
+- FFN进一步处理每个token内部的特征。
+- 一个Encoder Block由注意力子层和FFN子层组成，两个子层分别带有Add & Norm。
+- Key Mask屏蔽PAD列，Query Mask清除PAD输出行。
+- 正确的结构只是第一步，参数仍然需要通过训练获得语义能力。
