@@ -1,0 +1,897 @@
+Day 14 学习笔记：从零搭建并训练Transformer文本分类模型
+
+
+一、今天完成了什么
+
+今天把前面学习的文本预处理、PyTorch训练流程和Transformer Encoder连接成了一个可以真正训练、预测和保存的二分类模型。
+
+完成内容：
+
+1. 准备16条文本分类样本，其中8条为“匹配岗位”，8条为“不匹配岗位”。
+2. 使用float32标签，并把标签形状整理为(16,1)。
+3. 对文本进行分词，构建包含<PAD>和<UNK>的词表。
+4. 把文本转换为固定长度的Token ID和Attention Mask。
+5. 使用TensorDataset绑定Token ID、Mask和标签。
+6. 使用DataLoader按batch读取并打乱训练样本。
+7. 搭建包含Token Embedding、Position Embedding和两层Transformer Encoder的分类模型。
+8. 使用Masked Mean Pooling把多个Token向量压缩成一个句子向量。
+9. 使用Linear分类层产生二分类logit。
+10. 使用BCEWithLogitsLoss和AdamW训练模型300轮。
+11. 使用训练好的模型预测4条新文本。
+12. 保存模型参数、优化器状态、词表、最大长度和模型配置。
+13. 创建相同结构的新模型，重新加载Checkpoint并验证输出一致。
+
+今天的完整流程：
+
+原始文本和标签
+→ 分词
+→ 构建词表
+→ Token ID
+→ Padding和Attention Mask
+→ TensorDataset
+→ DataLoader
+→ Token Embedding + Position Embedding
+→ 多层Transformer Encoder
+→ Masked Mean Pooling
+→ 句子向量
+→ Linear分类层
+→ logits
+→ BCEWithLogitsLoss
+→ 反向传播和参数更新
+→ Sigmoid概率
+→ 0或1的预测结果
+→ 保存与加载Checkpoint
+
+
+二、训练数据与标签
+
+当前使用16条人工样本：
+
+- 8条AI技能相关文本，标签为1.0，表示匹配。
+- 8条其他方向文本，标签为0.0，表示不匹配。
+
+标签代码：
+
+labels = torch.tensor(
+    [sample["label"] for sample in samples],
+    dtype=torch.float32,
+).unsqueeze(1)
+
+形状：
+
+(16,) → unsqueeze(1) → (16,1)
+
+为什么使用float32：
+
+BCEWithLogitsLoss接收模型输出的浮点logit，并要求真实标签使用兼容的浮点类型。
+
+为什么是(16,1)：
+
+模型对每个样本输出一个二分类logit，输出形状是(batch_size,1)，所以标签也保持相同形状。
+
+注意：logit不是二分类专用概念。多分类模型也会输出logits，只是每个样本会对多个类别分别输出一个logit。
+
+
+三、分词、词表和特殊Token
+
+分词函数：
+
+def tokenize(text: str) -> list[str]:
+    return text.lower().strip().split()
+
+作用：
+
+1. lower()统一大小写。
+2. strip()去除字符串首尾空格。
+3. split()按空白拆分成Token列表。
+
+特殊Token：
+
+PAD_TOKEN = "<PAD>"
+UNK_TOKEN = "<UNK>"
+PAD_ID = 0
+UNK_ID = 1
+
+<PAD>：
+
+- 用于补齐不足最大长度的文本。
+- 不代表真实内容。
+- 后续需要在注意力和池化时屏蔽。
+
+<UNK>：
+
+- 表示输入中确实存在真实单词，但该词不在训练词表中。
+- 仍然属于真实Token，需要参与注意力和池化。
+
+二者不能使用同一个ID，因为PAD表示“这里没有内容”，UNK表示“这里有一个未知内容”。
+
+
+四、文本编码、Padding与Attention Mask
+
+编码函数返回：
+
+1. token_ids：固定长度的Token编号列表。
+2. attention_mask：标记每个位置是否为真实Token。
+
+词表查询：
+
+token_ids = [
+    vocab.get(token, UNK_ID)
+    for token in tokens
+]
+
+如果token存在于词表，返回对应ID；如果不存在，返回UNK_ID。
+
+截断：
+
+token_ids = token_ids[:max_length]
+
+当文本超过max_length时，只保留前面的Token。
+
+Mask规则：
+
+1 = 真实Token，需要参与注意力和池化
+0 = PAD，不参与注意力和池化
+
+补齐代码：
+
+padding_count = max_length - len(token_ids)
+token_ids += [PAD_ID] * padding_count
+attention_mask += [0] * padding_count
+
+当前形状：
+
+input_ids：(16,6)
+attention_masks：(16,6)
+labels：(16,1)
+
+16表示16条样本，6表示每条样本固定为6个Token位置。
+
+
+五、TensorDataset与DataLoader
+
+TensorDataset：
+
+dataset = TensorDataset(
+    input_ids,
+    attention_masks,
+    labels,
+)
+
+它按照相同的第一维索引绑定三个Tensor：
+
+dataset[i]
+→ input_ids[i]
+→ attention_masks[i]
+→ labels[i]
+
+因此DataLoader执行shuffle=True时，打乱的是完整样本的索引，不会分别打乱三个Tensor，文本、Mask和标签不会错位。
+
+当前设置：
+
+样本数量：16
+batch_size：4
+batch数量：4
+
+每个batch的形状：
+
+Token ID：(4,6)
+Attention Mask：(4,6)
+标签：(4,1)
+
+如果有18个样本、batch_size=4：
+
+会产生5个batch，前4批各4个样本，最后一批2个样本。
+
+为什么完整数据保存在CPU：
+
+完整数据保存在CPU可以减少显存占用。训练时只把当前batch移动到GPU，使GPU显存主要用于当前计算。
+
+
+六、Transformer文本分类器的结构
+
+模型主要包含：
+
+1. Token Embedding。
+2. Position Embedding。
+3. 两个Transformer Encoder Block。
+4. Masked Mean Pooling。
+5. Linear二分类层。
+
+当前配置：
+
+embed_dim = 16
+num_heads = 4
+head_dim = 16 / 4 = 4
+ffn_hidden_dim = 64
+num_layers = 2
+max_length = 6
+
+主要形状：
+
+Token ID：(4,6)
+→ Token Embedding：(4,6,16)
+→ 加Position Embedding：(4,6,16)
+→ Encoder 1：(4,6,16)
+→ Encoder 2：(4,6,16)
+→ Masked Mean Pooling：(4,16)
+→ Linear(16,1)：(4,1)
+
+
+七、Token Embedding与Position Embedding
+
+Token Embedding：
+
+self.token_embedding = nn.Embedding(
+    num_embeddings=vocab_size,
+    embedding_dim=embed_dim,
+    padding_idx=PAD_ID,
+)
+
+作用：
+
+Token ID → 16维Token向量
+
+padding_idx=PAD_ID会让PAD对应的词向量保持为0，并且训练时不更新该行。
+
+Position Embedding：
+
+self.position_embedding = nn.Embedding(
+    num_embeddings=max_length,
+    embedding_dim=embed_dim,
+)
+
+作用：
+
+Position ID → 16维位置向量
+
+Position ID生成过程：
+
+torch.arange(token_count)
+→ (6,)
+→ unsqueeze(0)
+→ (1,6)
+→ expand(batch_size,-1)
+→ (4,6)
+
+Token向量和位置向量形状相同，都是(4,6,16)，因此可以逐元素相加：
+
+x = token_vectors + position_vectors
+
+相加后的向量同时表示“这个词是什么”和“这个词位于哪里”。
+
+
+八、为什么使用nn.ModuleList
+
+代码：
+
+self.encoder_blocks = nn.ModuleList(
+    [
+        TransformerEncoderBlock(...)
+        for _ in range(num_layers)
+    ]
+)
+
+ModuleList的作用：
+
+1. 正确登记内部的Encoder模块和参数。
+2. 让优化器能找到这些参数。
+3. 让.to(device)能移动这些参数。
+4. 让state_dict()能保存这些参数。
+
+两个Encoder依次执行：
+
+for encoder_block in self.encoder_blocks:
+    x = encoder_block(x, attention_mask)
+
+也就是：
+
+Embedding结果
+→ Encoder 1
+→ Encoder 2
+→ 最终输出
+
+注意：两个Encoder之间是前后顺序连接，不是通过残差连接来连接。残差连接发生在每个Encoder Block内部。
+
+
+九、Transformer Encoder Block内部流程
+
+标准流程：
+
+输入
+→ 多头自注意力（应用Key Padding Mask）
+→ 第一次残差连接和LayerNorm
+→ FFN
+→ 第二次残差连接和LayerNorm
+→ Query Mask
+→ 输出
+
+多头自注意力：
+
+attention_output, _ = self.self_attention(
+    query=x,
+    key=x,
+    value=x,
+    key_padding_mask=key_padding_mask,
+    need_weights=False,
+)
+
+因为这里是Self-Attention，所以Q、K、V都来自同一组输入x。但是MultiheadAttention内部会使用不同的投影参数生成Q、K、V。
+
+第一次Add & Norm：
+
+x = self.norm1(x + attention_output)
+
+FFN：
+
+16 → 64 → GELU → 16
+
+第二次Add & Norm：
+
+x = self.norm2(x + ffn_output)
+
+多头注意力负责不同Token之间的信息交流；FFN负责每个Token内部不同特征之间的非线性处理。
+
+
+十、Key Padding Mask与Query Mask
+
+我们自己的attention_mask规则：
+
+1 = 真实Token
+0 = PAD
+
+PyTorch布尔key_padding_mask规则：
+
+False = 保留
+True = 屏蔽
+
+因此需要转换：
+
+key_padding_mask = attention_mask == 0
+
+Key Padding Mask：
+
+- 屏蔽PAD对应的Key列。
+- 防止真实Token关注PAD。
+
+Query Mask：
+
+query_mask = attention_mask.unsqueeze(-1)
+x = x * query_mask
+
+- 把Mask形状从(batch,tokens)变为(batch,tokens,1)。
+- 最后的1广播到embed_dim。
+- 将PAD位置最终产生的整行输出清零。
+
+记忆：
+
+Key Mask屏蔽PAD列
+Query Mask清除PAD输出行
+
+
+十一、Masked Mean Pooling
+
+Encoder输出保留每个Token的向量，形状为：
+
+(batch,tokens,embed_dim)
+
+文本分类需要每句话只有一个向量，因此需要压缩Token维度：
+
+(4,6,16) → (4,16)
+
+不能直接使用：
+
+x.mean(dim=1)
+
+原因：即使PAD向量是0，直接mean仍会用固定最大长度6作为分母，使真实Token较少的短文本向量被错误缩小。
+
+正确方法：
+
+expanded_mask = attention_mask.unsqueeze(-1)
+vector_sum = (x * expanded_mask).sum(dim=1)
+valid_token_count = expanded_mask.sum(dim=1).clamp(min=1.0)
+sentence_vectors = vector_sum / valid_token_count
+
+含义：
+
+句子向量 = 真实Token向量之和 / 真实Token数量
+
+形状变化：
+
+vector_sum：(4,16)
+valid_token_count：(4,1)
+sentence_vectors：(4,16)
+
+为什么使用clamp(min=1.0)：
+
+如果输入全部是PAD，真实Token数量为0，直接相除会产生NaN。clamp保证分母最小为1，避免除零。
+
+
+十二、encode()、forward()和分类层
+
+encode()：
+
+输入文本对应的Token ID和Mask，返回句子向量。
+
+形状：
+
+(batch,6) → (batch,16)
+
+forward()：
+
+调用encode()得到句子向量，再传入分类层得到logit。
+
+self.classifier = nn.Linear(16,1)
+
+形状：
+
+(batch,16) → (batch,1)
+
+当前任务是二分类，所以每个样本只需要一个原始分类分数。
+
+
+十三、logit、probability与prediction
+
+logit：
+
+模型最后一层输出的原始分类分数，可以小于0，也可以大于1。
+
+probability：
+
+probabilities = torch.sigmoid(logits)
+
+Sigmoid把logit转换为0～1的概率。
+
+prediction：
+
+predictions = (probabilities >= 0.5).long()
+
+当前分类规则：
+
+概率 >= 0.5 → 1 → 匹配
+概率 < 0.5 → 0 → 不匹配
+
+0.5是当前阈值，实际项目可以根据业务目标调整。
+
+
+十四、训练模型
+
+损失函数：
+
+loss_fn = nn.BCEWithLogitsLoss()
+
+BCEWithLogitsLoss内部已经组合：
+
+logit
+→ Sigmoid
+→ 与真实标签比较
+→ 二分类损失
+
+训练时不要提前手动调用Sigmoid，否则会重复处理并降低数值稳定性。
+
+优化器：
+
+optimizer = torch.optim.AdamW(
+    model.parameters(),
+    lr=0.003,
+)
+
+model.parameters()包含Token Embedding、Position Embedding、两个Encoder、LayerNorm、FFN和分类层等所有可训练参数。
+
+一个batch的标准训练步骤：
+
+logits = model(batch_input_ids, batch_attention_masks)
+loss = loss_fn(logits, batch_labels)
+
+optimizer.zero_grad()
+loss.backward()
+optimizer.step()
+
+分别表示：
+
+1. 前向传播，得到logits。
+2. 计算预测与真实标签之间的损失。
+3. 清除上一个batch留下的梯度。
+4. 反向传播，计算当前损失对所有参数的梯度。
+5. 优化器根据梯度更新参数。
+
+PyTorch默认累加梯度，所以每个batch都需要清空旧梯度。
+
+
+十五、训练损失与准确率
+
+当前batch的样本数量：
+
+current_batch_size = batch_labels.size(0)
+
+它不是固定等于预设batch_size，因为最后一批可能不足最大数量。
+
+统计整个epoch平均损失：
+
+total_loss += loss.item() * current_batch_size
+average_loss = total_loss / total_samples
+
+loss.item()是当前batch的平均损失，乘以当前样本数后得到该batch的样本损失总和。累加全部batch，再除以总样本数，得到整个epoch的平均损失。
+
+统计准确率：
+
+probabilities = torch.sigmoid(logits.detach())
+predictions = (probabilities >= 0.5).float()
+total_correct += (predictions == batch_labels).sum().item()
+
+detach()让统计准确率的计算与训练计算图分离，不需要对这部分继续反向传播。
+
+训练结果中损失不断下降、训练准确率达到100%，说明模型已经拟合当前16条训练样本。
+
+但100%训练准确率不能证明模型能处理真实岗位文本，原因包括：
+
+1. 样本量只有16条。
+2. 人工文本非常简单。
+3. 没有独立验证集和测试集。
+4. 模型可能只是记住训练样本，即过拟合。
+5. 真实文本可能出现大量词表外单词并被编码为<UNK>。
+
+
+十六、训练模式与预测模式
+
+model.train()：
+
+- 把模型切换到训练模式。
+- 影响Dropout、BatchNorm等训练和预测行为不同的层。
+- 本身不会执行训练，也不会自动开启梯度。
+
+model.eval()：
+
+- 把模型切换到预测模式。
+- 让Dropout、BatchNorm等采用预测行为。
+- 本身不会关闭梯度。
+
+torch.no_grad()：
+
+- 关闭梯度和计算图记录。
+- 减少内存和显存占用。
+- 适合验证和预测。
+
+标准预测组合：
+
+model.eval()
+
+with torch.no_grad():
+    logits = model(input_ids, attention_mask)
+
+
+十七、新文本预测
+
+新文本必须使用训练时的同一个vocab和max_length：
+
+token_ids, attention_mask = encode_text(
+    text,
+    vocab,
+    max_length,
+)
+
+如果更换词表，同一个Token ID可能代表不同单词，Embedding会读取错误的词向量。
+
+如果测试文本中出现词表外单词，它会被编码为UNK_ID。多个不同的未知单词会暂时共享同一个<UNK>向量，因此大量未知词会降低模型判断能力。
+
+预测输出形状：
+
+test_logits：(4,1)
+test_probabilities：(4,1)
+test_predictions：(4,1)
+
+转到CPU：
+
+test_logits.cpu()
+
+便于转换为Python列表或NumPy数组，也避免结果长期占用显存。
+
+
+十八、保存Checkpoint
+
+保存位置：
+
+checkpoint_path = (
+    Path(__file__).resolve().parent
+    / "day14_transformer_classifier.pth"
+)
+
+Path(__file__).resolve().parent表示当前day14.py所在文件夹的绝对路径。
+
+需要在文件开头导入：
+
+from pathlib import Path
+
+Checkpoint内容：
+
+checkpoint = {
+    "model_state_dict": model.state_dict(),
+    "optimizer_state_dict": optimizer.state_dict(),
+    "vocab": vocab,
+    "max_length": max_length,
+    "model_config": model_config,
+    "epochs": epochs,
+}
+
+各项作用：
+
+model_state_dict：保存模型参数。
+optimizer_state_dict：保存AdamW内部状态，便于继续训练。
+vocab：保存单词与Token ID的对应关系。
+max_length：保存相同的截断、Padding和位置Embedding配置。
+model_config：保存embed_dim、num_heads、ffn_hidden_dim和num_layers。
+epochs：记录已经训练的轮数。
+
+保存：
+
+torch.save(checkpoint, checkpoint_path)
+
+
+十九、重新加载Checkpoint
+
+读取：
+
+loaded_checkpoint = torch.load(
+    checkpoint_path,
+    map_location=device,
+)
+
+map_location=device把文件中的Tensor加载到当前CPU或GPU，避免保存设备和当前设备不一致造成错误。
+
+加载步骤：
+
+1. 读取词表、最大长度和模型配置。
+2. 创建结构相同的新模型。
+3. 使用load_state_dict()装入模型参数。
+4. 调用eval()切换到预测模式。
+
+加载参数前必须先创建结构相同的模型，因为Checkpoint中的参数名称和形状必须和网络层一一对应。
+
+Checkpoint不会保存TransformerTextClassifier类的Python源代码，因此加载时程序中仍然必须存在类定义。
+
+验证加载结果：
+
+outputs_are_equal = torch.allclose(
+    test_logits,
+    loaded_logits,
+    atol=1e-6,
+)
+
+返回True表示加载前后的输出在允许的微小误差范围内一致，说明参数保存和加载成功。
+
+
+二十、今天遇到的错误与解决方法
+
+错误1：encode_text()缺少参数
+
+报错：
+
+TypeError: encode_text() missing 2 required positional arguments:
+'vocab' and 'max_length'
+
+错误调用：
+
+encode_text(text)
+
+正确调用：
+
+encode_text(text, vocab, max_length)
+
+原因：当前函数定义要求传入text、vocab和max_length三个参数。
+
+错误2：Path未定义
+
+报错：
+
+NameError: name 'Path' is not defined
+
+解决：
+
+from pathlib import Path
+
+必须先导入Path，才能使用Path(__file__)构造文件路径。
+
+错误3：把两个Encoder之间的连接理解为残差连接
+
+正确理解：
+
+Encoder 1输出直接作为Encoder 2输入。残差连接只发生在每个Encoder内部的注意力子层和FFN子层。
+
+错误4：把Key Padding Mask当作独立的网络计算层
+
+正确理解：
+
+Key Padding Mask是传给多头注意力的屏蔽条件。实际计算步骤仍然是多头自注意力，只是在计算过程中屏蔽PAD Key。
+
+
+二十一、综合自测标准答案
+
+1. 为什么标签使用float32和(样本数,1)？
+
+因为BCEWithLogitsLoss要求标签与模型输出logit具有兼容的浮点类型和相同形状。
+
+2. <PAD>和<UNK>有什么区别？
+
+PAD表示没有真实内容，后续要屏蔽；UNK表示存在真实词，但词表中没有该词，仍需参与计算。
+
+3. encode_text()返回什么？
+
+返回固定长度的token_ids和attention_mask。
+
+4. (16,6)表示什么？
+
+16表示16条样本，6表示每条样本固定为6个Token位置。
+
+5. Attention Mask中的1和0表示什么？
+
+1表示真实Token，0表示PAD。
+
+6. TensorDataset解决什么问题？
+
+它按第一维索引绑定Token ID、Mask和标签，使三者始终一一对应。
+
+7. shuffle为什么不会导致错位？
+
+DataLoader打乱的是完整样本索引，不是分别打乱三个Tensor。
+
+8. (4,6)经过16维Embedding后是什么形状？
+
+(4,6,16)。
+
+9. Token Embedding和Position Embedding分别做什么？
+
+Token Embedding表示词的信息；Position Embedding表示位置信息。形状相同，因此可以相加。
+
+10. ModuleList有什么作用？
+
+正确登记多个子模块，使参数能被优化器更新、移动和保存。
+
+11. 两个Encoder如何连接？
+
+依次执行，第一个Encoder的输出直接成为第二个Encoder的输入。
+
+12. Encoder Block流程？
+
+输入 → 多头自注意力（应用Key Mask）→ 残差与LayerNorm → FFN → 残差与LayerNorm → Query Mask → 输出。
+
+13. Key Mask和Query Mask分别解决什么？
+
+Key Mask屏蔽PAD列，防止真实Token关注PAD；Query Mask清零PAD输出行。
+
+14. 为什么使用Masked Mean Pooling？
+
+它只对真实Token求平均，不会让PAD进入分母并错误缩小短文本向量。
+
+15. (4,6,16)经过池化和分类层后的形状？
+
+先变成(4,16)，再变成(4,1)。
+
+16. 为什么BCEWithLogitsLoss前不调用Sigmoid？
+
+因为损失函数内部已经包含Sigmoid，提前调用会重复处理并降低数值稳定性。
+
+17. 一个batch的训练顺序？
+
+前向传播 → 计算损失 → 清空梯度 → 反向传播 → 更新参数。
+
+18. train()、eval()、no_grad()分别做什么？
+
+train()切换训练模式；eval()切换预测模式；no_grad()关闭梯度和计算图记录。
+
+19. logit、probability、prediction分别是什么？
+
+logit是原始分类分数；probability是sigmoid(logit)得到的概率；prediction是概率经过阈值判断得到的0或1。
+
+20. 为什么保存配置？为什么100%训练准确率仍不可靠？
+
+词表保证Token ID对应关系一致，最大长度保证预处理和位置Embedding配置一致，模型配置用于重建相同结构。100%训练准确率可能只是对16条简单样本过拟合，不能代表真实数据泛化能力。
+
+
+二十二、Day 14核心代码速查
+
+文本编码：
+
+token_ids, attention_mask = encode_text(
+    text,
+    vocab,
+    max_length,
+)
+
+Dataset与DataLoader：
+
+dataset = TensorDataset(input_ids, attention_masks, labels)
+train_loader = DataLoader(
+    dataset,
+    batch_size=4,
+    shuffle=True,
+)
+
+Embedding：
+
+x = token_embedding(input_ids) + position_embedding(position_ids)
+
+Encoder：
+
+key_padding_mask = attention_mask == 0
+attention_output, _ = self_attention(
+    x, x, x,
+    key_padding_mask=key_padding_mask,
+    need_weights=False,
+)
+x = norm1(x + attention_output)
+x = norm2(x + ffn(x))
+x = x * attention_mask.unsqueeze(-1)
+
+Masked Mean Pooling：
+
+expanded_mask = attention_mask.unsqueeze(-1)
+vector_sum = (x * expanded_mask).sum(dim=1)
+valid_count = expanded_mask.sum(dim=1).clamp(min=1.0)
+sentence_vectors = vector_sum / valid_count
+
+训练：
+
+logits = model(batch_input_ids, batch_attention_masks)
+loss = loss_fn(logits, batch_labels)
+optimizer.zero_grad()
+loss.backward()
+optimizer.step()
+
+预测：
+
+model.eval()
+with torch.no_grad():
+    logits = model(test_input_ids, test_masks)
+    probabilities = torch.sigmoid(logits)
+    predictions = (probabilities >= 0.5).long()
+
+保存：
+
+torch.save(checkpoint, checkpoint_path)
+
+加载：
+
+checkpoint = torch.load(checkpoint_path, map_location=device)
+model.load_state_dict(checkpoint["model_state_dict"])
+model.eval()
+
+
+二十三、当前项目的局限与下一步
+
+当前项目证明了完整技术流程可以运行，但还不是可靠的真实岗位匹配系统。
+
+主要局限：
+
+1. 只有16条人工数据。
+2. 没有划分训练集、验证集和测试集。
+3. 使用简单空格分词，无法很好处理复杂中文或标点。
+4. 词表只覆盖少量训练词汇，容易出现大量<UNK>。
+5. Transformer从随机参数开始训练，数据量不足以学到通用语言语义。
+6. 训练准确率100%很可能来自过拟合。
+
+后续适合学习：
+
+1. 使用真实且更多的岗位文本。
+2. 划分训练、验证、测试数据。
+3. 使用预训练Tokenizer和预训练Transformer模型。
+4. 学习Hugging Face Transformers。
+5. 使用预训练Embedding或BERT类模型获得真正的语言表示。
+6. 将模型封装为可复用的岗位匹配推理程序。
+
+
+Day 14总结
+
+今天最核心的理解是：
+
+- 原始字符串必须先转换为Token ID和Attention Mask，模型才能计算。
+- Token Embedding表示词，Position Embedding表示位置。
+- 多层Encoder依次处理Token上下文信息。
+- Key Mask屏蔽PAD列，Query Mask清零PAD输出行。
+- Masked Mean Pooling只使用真实Token生成句子向量。
+- Linear层把句子向量转换为一个二分类logit。
+- BCEWithLogitsLoss内部已经包含Sigmoid。
+- 训练需要前向传播、损失、清梯度、反向传播和更新参数。
+- 预测需要eval()和no_grad()，再把logit转换为概率和类别。
+- 模型文件之外还必须保存词表、最大长度和模型配置。
+- 加载参数前必须重建相同结构的模型。
+- 训练准确率100%不等于真实泛化能力，真正项目需要更多数据、独立评估和预训练模型。
