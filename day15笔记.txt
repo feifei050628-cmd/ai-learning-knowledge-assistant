@@ -1,0 +1,796 @@
+Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配
+
+一、今天完成的内容
+
+今天把前几天“自己搭建但参数随机初始化的 Transformer”升级为“直接使用已经训练好的预训练 Transformer”。
+
+完成的主要内容：
+
+1. 在虚拟环境中安装并检查 transformers。
+2. 使用 AutoTokenizer 加载预训练模型配套的分词器。
+3. 理解 input_ids、attention_mask、Padding、Truncation 和子词分词。
+4. 使用 AutoModel 加载 sentence-transformers/all-MiniLM-L6-v2。
+5. 理解 last_hidden_state 的形状和含义。
+6. 使用 Masked Mean Pooling 将多个 Token 向量合成句子向量。
+7. 使用 L2 归一化，让点积可以直接表示余弦相似度。
+8. 计算个人技能文本与多条 JD 的语义相似度并排序。
+9. 使用集合交集、差集和覆盖率补充必备技能检查。
+10. 区分“语义相似度”“技能覆盖率”和“录取概率”。
+
+
+二、环境与 transformers
+
+1. transformers 是什么
+
+transformers 是 Hugging Face 提供的模型工具库，不是某一个具体的预训练模型。
+
+它提供了许多加载和使用模型的工具，例如：
+
+AutoTokenizer：自动加载模型配套的分词器。
+AutoModel：自动识别模型结构并加载预训练参数。
+
+具体的模型通常托管在 Hugging Face Hub 上，例如：
+
+sentence-transformers/all-MiniLM-L6-v2
+
+关系可以理解为：
+
+transformers 工具库
+→ AutoTokenizer / AutoModel 等加载工具
+→ 根据 model_name 从模型仓库加载具体模型
+
+
+2. 为什么要在虚拟环境中安装
+
+虚拟环境的主要作用是隔离不同项目的软件包和版本，与显存占用没有直接关系。
+
+激活虚拟环境：
+
+cd "C:\Users\21855\Documents\python learning"
+.\.venv\Scripts\Activate.ps1
+
+检查当前 Python：
+
+python -c "import sys; print(sys.executable)"
+
+正确路径应包含：
+
+python learning\.venv\Scripts\python.exe
+
+安装 transformers：
+
+python -m pip install transformers
+
+检查是否安装成功：
+
+python -m pip show transformers
+
+
+3. 今天遇到的错误：ModuleNotFoundError
+
+错误：
+
+ModuleNotFoundError: No module named 'transformers'
+
+原因：
+
+运行 day15.py 时没有激活 .venv，当前使用的是全局 Python，而 transformers 没有安装在这个全局环境中。
+
+判断方法：
+
+终端提示符前面没有出现 (.venv)。
+
+解决方法：
+
+cd "C:\Users\21855\Documents\python learning"
+.\.venv\Scripts\Activate.ps1
+python -m pip install transformers
+python .\day15.py
+
+以后出现 ModuleNotFoundError 时，先检查：
+
+1. 当前是否激活了正确虚拟环境。
+2. python -c "import sys; print(sys.executable)" 指向哪里。
+3. python -m pip show 包名 是否能够找到软件包。
+
+
+三、环境检查核心代码
+
+import torch
+import transformers
+
+print("PyTorch版本：", torch.__version__)
+print("Transformers版本：", transformers.__version__)
+print("CUDA是否可用：", torch.cuda.is_available())
+
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+print("本次使用设备：", device)
+
+注意：
+
+torch.cuda.is_available() 返回 True，只说明 PyTorch 能够发现并使用 CUDA 显卡。
+
+它不代表模型和 Tensor 已经自动位于 GPU。还需要执行：
+
+model = model.to(device)
+tensor = tensor.to(device)
+
+
+四、预训练 Tokenizer
+
+1. 加载分词器
+
+from transformers import AutoTokenizer
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+AutoTokenizer 和 AutoModel 必须使用相同的 model_name。
+
+原因：Tokenizer 生成的 Token ID 必须与模型 Embedding 词表中的行号一一对应。如果二者不配套，相同的 Token ID 可能代表不同单词，模型会读取错误的词向量。
+
+
+2. 批量编码文本
+
+texts = [
+    "Python PyTorch Transformer",
+    "Machine learning engineer",
+    "Sales marketing customer",
+]
+
+encoded_inputs = tokenizer(
+    texts,
+    padding="max_length",
+    truncation=True,
+    max_length=12,
+    return_tensors="pt",
+)
+
+参数解释：
+
+padding="max_length"
+文本不足指定长度时，使用 [PAD] 补齐。
+
+truncation=True
+文本超过最大长度时，截掉超出的 Token。
+
+max_length=12
+每句话的编码结果使用或最多保留 12 个 Token 位置。
+
+return_tensors="pt"
+让 Tokenizer 返回 PyTorch Tensor，而不是普通 Python 列表。
+
+
+3. input_ids
+
+input_ids 中的每个整数表示一个 Token 在预训练模型词表中的编号。
+
+流程：
+
+原始文本
+→ Tokenizer 分词
+→ 根据预训练词表查询编号
+→ input_ids
+
+模型之后会根据这些编号查询 Embedding 矩阵中的词向量。
+
+
+4. attention_mask
+
+attention_mask 用来标记每个位置是否需要参与计算：
+
+1：真实 Token 或模型需要使用的特殊 Token。
+0：用于补齐长度的 [PAD]。
+
+[CLS]、[SEP] 等特殊 Token 通常也是 1，因为它们不是 Padding。
+
+
+5. 子词分词
+
+预训练词表大小有限，不可能保存所有完整单词、罕见词、新词和词形变化。因此，一个完整单词有时会被拆成多个子词。
+
+例如：
+
+playing → play + ##ing
+
+子词分词的作用：
+
+1. 控制词表大小。
+2. 处理罕见单词。
+3. 处理单词的词形变化。
+4. 减少所有未知词都变成 [UNK] 的情况。
+
+
+五、加载预训练 Transformer
+
+from transformers import AutoModel
+
+model = AutoModel.from_pretrained(model_name)
+model = model.to(device)
+model.eval()
+
+model_inputs = {
+    name: tensor.to(device)
+    for name, tensor in encoded_inputs.items()
+}
+
+with torch.no_grad():
+    model_outputs = model(**model_inputs)
+
+last_hidden_state = model_outputs.last_hidden_state
+
+
+1. model.eval() 和 torch.no_grad()
+
+model.eval()
+把模型切换到预测模式，使 Dropout、BatchNorm 等训练和预测行为不同的网络层采用预测行为。
+
+torch.no_grad()
+关闭梯度计算和计算图记录，减少内存、显存占用，提高推理效率。
+
+二者作用不同，预测时通常配合使用。
+
+
+2. 为什么模型和输入必须在同一个设备
+
+模型参数与输入 Tensor 要参与同一次数学计算，因此必须位于同一个设备。
+
+错误情况：
+
+模型在 GPU，输入在 CPU。
+
+正确情况：
+
+模型和输入都在 GPU，或者都在 CPU。
+
+
+3. model(**model_inputs) 中的两个星号
+
+** 会把字典拆成关键字参数。
+
+model_inputs = {
+    "input_ids": input_ids,
+    "attention_mask": attention_mask,
+}
+
+model(**model_inputs)
+
+相当于：
+
+model(
+    input_ids=input_ids,
+    attention_mask=attention_mask,
+)
+
+如果字典中还有 token_type_ids，也会一并拆成关键字参数。
+
+
+六、last_hidden_state
+
+今天使用的模型隐藏层维度为：
+
+model.config.hidden_size == 384
+
+如果模型输出形状是：
+
+(3, 12, 384)
+
+含义是：
+
+3：一个批次中有 3 句话。
+12：每句话有 12 个 Token 位置。
+384：每个 Token 使用 384 个数表示。
+
+通用形式：
+
+(batch_size, sequence_length, hidden_size)
+
+last_hidden_state[0]
+表示第一句话全部 Token 的上下文向量，形状为 (12, 384)。
+
+last_hidden_state[1, 2]
+表示第二句话第三个 Token 的 384 维上下文向量，形状为 (384,)。
+
+last_hidden_state 还不是每句话唯一的句子向量，因为它为每个 Token 都生成了一个向量。还需要把 Token 维度池化掉。
+
+
+七、Masked Mean Pooling
+
+1. 为什么不能直接 mean(dim=1)
+
+序列中可能包含 [PAD]。直接对全部 Token 求平均，会把 PAD 向量也计算进去，使真实内容被稀释，句子向量发生偏移。
+
+Masked Mean Pooling 只对 attention_mask=1 的位置求平均。
+
+
+2. 核心代码
+
+import torch.nn.functional as F
+
+
+def mean_pooling(
+    token_embeddings: torch.Tensor,
+    attention_mask: torch.Tensor,
+) -> torch.Tensor:
+    expanded_mask = attention_mask.unsqueeze(-1).expand(
+        token_embeddings.size()
+    ).float()
+
+    valid_embedding_sum = torch.sum(
+        token_embeddings * expanded_mask,
+        dim=1,
+    )
+
+    valid_token_count = expanded_mask.sum(dim=1).clamp(min=1e-9)
+
+    return valid_embedding_sum / valid_token_count
+
+
+3. 形状变化
+
+attention_mask 原形状：
+
+(3, 12)
+
+执行 unsqueeze(-1)：
+
+(3, 12) → (3, 12, 1)
+
+执行 expand(token_embeddings.size())：
+
+(3, 12, 1) → (3, 12, 384)
+
+这样 Mask 就可以和 Token 向量逐元素相乘。
+
+真实 Token：
+
+384维向量 × 1 = 原向量
+
+PAD：
+
+384维向量 × 0 = 全零向量
+
+
+4. 求平均过程
+
+valid_embedding_sum
+表示每句话所有有效 Token 向量的和。
+
+valid_token_count
+表示每句话参与池化的有效 Token 数量。
+
+句子向量：
+
+有效 Token 向量之和 ÷ 有效 Token 数量
+
+形状变化：
+
+(3, 12, 384)
+→ 压缩 Token 维度
+→ (3, 384)
+
+
+5. clamp(min=1e-9)
+
+如果一句话所有位置都是 PAD，有效 Token 数量会是 0。直接除以 0 会得到 NaN 或无穷大。
+
+clamp(min=1e-9) 保证分母至少是一个很小的正数，避免除以 0。
+
+
+6. 今天遇到的错误：局部变量作用域
+
+错误：
+
+NameError: name 'expanded_mask' is not defined
+
+原因：
+
+expanded_mask 在 mean_pooling() 函数内部定义，是局部变量。函数外执行 print(expanded_mask) 时，Python 无法找到它。
+
+解决方法一：在函数内部打印。
+
+def mean_pooling(...):
+    expanded_mask = ...
+    print(expanded_mask.shape)
+    ...
+
+解决方法二：如果函数外确实需要使用，就通过 return 返回。
+
+核心规律：
+
+函数内部创建的局部变量，只能在函数内部直接访问。
+
+
+八、L2 归一化
+
+sentence_embeddings = F.normalize(
+    sentence_embeddings,
+    p=2,
+    dim=1,
+)
+
+L2 归一化公式：
+
+归一化向量 = 原向量 ÷ 原向量的 L2 模长
+
+归一化后：
+
+每个句子向量的模长约等于 1。
+
+归一化不会把向量变成相同的向量，而是保留方向、统一长度。
+
+
+九、余弦相似度
+
+余弦相似度公式：
+
+cos(A, B) = A·B ÷ (||A|| × ||B||)
+
+如果 A、B 都已经进行 L2 归一化：
+
+||A|| = 1
+||B|| = 1
+
+因此：
+
+cos(A, B) = A·B
+
+这里的 A·B 是点积，不是保留所有元素的普通逐元素乘法结果。
+
+
+十、封装句子编码函数
+
+def encode_sentences(sentences: list[str]) -> torch.Tensor:
+    inputs = tokenizer(
+        sentences,
+        padding=True,
+        truncation=True,
+        max_length=128,
+        return_tensors="pt",
+    )
+
+    inputs = {
+        name: tensor.to(device)
+        for name, tensor in inputs.items()
+    }
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    embeddings = mean_pooling(
+        outputs.last_hidden_state,
+        inputs["attention_mask"],
+    )
+
+    return F.normalize(embeddings, p=2, dim=1)
+
+完整过程：
+
+文本
+→ Tokenizer
+→ input_ids 和 attention_mask
+→ 预训练 Transformer
+→ last_hidden_state
+→ Masked Mean Pooling
+→ 句子向量
+→ L2 归一化
+
+
+十一、个人技能与岗位向量匹配
+
+个人技能文本只有 1 条：
+
+profile_embedding 形状为 (1, 384)
+
+岗位描述有 4 条：
+
+job_embeddings 形状为 (4, 384)
+
+岗位向量转置后：
+
+job_embeddings.T 形状为 (384, 4)
+
+矩阵乘法：
+
+(1, 384) @ (384, 4) → (1, 4)
+
+共同的 384 维特征维度被消除，保留：
+
+1 个个人技能句子 × 4 个岗位句子
+
+核心代码：
+
+similarities = profile_embedding @ job_embeddings.T
+similarities = similarities.squeeze(0)
+
+形状变化：
+
+(1, 4) → squeeze(0) → (4,)
+
+
+十二、岗位相似度排序
+
+ranked_indices = torch.argsort(
+    similarities,
+    descending=True,
+)
+
+torch.argsort() 返回的是排序后的原始索引，不是直接返回排好序的分数。
+
+descending=True 表示按照分数从高到低排列索引。
+
+for rank, index_tensor in enumerate(ranked_indices, start=1):
+    index = index_tensor.item()
+    score = similarities[index].item()
+
+    print(f"第{rank}名")
+    print(job_descriptions[index])
+    print(f"余弦相似度：{score:.4f}")
+
+.item() 将单元素 Tensor 转换为普通 Python 数值。
+
+
+十三、语义相似度不是录取概率
+
+如果得到：
+
+余弦相似度 = 0.8
+
+不能解释为：
+
+录取概率 80%
+或者
+技能匹配率 80%
+
+0.8 只表示两个句子向量在向量空间中的方向比较接近。
+
+它不是“已满足要求数量 ÷ 所有要求数量”，也不是经过概率分类模型校准后的概率。
+
+
+十四、必备技能集合运算
+
+my_skills = {
+    "python",
+    "pytorch",
+    "transformer",
+    "nlp",
+}
+
+required_skills = {
+    "python",
+    "nlp",
+    "rag",
+    "llm",
+}
+
+已掌握技能：
+
+matched_skills = my_skills & required_skills
+
+缺失技能：
+
+missing_skills = required_skills - my_skills
+
+必备技能覆盖率：
+
+coverage = len(matched_skills) / len(required_skills)
+
+如果 required_skills 为空，需要避免除以 0：
+
+if required_skills:
+    coverage = len(matched_skills) / len(required_skills)
+else:
+    coverage = 1.0
+
+
+十五、为什么覆盖率可以显示为百分比
+
+技能覆盖率本身是“部分占总体的比例”：
+
+已掌握必备技能数量 ÷ 必备技能总数
+
+例如：
+
+掌握 3 项 ÷ 要求 4 项 = 0.75 = 75%
+
+余弦相似度是向量之间的几何关系，不是数量占比，所以不应直接称为百分比匹配率。
+
+
+十六、综合排序
+
+results.sort(
+    key=lambda result: (
+        result["coverage"],
+        result["semantic_score"],
+    ),
+    reverse=True,
+)
+
+排序逻辑：
+
+1. 先按照必备技能覆盖率从高到低排序。
+2. 覆盖率相同时，再按照语义相似度从高到低排序。
+
+这样能够同时使用：
+
+结构化的明确技能要求
++
+完整文本的语义信息
+
+
+十七、当前模型的语言限制
+
+all-MiniLM-L6-v2 主要面向英文文本。
+
+如果直接输入大量中文 JD，可能出现：
+
+1. 中文分词不合理。
+2. 词义表示不准确。
+3. 句子向量不能可靠表达中文语义。
+4. 余弦相似度发生偏差。
+
+真实中文项目应该选择中文或多语言 Embedding 模型。
+
+模型已经预训练，并不代表它对所有语言、所有行业、所有任务都同样准确。
+
+
+十八、Day 10 随机 Embedding 与 Day 15 预训练向量
+
+Day 10：
+
+Embedding 参数随机初始化，没有经过训练。生成的向量没有可靠的语义含义，因此余弦相似度也不能可靠表达文本语义。
+
+Day 15：
+
+加载经过大量文本训练的预训练模型。模型参数已经学习一定的词义、上下文关系和句子语义，因此生成的向量更有意义。
+
+注意：更有意义不等于绝对正确。结果还会受到语言、训练数据、文本写法和应用领域影响。
+
+
+十九、20 道综合题标准答案
+
+1. transformers、AutoTokenizer、AutoModel 和具体模型的关系
+
+transformers 是工具库；AutoTokenizer 负责加载配套分词器；AutoModel 负责识别模型结构并加载预训练参数；具体模型通常从 Hugging Face Hub 按 model_name 下载。
+
+2. 为什么二者必须使用相同 model_name
+
+Tokenizer 的 Token ID 必须与模型 Embedding 词表行号一一对应，否则模型会读取错误的词向量。
+
+3. input_ids 和 attention_mask
+
+input_ids 是每个 Token 在预训练词表中的编号；attention_mask 标记各位置是否参与计算，1 通常表示有效或特殊 Token，0 表示 PAD。
+
+4. padding、truncation、max_length
+
+padding="max_length" 负责补齐；truncation=True 负责截断；max_length=12 指定编码使用或最多保留 12 个位置。
+
+5. return_tensors="pt"
+
+让 Tokenizer 返回 PyTorch Tensor。
+
+6. 为什么使用子词
+
+因为词表大小有限，子词能够控制词表规模、处理罕见词和词形变化，并减少 [UNK]。
+
+7. 两个星号
+
+** 把字典拆成关键字参数传入模型。
+
+8. (3,12,384)
+
+3 是句子数量，12 是每句话的 Token 位置数，384 是每个 Token 的上下文向量维度。
+
+9. 为什么还不是句子向量
+
+因为 last_hidden_state 为每个 Token 分别提供一个向量，需要池化后才能让一句话对应一个向量。
+
+10. 为什么需要 Attention Mask
+
+为了排除 PAD，只对真实 Token 进行池化。
+
+11. Masked Mean Pooling
+
+扩展 Mask → PAD 向量清零 → 有效 Token 向量求和 → 除以有效 Token 数量 → 得到句子向量。
+
+12. L2 归一化
+
+每个句子向量除以自身模长，使模长约等于 1，同时保留方向。
+
+13. 为什么点积等于余弦相似度
+
+归一化后两个向量模长都为 1，所以余弦公式的分母为 1，余弦相似度等于点积。
+
+14. (1,384) @ (384,4)
+
+结果为 (1,4)。消除共同的 384 维特征维度，保留个人句子数量 1 和岗位句子数量 4。
+
+15. argsort 返回什么
+
+返回排序后的原始索引；descending=True 表示索引对应的分数从高到低。
+
+16. 为什么 0.8 不是 80% 岗位匹配率
+
+因为它只是向量方向之间的余弦相似度，不是技能数量占比或录取概率。
+
+17. 必备技能覆盖率
+
+len(my_skills & required_skills) / len(required_skills)，并在要求集合为空时避免除以 0。
+
+18. 为什么比随机 Embedding 更有意义
+
+预训练模型已经从大量文本中学习词义、上下文关系和句子语义，而随机 Embedding 没有经过训练。
+
+19. 为什么不适合大量中文 JD
+
+当前模型主要面向英文，中文可能被不合理分词或错误表示，导致相似度偏差。
+
+20. 完整流程
+
+原始文本
+→ 预训练 Tokenizer 分词
+→ Token ID 与 Attention Mask
+→ 预训练 Transformer
+→ 每个 Token 的上下文向量
+→ Masked Mean Pooling
+→ 句子向量
+→ L2 归一化
+→ 余弦相似度
+→ 必备技能交集、差集和覆盖率
+→ 岗位排序与缺失技能
+
+
+二十、今日核心流程总结
+
+原始个人技能与 JD 文本
+→ 使用配套 AutoTokenizer 分词
+→ 得到 input_ids 与 attention_mask
+→ 将输入和预训练模型放到相同设备
+→ AutoModel 前向传播
+→ 得到每个 Token 的 last_hidden_state
+→ Attention Mask 清除 PAD
+→ Masked Mean Pooling 合成句子向量
+→ L2 归一化
+→ 归一化向量点积得到余弦相似度
+→ argsort 得到岗位相似度排名
+→ 集合交集得到已掌握技能
+→ 集合差集得到缺失技能
+→ 计算必备技能覆盖率
+→ 综合输出岗位排序与技能差距
+
+
+二十一、今日掌握情况
+
+已经掌握：
+
+1. transformers 工具库与具体模型的区别。
+2. 虚拟环境与包隔离的意义。
+3. Tokenizer、Token ID、Attention Mask。
+4. Padding、Truncation 和子词分词。
+5. AutoModel 和预训练模型推理。
+6. last_hidden_state 的三维形状。
+7. Masked Mean Pooling 的形状和计算过程。
+8. 局部变量作用域。
+9. L2 归一化与余弦相似度。
+10. 矩阵乘法批量计算岗位相似度。
+11. argsort 返回排序索引。
+12. 技能交集、差集和覆盖率。
+13. 语义相似度、覆盖率与概率的区别。
+14. 英文预训练模型处理中文文本的限制。
+
+
+二十二、后续需要继续加强
+
+1. 记住 transformers 是工具库，具体模型权重通常来自模型仓库。
+2. 说“余弦相似度”时不要直接转换成百分比岗位匹配率。
+3. 说矩阵乘法时，应明确消除的是共同的特征维度。
+4. 注意 torch.argsort() 返回索引，不是排好序后的数值。
+5. 必备技能覆盖率的分母是岗位必备技能总数。
+6. 中文 JD 应使用中文或多语言 Embedding 模型。
+7. 运行 Python 前检查终端是否已经激活 (.venv)。
+
+
+Day 15 完成。
