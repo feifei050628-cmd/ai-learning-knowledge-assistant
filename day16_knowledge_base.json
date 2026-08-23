@@ -1,0 +1,67 @@
+{
+    "model_id": "BAAI/bge-small-zh-v1.5",
+    "embedding_dimension": 512,
+    "chunk_count": 10,
+    "chunks": [
+        {
+            "chunk_id": "doc_001_chunk_1",
+            "document_id": "doc_001",
+            "title": "RAG基础",
+            "text": "RAG是检索增强生成技术。它会先从外部知识库中找到与用户问题相关的资料，再把检索结果加入提"
+        },
+        {
+            "chunk_id": "doc_001_chunk_2",
+            "document_id": "doc_001",
+            "title": "RAG基础",
+            "text": "，再把检索结果加入提示词，最后交给大模型生成回答。RAG可以补充模型没有见过的企业内部知识"
+        },
+        {
+            "chunk_id": "doc_001_chunk_3",
+            "document_id": "doc_001",
+            "title": "RAG基础",
+            "text": "有见过的企业内部知识，也能在一定程度上降低大模型幻觉。"
+        },
+        {
+            "chunk_id": "doc_002_chunk_1",
+            "document_id": "doc_002",
+            "title": "Transformer基础",
+            "text": "Transformer通过自注意力机制处理Token之间的关系。多头注意力可以从多个角度学"
+        },
+        {
+            "chunk_id": "doc_002_chunk_2",
+            "document_id": "doc_002",
+            "title": "Transformer基础",
+            "text": "意力可以从多个角度学习不同Token之间的联系。Transformer还包含残差连接、La"
+        },
+        {
+            "chunk_id": "doc_002_chunk_3",
+            "document_id": "doc_002",
+            "title": "Transformer基础",
+            "text": "还包含残差连接、LayerNorm和前馈神经网络。"
+        },
+        {
+            "chunk_id": "doc_003_chunk_1",
+            "document_id": "doc_003",
+            "title": "PyTorch训练",
+            "text": "PyTorch训练循环通常包括前向传播、计算损失、清空梯度、反向传播和更新参数。预测时应该"
+        },
+        {
+            "chunk_id": "doc_003_chunk_2",
+            "document_id": "doc_003",
+            "title": "PyTorch训练",
+            "text": "更新参数。预测时应该调用model.eval并关闭梯度计算。"
+        },
+        {
+            "chunk_id": "doc_004_chunk_1",
+            "document_id": "doc_004",
+            "title": "Docker部署",
+            "text": "Docker可以把应用代码、依赖和运行环境打包成镜像。使用容器可以减少不同电脑之间的环境差"
+        },
+        {
+            "chunk_id": "doc_004_chunk_2",
+            "document_id": "doc_004",
+            "title": "Docker部署",
+            "text": "不同电脑之间的环境差异，方便机器学习服务的部署和交付。"
+        }
+    ]
+}
