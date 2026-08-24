@@ -1,0 +1,988 @@
+Day 17 学习笔记：本地生成模型与完整 RAG 问答系统
+====================================================
+
+学习日期：2026-08-25
+对应代码：day17.py
+
+
+一、今天完成了什么
+------------------
+
+今天把 Day 16 的“语义检索”继续向后连接，完成了一个可以在本地运行的完整 RAG 问答流程：
+
+1. 加载本地指令生成模型 Qwen/Qwen2.5-0.5B-Instruct。
+2. 使用 Chat Template 把 system 和 user 消息转换成模型认识的输入格式。
+3. 使用 generate() 生成新 Token，并把 Token ID 解码成自然语言回答。
+4. 加载 Day 16 保存的 JSON 文本块信息和 PTH 向量矩阵。
+5. 使用与建库阶段相同的 BGE 模型生成用户问题向量。
+6. 计算查询向量与所有知识块向量的余弦相似度，并取 Top-K。
+7. 把检索资料、来源信息和用户问题组合成增强提示词。
+8. 把增强提示词交给 Qwen，得到完整 RAG 回答。
+9. 增加相关性门槛：资料不相关时直接回答“现有资料不足”。
+10. 对比无 RAG 回答与 RAG 回答。
+11. 建立小型检索测试集，检查正确资料是否命中，以及无关问题是否被拒绝。
+
+今天完成的核心闭环：
+
+用户问题
+→ Retrieval（检索）
+→ Augmentation（增强提示词）
+→ Generation（生成回答）
+→ 返回答案、相似度和引用来源
+
+
+二、Embedding 模型与生成模型的区别
+----------------------------------
+
+1. Embedding 模型
+
+今天使用的检索模型：
+
+    BAAI/bge-small-zh-v1.5
+
+职责：
+
+    文本 → 语义向量
+
+它负责把用户问题和知识库文本转换成位于同一语义空间的向量。之后再通过矩阵乘法、余弦相似度和 torch.topk() 找到相关资料。
+
+AutoModel 的主要输出是隐藏状态向量，本身不会直接生成自然语言回答。
+
+2. Causal Language Model（因果语言模型）
+
+今天使用的生成模型：
+
+    Qwen/Qwen2.5-0.5B-Instruct
+
+职责：
+
+    已有 Token → 预测下一个 Token → 不断重复 → 完整回答
+
+AutoModelForCausalLM 在基础 Transformer 上还带有语言模型输出层，可以计算下一个 Token 的分数，并通过 generate() 连续生成 Token。
+
+3. 两个模型不能混为一谈
+
+retrieval_model：
+
+- 把用户问题转换成查询向量。
+- 它只负责编码，不会自己执行 Top-K 检索。
+- 真正的检索由向量矩阵乘法和 torch.topk() 完成。
+
+generation_model：
+
+- 阅读系统提示词、检索资料和用户问题。
+- 预测下一个 Token。
+- 生成最终自然语言回答。
+
+
+三、加载本地生成模型
+--------------------
+
+核心设置：
+
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    generation_model_id = "Qwen/Qwen2.5-0.5B-Instruct"
+
+    generation_dtype = (
+        torch.float16
+        if device.type == "cuda"
+        else torch.float32
+    )
+
+GPU 使用 float16 的原因：
+
+- float16 每个参数通常占 2 字节。
+- float32 每个参数通常占 4 字节。
+- 使用 float16 可以明显减少显存占用。
+
+CPU 使用 float32 的原因：
+
+- 兼容性通常更好。
+- 许多 CPU 对 float16 的计算支持和效率不如 GPU。
+
+模型与 Tokenizer 必须使用相同的 model_id：
+
+    generation_tokenizer = AutoTokenizer.from_pretrained(
+        generation_model_id
+    )
+
+    generation_model = AutoModelForCausalLM.from_pretrained(
+        generation_model_id,
+        torch_dtype=generation_dtype,
+    ).to(device)
+
+原因：Tokenizer 产生的 Token ID 必须与模型内部词表一一对应。如果不配套，同一个编号可能代表不同 Token，模型就会读取错误信息。
+
+Instruct 表示模型经过指令微调，更熟悉 system、user、assistant 等对话结构，也更擅长遵循要求完成问答。
+
+
+四、model.eval()、no_grad() 与 inference_mode()
+------------------------------------------------
+
+1. model.eval()
+
+    generation_model.eval()
+
+作用：把模型切换到预测模式，使 Dropout、BatchNorm 等训练和预测行为不同的网络层采用预测行为。
+
+注意：eval() 不会自动关闭梯度计算。
+
+2. torch.no_grad()
+
+作用：关闭梯度计算和计算图记录，降低显存/内存占用，提升推理效率。
+
+3. torch.inference_mode()
+
+    with torch.inference_mode():
+        ...
+
+作用：同样关闭梯度和计算图，并进行更严格的推理优化。纯预测时可以优先使用它。
+
+正确理解：
+
+- eval() 管理网络层的训练/预测行为。
+- no_grad() 或 inference_mode() 管理是否记录梯度与计算图。
+- 两者职责不同，推理时通常要同时使用。
+
+
+五、Chat Template
+-----------------
+
+对话消息：
+
+    messages = [
+        {
+            "role": "system",
+            "content": "你是一名人工智能学习助手……",
+        },
+        {
+            "role": "user",
+            "content": "请用一句话解释什么是RAG。",
+        },
+    ]
+
+角色含义：
+
+- system：规定模型身份、行为、回答语言、格式和限制。
+- user：用户提出的问题或要求。
+- assistant：模型已经生成的历史回答。当前轮“接下来由 assistant 回答”的位置由生成提示标记指出。
+
+Chat Template 的作用：
+
+    generation_tokenizer.apply_chat_template(...)
+
+它会按照当前模型训练时采用的对话格式，把 messages 转换成模型认识的提示词结构，并加入相应的特殊标记。
+
+重要参数：
+
+1. add_generation_prompt=True
+
+在模板末尾加入“接下来轮到 assistant 生成回答”的标记，引导模型开始生成。
+
+2. tokenize=False
+
+返回格式化后的字符串，适合观察模板最终长什么样。
+
+3. tokenize=True
+
+返回 Token ID。
+
+4. return_tensors="pt"
+
+返回 PyTorch Tensor。
+
+5. return_dict=True
+
+返回类似字典的对象，其中通常包含 input_ids 和 attention_mask。
+
+把模型输入移动到模型所在设备：
+
+    generation_inputs = generation_inputs.to(device)
+
+否则会出现模型参数在 GPU、输入 Tensor 在 CPU 的设备不一致错误。
+
+
+六、generate() 的输出与切片
+--------------------------
+
+生成：
+
+    with torch.inference_mode():
+        generated_token_ids = generation_model.generate(
+            **generation_inputs,
+            max_new_tokens=100,
+            do_sample=False,
+            pad_token_id=generation_tokenizer.eos_token_id,
+        )
+
+对于当前 decoder-only 模型，generate() 返回：
+
+    原始输入 Token + 新生成 Token
+
+所以必须先记录提示词长度：
+
+    input_token_count = generation_inputs["input_ids"].shape[1]
+
+再切掉原输入：
+
+    new_token_ids = generated_token_ids[0, input_token_count:]
+
+最后解码：
+
+    answer = generation_tokenizer.decode(
+        new_token_ids,
+        skip_special_tokens=True,
+    )
+
+注意：AutoModelForCausalLM.generate() 返回的仍然是 Token ID，不是字符串。Tokenizer 的 decode() 才负责把 Token ID 转回自然语言。
+
+max_new_tokens=100 表示最多新生成 100 个 Token，不包括原始提示词 Token。
+
+
+七、稳定生成与随机采样
+----------------------
+
+1. do_sample=False
+
+- 不进行随机采样。
+- 每一步通常选择概率最高的 Token。
+- 同一个问题的输出更稳定。
+- 适合事实问答、RAG、学习和调试。
+
+2. do_sample=True
+
+- 按概率分布随机选择 Token。
+- 低概率 Token 也有机会被选中。
+- 回答更多样，但也更容易偏离资料或产生不准确内容。
+
+3. temperature
+
+只在 do_sample=True 时生效。
+
+- 较低：概率分布更集中，回答更保守稳定。
+- 较高：概率分布更平滑，回答更多样随机。
+
+4. top_p
+
+只在 do_sample=True 时生效。
+
+例如 top_p=0.9：
+
+- 从概率最高的 Token 开始累计。
+- 保留累计概率达到约 0.9 的最小候选集合。
+- 集合之外的低概率 Token 不参与本次采样。
+
+这不是“保留概率大于 90% 的 Token”。
+
+5. RAG 推荐设置
+
+事实型 RAG 默认使用 do_sample=False，让回答更稳定，减少随意发挥。
+
+
+八、generate_answer() 的结构
+----------------------------
+
+函数签名：
+
+    def generate_answer(
+        user_question: str,
+        do_sample: bool = False,
+        max_new_tokens: int = 150,
+    ) -> str:
+
+含义：
+
+- 接收：字符串、布尔值、整数。
+- 返回：回答字符串。
+- -> str 是返回值类型提示。
+
+动态生成参数：
+
+    generation_kwargs = {
+        "max_new_tokens": max_new_tokens,
+        "do_sample": do_sample,
+        "pad_token_id": generation_tokenizer.eos_token_id,
+    }
+
+    if do_sample:
+        generation_kwargs["temperature"] = 0.7
+        generation_kwargs["top_p"] = 0.9
+
+    output_token_ids = generation_model.generate(
+        **model_inputs,
+        **generation_kwargs,
+    )
+
+**generation_kwargs 会把字典拆成关键字参数。
+
+这样写可以避免 do_sample=False 时仍传入无效的 temperature 和 top_p。
+
+
+九、加载 Day 16 向量知识库
+--------------------------
+
+文件路径：
+
+    current_directory = Path(__file__).resolve().parent
+
+    metadata_path = current_directory / "day16_knowledge_base.json"
+    embeddings_path = current_directory / "day16_chunk_embeddings.pth"
+
+Path 必须先导入：
+
+    from pathlib import Path
+
+否则会出现：
+
+    NameError: name 'Path' is not defined
+
+两个文件的职责：
+
+1. day16_knowledge_base.json
+
+保存：
+
+- 向量模型 model_id。
+- 向量维度。
+- 文本块数量。
+- 每个文本块的标题、正文、文档编号和文本块编号。
+
+2. day16_chunk_embeddings.pth
+
+保存：所有知识库文本块对应的向量矩阵。
+
+安全加载：
+
+    knowledge_embeddings = torch.load(
+        embeddings_path,
+        map_location="cpu",
+        weights_only=True,
+    )
+
+参数含义：
+
+- map_location="cpu"：无论保存时在哪个设备，都先加载到 CPU。
+- weights_only=True：只加载 Tensor 等安全类型，不加载任意 Python 对象。
+
+必须验证：
+
+    len(knowledge_chunks) == knowledge_embeddings.shape[0]
+
+原因：JSON 中第 i 个文本块必须对应 PTH 向量矩阵第 i 行。如果顺序或数量错位，索引找到的原文就会错误。
+
+还要验证：
+
+    knowledge_embeddings.shape[1]
+    == knowledge_base_metadata["embedding_dimension"]
+
+确保实际向量维度与元数据一致。
+
+
+十、为什么查询必须使用同一个 BGE 模型
+--------------------------------------
+
+建库时用 BAAI/bge-small-zh-v1.5 生成文档向量，查询时也必须从 JSON 中读取相同的 model_id：
+
+    retrieval_model_id = knowledge_base_metadata["model_id"]
+
+原因：
+
+- 不同模型的 Tokenizer、词表、参数和语义空间不同。
+- 即使向量维度碰巧相同，坐标含义也不一定相同。
+- 查询向量和文档向量不在同一语义空间时，点积/余弦相似度没有可靠意义。
+
+
+十一、把用户问题转换成查询向量
+--------------------------------
+
+查询指令：
+
+    query_instruction = "为这个句子生成表示以用于检索相关文章："
+    instructed_query = query_instruction + query
+
+BGE 在非对称检索中会对短查询添加查询指令，告诉模型当前文本是一条检索请求。文档建库时仍按原文编码。
+
+Tokenizer 输出被逐项移动到 device：
+
+    query_inputs = {
+        name: tensor.to(device)
+        for name, tensor in query_inputs.items()
+    }
+
+生成隐藏状态：
+
+    with torch.inference_mode():
+        query_outputs = retrieval_model(**query_inputs)
+
+BGE 取第一个 Token 的上下文向量：
+
+    query_embedding = query_outputs.last_hidden_state[:, 0, :]
+
+形状示例：
+
+    last_hidden_state: (1, token_count, 512)
+    query_embedding:   (1, 512)
+
+L2 归一化：
+
+    query_embedding = F.normalize(
+        query_embedding,
+        p=2,
+        dim=1,
+    )
+
+归一化后每个句子向量模长约为 1。文档向量也已经归一化，所以两者点积等于余弦相似度。
+
+最后移回 CPU：
+
+    return query_embedding.cpu()
+
+因为知识库向量矩阵保存在 CPU，矩阵乘法两侧必须位于同一设备。
+
+
+十二、相似度矩阵的形状
+----------------------
+
+已知：
+
+    query_embedding.shape      = (1, 512)
+    knowledge_embeddings.shape = (10, 512)
+
+转置后：
+
+    knowledge_embeddings.T.shape = (512, 10)
+
+矩阵乘法：
+
+    (1, 512) @ (512, 10) = (1, 10)
+
+被消除/求和的维度：512 维语义特征。
+
+保留的维度：
+
+- 1：查询句子数量。
+- 10：知识库文本块数量。
+
+再执行：
+
+    .squeeze(0)
+
+形状从 (1, 10) 变成 (10,)，其中每个值对应一个文本块的相似度。
+
+注意：相似度 0.60 不是 60% 概率，也不是“岗位匹配概率”。它只是两个归一化向量的余弦相似度分数。
+
+
+十三、Top-K 检索
+----------------
+
+    actual_top_k = min(
+        top_k,
+        len(knowledge_chunks),
+    )
+
+防止要求的 K 大于知识库文本块总数。
+
+    top_scores, top_indices = torch.topk(
+        similarity_scores,
+        k=actual_top_k,
+    )
+
+返回：
+
+- top_scores：最高的 K 个相似度分数。
+- top_indices：这些分数对应的向量矩阵行索引。
+
+通过索引找到原始文本块：
+
+    chunk = knowledge_chunks[index]
+
+torch.topk() 只负责选出相对最高的 K 个结果。即使所有资料都不相关，它仍然会返回 K 个结果，因此 Top-K 后还必须做相关性门槛判断。
+
+
+十四、Augmentation：构造增强提示词
+----------------------------------
+
+build_rag_prompt() 把以下信息放入一个字符串：
+
+- 资料排名。
+- 来源标题。
+- 文档编号。
+- 文本块编号。
+- 文本块正文。
+- 用户问题。
+- 回答限制。
+
+多个资料使用：
+
+    "\n\n".join(context_parts)
+
+连接，表示相邻资料之间插入两个换行符。
+
+提示词中的关键限制：
+
+1. 只能根据检索资料回答。
+2. 不使用资料外信息补充或编造。
+3. 资料不足时回答“现有资料不足”。
+4. 回答时标注资料编号。
+
+引用来源的作用：
+
+- 让用户检查答案依据。
+- 方便排查检索错误。
+- 增强答案可追溯性。
+
+提示词可以降低幻觉风险，但不能保证绝对不会幻觉。生成模型仍可能误解、遗漏或没有严格遵守要求。
+
+
+十五、相关性门槛与拒答
+----------------------
+
+answer_with_rag() 的完整职责：
+
+1. 检索 Top-K 文本块。
+2. 检查是否有检索结果。
+3. 读取最高相似度。
+4. 与 min_similarity 比较。
+5. 未通过门槛时直接返回“现有资料不足”。
+6. 通过门槛后构造 RAG 提示词。
+7. 调用生成模型。
+8. 返回答案、分数、门槛状态和引用来源。
+
+核心判断：
+
+    best_similarity = retrieval_results[0]["score"]
+
+    if best_similarity < min_similarity:
+        return {
+            "answer": "现有资料不足",
+            "passed_threshold": False,
+            "sources": [],
+            ...
+        }
+
+为什么先判断门槛：
+
+- Top-K 总会返回结果。
+- 最高分很低时，说明检索结果很可能与问题无关。
+- 此时不调用生成模型，可以节省资源并减少错误回答。
+
+门槛过高：
+
+- 许多相关问题也无法通过。
+- 系统频繁回答“现有资料不足”。
+- 召回率下降。
+
+门槛过低：
+
+- 无关资料容易通过。
+- 错误回答和幻觉风险增加。
+- 精确率下降。
+
+0.60 只是当前练习中的初始值，不是通用标准。真实项目必须用验证集和业务代价进行调参。
+
+
+十六、结构化返回结果
+--------------------
+
+answer_with_rag() 返回字典，而不是只返回一句文本：
+
+    {
+        "query": query,
+        "answer": answer,
+        "best_similarity": best_similarity,
+        "passed_threshold": True/False,
+        "sources": [...],
+    }
+
+优点：
+
+- API 可以分别返回答案、分数和来源。
+- 前端可以单独展示引用。
+- 日志可以记录检索分数与门槛状态。
+- 评估代码可以直接读取字段。
+
+
+十七、无 RAG 与 RAG 的区别
+--------------------------
+
+无 RAG：
+
+- 只依靠生成模型参数中已经学到的知识回答。
+- 可能缺少最新资料、私有资料或指定事实依据。
+- 不容易展示具体来源。
+
+有 RAG：
+
+- 先检索外部知识库。
+- 把相关资料加入提示词。
+- 通过相关性门槛拒绝无关问题。
+- 可以展示引用来源。
+
+RAG 也不保证一定正确，可能失败的原因包括：
+
+- 正确资料没有被检索到。
+- 切块不合理。
+- 门槛设置不合理。
+- Top-K 中混入干扰资料。
+- 生成模型误解资料。
+- 回答遗漏关键信息。
+- 引用编号错误。
+
+
+十八、检索评估
+--------------
+
+小型测试集字段：
+
+- query：测试问题。
+- expected_title：期望命中的资料标题。
+- expected_title=None：知识库没有正确来源，期望系统拒绝。
+
+相关问题通过条件：
+
+    正确资料标题进入 Top-K
+    且
+    最高相似度通过门槛
+
+无关问题通过条件：
+
+    最高相似度没有通过门槛
+
+今天计算的“检索测试准确率”只表示这 5 个测试问题中有多少个符合预期，不代表：
+
+- 真实世界准确率。
+- 最终回答准确率。
+- 模型通用能力。
+
+检索评估可以检查：
+
+- 正确资料是否进入 Top-K。
+- 无关问题是否被门槛拒绝。
+- 相似度分数是否合理。
+- 文本切块是否正确。
+- 文本块与向量索引是否一一对应。
+- 不同表达能否检索到相同资料。
+
+生成评估还应检查：
+
+- 回答是否与检索资料一致。
+- 是否真正回答用户问题。
+- 是否引用正确来源。
+- 是否编造资料之外的信息。
+- 资料不足时是否正确拒绝。
+- 回答是否完整、清晰。
+
+门槛调参应使用验证集；最终测试集只用于一次客观评估，不能反复根据测试结果调门槛。
+
+
+十九、今天的完整 RAG 流程
+------------------------
+
+离线建库阶段（Day 16）：
+
+原始文档
+→ 文档切块
+→ BGE 生成文档向量
+→ L2 归一化
+→ 保存 JSON 文本块信息
+→ 保存 PTH 文本块向量矩阵
+
+在线问答阶段（Day 17）：
+
+用户问题
+→ 添加 BGE 查询指令
+→ BGE 生成查询向量
+→ L2 归一化
+→ 与文档向量矩阵相乘
+→ 得到余弦相似度
+→ torch.topk() 得到 Top-K 分数和索引
+→ 检查最高相似度门槛
+   ├─ 低于门槛：返回“现有资料不足”
+   └─ 达到门槛：继续执行
+→ 根据索引找到原始文本块
+→ 把资料、来源、限制和问题组成 RAG 提示词
+→ 使用 Qwen Chat Template
+→ Qwen 生成“原输入 Token + 新回答 Token”
+→ 切除原输入 Token
+→ decode() 得到自然语言
+→ 返回答案、相似度、门槛状态和引用来源
+
+
+二十、核心代码骨架
+------------------
+
+1. 加载模型
+
+    generation_tokenizer = AutoTokenizer.from_pretrained(
+        generation_model_id
+    )
+
+    generation_model = AutoModelForCausalLM.from_pretrained(
+        generation_model_id,
+        torch_dtype=generation_dtype,
+    ).to(device)
+
+    generation_model.eval()
+
+2. 生成回答
+
+    model_inputs = generation_tokenizer.apply_chat_template(
+        messages,
+        tokenize=True,
+        add_generation_prompt=True,
+        return_tensors="pt",
+        return_dict=True,
+    ).to(device)
+
+    prompt_token_count = model_inputs["input_ids"].shape[1]
+
+    with torch.inference_mode():
+        output_token_ids = generation_model.generate(
+            **model_inputs,
+            max_new_tokens=150,
+            do_sample=False,
+            pad_token_id=generation_tokenizer.eos_token_id,
+        )
+
+    new_token_ids = output_token_ids[0, prompt_token_count:]
+    answer = generation_tokenizer.decode(
+        new_token_ids,
+        skip_special_tokens=True,
+    )
+
+3. 查询编码
+
+    query_outputs = retrieval_model(**query_inputs)
+    query_embedding = query_outputs.last_hidden_state[:, 0, :]
+    query_embedding = F.normalize(query_embedding, p=2, dim=1)
+
+4. Top-K 检索
+
+    similarity_scores = (
+        query_embedding.cpu()
+        @ knowledge_embeddings.T
+    ).squeeze(0)
+
+    top_scores, top_indices = torch.topk(
+        similarity_scores,
+        k=actual_top_k,
+    )
+
+5. 相关性门槛
+
+    if best_similarity < min_similarity:
+        return {
+            "answer": "现有资料不足",
+            "passed_threshold": False,
+            "sources": [],
+        }
+
+
+二十一、30 道综合自测标准答案
+------------------------------
+
+1. Embedding 模型和生成模型有什么区别？
+
+标准答案：Embedding 模型把文本编码成语义向量，用于检索、聚类或相似度计算；生成模型根据已有 Token 预测下一个 Token，循环生成完整自然语言回答。
+
+2. AutoModel 与 AutoModelForCausalLM 有什么区别？
+
+标准答案：AutoModel 加载基础网络，主要输出隐藏状态向量；AutoModelForCausalLM 还带有因果语言模型输出头，可计算下一个 Token 的分数，并通过 generate() 生成 Token 序列。
+
+3. Tokenizer 和模型为什么必须配套？
+
+标准答案：Tokenizer 产生的 Token ID 必须与模型内部词表一一对应；不配套时，同一个编号可能代表不同 Token，模型会读取错误的信息。
+
+4. Instruct 模型表示什么？
+
+标准答案：它经过指令微调，学习了 system、user、assistant 等对话格式和遵循指令的行为，更适合问答与助手任务。
+
+5. GPU 上使用 float16 的主要目的是什么？
+
+标准答案：减少模型参数和中间结果的显存占用，并可在支持半精度的 GPU 上提升计算效率。
+
+6. eval() 与 inference_mode() 分别做什么？
+
+标准答案：eval() 切换 Dropout、BatchNorm 等层的预测行为；inference_mode() 关闭梯度和计算图并进行推理优化。eval() 本身不会关闭梯度。
+
+7. system、user、assistant 分别表示什么？
+
+标准答案：system 规定模型身份和行为；user 保存用户问题或要求；assistant 保存模型已经生成的历史回复。当前下一轮 assistant 的开始由生成提示标记指出。
+
+8. apply_chat_template() 做什么？
+
+标准答案：按照当前模型训练时使用的对话格式，把角色消息转换成模型认识的提示词结构，并加入必要的特殊标记。
+
+9. add_generation_prompt=True 做什么？
+
+标准答案：在模板末尾添加“接下来轮到 assistant 生成”的标记，引导模型开始回答。
+
+10. tokenize=False 与 tokenize=True 的区别？
+
+标准答案：False 返回格式化后的字符串；True 返回 Token ID。
+
+11. decoder-only 模型的 generate() 返回什么？
+
+标准答案：通常返回“原始输入 Token + 新生成 Token”的完整 Token 序列。
+
+12. 为什么要切除原始输入？
+
+标准答案：最终回答只需要模型新生成的部分；因此要从提示词 Token 数量的位置开始切片。
+
+13. max_new_tokens 是否包含原提示词？
+
+标准答案：不包含，只限制最多新生成多少个 Token。
+
+14. do_sample=False 与 do_sample=True 的区别？
+
+标准答案：False 不随机采样，通常选择最高概率 Token，输出更稳定；True 按概率采样，回答更多样，但更不稳定。
+
+15. temperature 和 top_p 的作用？
+
+标准答案：temperature 控制概率分布集中程度；top_p 保留从高到低累计概率达到指定阈值的最小候选集合。二者主要在 do_sample=True 时生效。
+
+16. Day 16 的 JSON 和 PTH 分别保存什么？
+
+标准答案：JSON 保存模型 ID、向量维度、文本块数量和文本块元数据；PTH 保存文本块向量矩阵。
+
+17. 为什么查询向量必须用同一个模型生成？
+
+标准答案：必须保证查询向量和文档向量位于同一语义空间；否则点积或余弦相似度没有可靠意义。
+
+18. retrieval_model 与 generation_model 的职责？
+
+标准答案：retrieval_model 负责编码问题，矩阵乘法和 topk 负责找到资料；generation_model 负责读取增强提示词并生成自然语言回答。
+
+19. (1,512)@(512,10) 的结果和维度含义？
+
+标准答案：结果是 (1,10)。512 维语义特征被乘积求和；保留 1 个查询和 10 个文本块对应的相似度。
+
+20. top_scores 和 top_indices 表示什么？
+
+标准答案：top_scores 是最高的 K 个相似度；top_indices 是这些结果在文本块向量矩阵中的行索引。
+
+21. Retrieval、Augmentation、Generation 分别做什么？
+
+标准答案：Retrieval 把问题编码并检索资料；Augmentation 把资料、来源和问题组合成增强提示词；Generation 把提示词交给生成模型得到回答。
+
+22. 为什么需要相关性门槛？
+
+标准答案：Top-K 即使面对无关问题也会返回结果；门槛可以在最高分过低时拒绝回答，减少无关资料进入生成阶段。
+
+23. 相似度 0.60 是否表示 60% 概率？
+
+标准答案：不是。它是两个归一化向量的余弦相似度分数，不是经过概率校准的正确率或相关概率。
+
+24. 门槛过高或过低有什么影响？
+
+标准答案：过高会错误拒绝相关问题、降低召回率；过低会让无关资料通过、增加错误回答和幻觉风险。
+
+25. 今天用了哪些护栏？
+
+标准答案：相关性门槛、资料不足时拒答、提示词规定只能依据资料、输出引用来源。它们只能降低风险，不能保证零幻觉。
+
+26. 相关测试问题通过的条件是什么？
+
+标准答案：期望的正确来源进入 Top-K，并且最高相似度通过门槛。
+
+27. expected_title=None 的测试怎样算通过？
+
+标准答案：表示知识库没有正确资料；当最高分未通过门槛、系统正确拒绝时算通过。
+
+28. 正确资料进入 Top-K 是否保证最终答案正确？
+
+标准答案：不能。还可能受干扰资料、提示词、模型理解、信息遗漏、引用错误和生成幻觉等影响。
+
+29. 检索评估与生成评估分别检查什么？
+
+标准答案：检索评估检查正确来源是否进入 Top-K、无关问题是否被拒绝、分数/切块/索引是否合理；生成评估检查回答是否忠于资料、是否回答问题、引用是否正确、是否编造、资料不足时是否拒答，以及回答是否完整清晰。
+
+30. 完整 RAG 流程是什么？
+
+标准答案：文档切块并用 BGE 建立归一化向量库；用户问题添加查询指令并用相同 BGE 编码；与文档矩阵相乘并用 topk 检索；检查相关性门槛；通过后取回原始文本块并构造带来源的增强提示词；应用 Qwen Chat Template；生成 Token；切掉原提示词；解码并返回答案、分数和来源。
+
+
+二十二、本次自测表现与重点纠正
+------------------------------
+
+综合表现：约 28/30，已经理解 Day 17 的完整主线。
+
+需要特别记住的纠正：
+
+1. assistant 角色保存的是模型已经产生的历史回复；当前新回复的起点由 add_generation_prompt=True 加入。
+2. generate() 生成的是 Token ID，decode() 才生成字符串。
+3. top_p 候选集合之外的低概率 Token 不会参与采样。
+4. temperature 和 top_p 主要只在 do_sample=True 时生效。
+5. retrieval_model 只负责编码；矩阵乘法与 torch.topk() 才执行实际检索。
+6. build_rag_prompt() 才执行资料注入，也就是 Augmentation。
+7. (1,512)@(512,10) 消除的是 512 维语义特征，保留查询数和文本块数。
+8. 余弦相似度不是概率。
+9. 模型名称写作 BGE，不是 BEG。
+
+
+二十三、常见错误排查
+--------------------
+
+1. NameError: name 'Path' is not defined
+
+解决：
+
+    from pathlib import Path
+
+2. ModuleNotFoundError: No module named 'transformers'
+
+先激活项目虚拟环境，再安装依赖：
+
+    .\.venv\Scripts\Activate.ps1
+    python -m pip install transformers
+
+3. 模型与输入不在同一设备
+
+检查：
+
+    next(model.parameters()).device
+    tensor.device
+
+4. 文本块与向量错位
+
+检查：
+
+    len(knowledge_chunks) == knowledge_embeddings.shape[0]
+
+5. 查询和文档模型不一致
+
+不要手写另一个模型名，应从 JSON 元数据读取建库时的 model_id。
+
+6. 把相似度当概率
+
+余弦相似度只表示向量方向接近程度；门槛必须通过测试数据校准。
+
+7. 随机采样导致事实回答漂移
+
+事实型 RAG 优先使用：
+
+    do_sample=False
+
+
+二十四、今天掌握的能力
+----------------------
+
+完成 Day 17 后，已经可以解释并实现：
+
+- Embedding 模型与生成模型的分工。
+- 本地指令模型的加载与推理。
+- Chat Template 与角色消息。
+- 生成 Token 的切片与解码。
+- 贪心生成与随机采样。
+- 持久化向量知识库的加载和校验。
+- BGE 查询编码与 Top-K 检索。
+- 完整 Retrieval、Augmentation、Generation 流程。
+- 相关性门槛与资料不足拒答。
+- 结构化答案和引用来源。
+- 无 RAG 与 RAG 的差异。
+- 小型检索评估的设计与局限。
+
+Day 17 结论：你已经从“能做向量检索”进阶到“能把检索资料交给本地大模型，并返回带引用的完整 RAG 回答”。下一步应继续学习项目工程化、API 封装、日志与更可靠的评估，而不是只增加模型或代码长度。
