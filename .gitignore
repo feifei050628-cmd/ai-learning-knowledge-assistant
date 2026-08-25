@@ -12,7 +12,9 @@ venv/
 # API 密钥和环境变量
 .env
 
-
+# PyTorch 模型和向量文件
 *.pth
+*.pt
+
 # 个人简历
 AI大模型实习简历模板.docx
