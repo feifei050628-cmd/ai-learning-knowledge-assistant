@@ -1,0 +1,1090 @@
+Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目
+=======================================================
+
+学习日期：2026-08-26
+对应项目：rag_project
+项目位置：C:\Users\21855\Documents\python learning\rag_project
+运行方式：python -m rag_project.main
+
+
+一、今天完成了什么
+------------------
+
+Day 17 已经实现了完整 RAG，但主要代码集中在一个较大的 day17.py 文件中。Day 18 的重点不是重新发明 RAG 算法，而是把已经能够运行的原型整理成结构清晰、可以维护、可以复用的 Python 项目。
+
+今天完成的主要工作：
+
+1. 把单文件程序拆分为配置、模型管理、检索、生成、Pipeline 和命令行入口等模块。
+2. 使用 __init__.py 把 rag_project 明确为一个可导入的 Python 包。
+3. 使用 config.py 集中管理模型名称、路径、设备和默认参数。
+4. 使用 model_manager.py 统一加载 BGE 检索模型和 Qwen 生成模型。
+5. 使用 retrieval.py 加载知识库、生成查询向量、执行 Top-K 检索和相关性门槛检查。
+6. 使用 generation.py 处理 Chat Template、模型生成和新 Token 解码。
+7. 使用 RAGPipeline 类连接 Retrieval、Augmentation 和 Generation。
+8. 使用 main.py 实现可以连续提问的命令行程序。
+9. 创建 requirements.txt 记录项目依赖。
+10. 创建 README.md 记录项目功能、结构、模型、运行方法和当前局限。
+11. 完善 .gitignore，忽略缓存、虚拟环境、密钥和大型 PTH/PT 文件。
+12. 使用 compileall 做基础语法检查，并使用 python -m rag_project.main 做完整运行检查。
+13. 使用 Git 提交本次模块化成果。
+
+今天完成后的项目已经具备一个小型工程项目的基本结构，不再只是学习用的单个脚本。
+
+
+二、为什么要进行模块化
+----------------------
+
+如果所有代码都放在一个文件中，随着功能增加会出现以下问题：
+
+- 文件越来越长，很难快速找到某项功能。
+- 配置、模型加载、检索、生成和界面逻辑混在一起。
+- 修改一项功能时容易影响其他代码。
+- 很难单独测试某个模块。
+- 相同功能难以在其他程序、网页或 API 中复用。
+
+模块化以后，每个文件只承担相对明确的职责：
+
+    config.py          配置
+    model_manager.py   模型加载
+    retrieval.py       检索
+    generation.py      生成
+    rag_pipeline.py    流程编排
+    main.py            用户交互入口
+
+模块化的核心思想不是“把代码随便分成多个文件”，而是按照职责进行拆分，也就是让一个模块主要负责一类工作。
+
+主要收益：
+
+1. 可读性：看到文件名就能大致知道代码在哪里。
+2. 可维护性：修改检索逻辑时主要查看 retrieval.py。
+3. 可测试性：可以单独运行某个模块的测试代码。
+4. 可复用性：以后制作 FastAPI、网页或桌面程序时可以继续使用 RAGPipeline。
+5. 可扩展性：以后可以替换模型、知识库或检索算法，而不用全部重写。
+6. 协作性：多人可以分别修改不同模块，减少互相冲突。
+
+
+三、项目结构与各文件职责
+------------------------
+
+当前结构：
+
+    rag_project/
+    ├── __init__.py
+    ├── config.py
+    ├── model_manager.py
+    ├── retrieval.py
+    ├── generation.py
+    ├── rag_pipeline.py
+    ├── main.py
+    ├── requirements.txt
+    ├── README.md
+    └── knowledge_base/
+        ├── day16_knowledge_base.json
+        └── day16_chunk_embeddings.pth
+
+1. __init__.py
+
+主要作用：明确告诉 Python，rag_project 是一个可以导入的包。
+
+当前文件即使是空的，也可以发挥这个作用。以后还可以在其中集中暴露包的公共接口。
+
+2. config.py
+
+集中保存：
+
+- 项目名称。
+- 项目路径和知识库路径。
+- JSON 元数据文件路径。
+- PTH 向量文件路径。
+- 生成模型 ID。
+- CPU/GPU 设备。
+- 模型数据类型。
+- Top-K。
+- 相关性门槛。
+- 最大生成 Token 数量。
+- BGE 查询指令。
+- 检索最大长度。
+
+3. model_manager.py
+
+负责：
+
+- 加载检索模型 Tokenizer。
+- 加载 BGE 检索模型。
+- 加载生成模型 Tokenizer。
+- 加载 Qwen 生成模型。
+- 把模型移动到 DEVICE。
+- 把模型切换到 eval 模式。
+
+4. retrieval.py
+
+负责：
+
+- 加载知识库 JSON 和 PTH。
+- 检查知识库数据是否一致。
+- 将用户问题转换为查询向量。
+- 归一化查询向量。
+- 计算查询向量与所有文档向量的相似度。
+- 使用 torch.topk() 找出最相关文本块。
+- 检查相关性门槛。
+- 返回检索结果和原始资料。
+
+5. generation.py
+
+负责：
+
+- 定义系统提示词。
+- 把 system 和 user 消息转换成 Chat Template。
+- 将提示词转换为模型输入 Tensor。
+- 调用 generate() 生成回答。
+- 切除原始输入 Token。
+- 使用 decode() 得到自然语言回答。
+
+6. rag_pipeline.py
+
+负责把各模块连接为完整流程：
+
+    Retrieval → Augmentation → Generation
+
+RAGPipeline 还负责：
+
+- 初始化并保存知识库和模型。
+- 构造增强提示词。
+- 在检索失败时提前返回。
+- 组织答案、分数和引用来源。
+
+7. main.py
+
+负责：
+
+- 创建 RAGPipeline。
+- 接收用户问题。
+- 识别退出命令。
+- 拒绝空问题。
+- 调用 pipeline.answer()。
+- 展示回答、相似度和引用来源。
+- 处理单次问答异常。
+
+8. requirements.txt
+
+记录项目主要依赖：
+
+    torch
+    transformers
+
+以后可以执行：
+
+    python -m pip install -r .\rag_project\requirements.txt
+
+9. README.md
+
+README 是项目说明书，主要面向项目使用者、面试官和未来的自己。它应该说明项目解决什么问题、如何运行、各模块的作用和目前有什么局限。
+
+
+四、Python 包、模块与 python -m
+--------------------------------
+
+1. 包与模块
+
+模块通常是一个 .py 文件，例如：
+
+    rag_project/retrieval.py
+
+包通常是包含多个模块的文件夹，例如：
+
+    rag_project/
+
+__init__.py 可以明确表示该目录是 Python 包。
+
+2. 包内导入
+
+示例：
+
+    from rag_project.config import PROJECT_NAME
+    from rag_project.rag_pipeline import RAGPipeline
+
+含义：从 rag_project 包中的 config 模块导入 PROJECT_NAME，从 rag_pipeline 模块导入 RAGPipeline。
+
+3. 推荐运行方法
+
+终端先位于包的父目录：
+
+    C:\Users\21855\Documents\python learning
+
+再运行：
+
+    python -m rag_project.main
+
+-m 表示把 rag_project.main 当作包中的模块运行。
+
+这样 Python 能正确识别 rag_project 的包结构和包内导入。
+
+注意：“无论 main.py 移动到哪里都能运行”并不准确。运行时仍然需要让 rag_project 的父目录位于 Python 的模块搜索路径中。当前最简单的做法就是在 python learning 目录执行上述命令。
+
+4. __name__ 判断
+
+    if __name__ == "__main__":
+        main()
+
+直接运行该模块时，__name__ 等于 "__main__"，会调用 main()。
+
+其他模块只是导入 main.py 时，__name__ 不等于 "__main__"，因此不会自动启动输入循环。
+
+这个结构避免“导入一个函数时，整个程序却突然开始运行”。
+
+
+五、config.py：集中管理配置
+---------------------------
+
+1. 动态构造项目路径
+
+    PROJECT_DIR = Path(__file__).resolve().parent
+    KNOWLEDGE_BASE_DIR = PROJECT_DIR / "knowledge_base"
+
+含义：
+
+- __file__：当前 config.py 文件的路径。
+- resolve()：转换成规范的绝对路径。
+- parent：取得 config.py 所在的 rag_project 文件夹。
+- /：Path 对象用于拼接下一层路径。
+
+这样不需要在代码中反复写死完整的 C 盘路径，项目整体移动后，项目内部相对路径仍然可以正常工作。
+
+2. 设备
+
+    DEVICE = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+如果 CUDA 可用就使用 GPU，否则使用 CPU。
+
+3. 生成模型数据类型
+
+    GENERATION_DTYPE = (
+        torch.float16
+        if DEVICE.type == "cuda"
+        else torch.float32
+    )
+
+GPU 使用 float16 可以减少显存占用；CPU 通常使用兼容性更好的 float32。
+
+4. 当前默认参数
+
+    DEFAULT_TOP_K = 3
+    DEFAULT_MIN_SIMILARITY = 0.40
+    DEFAULT_MAX_NEW_TOKENS = 200
+
+含义：
+
+- Top-K=3：最多取得相似度最高的 3 个文本块。
+- 相关性门槛=0.40：最高相似度至少达到 0.40 才继续生成。
+- 最大新 Token=200：回答最多生成 200 个新 Token，不包含原始提示词。
+
+相关性分数不是概率。0.40 不能解释成“40% 的正确率”，它只是当前向量模型下查询向量与文档向量的接近程度。
+
+5. 为什么集中配置
+
+如果模型 ID 和门槛散落在多个文件中，修改时容易漏掉。集中在 config.py 后，只需修改一个位置，其他模块通过导入获得同一配置。
+
+
+六、model_manager.py：模型只加载一次
+-----------------------------------
+
+1. 检索模型
+
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModel.from_pretrained(model_id).to(DEVICE)
+    model.eval()
+
+职责：把问题编码成语义向量。
+
+检索 Tokenizer 和检索模型必须使用相同 model_id，否则 Token ID 与模型词表不匹配，模型会读取错误信息。
+
+2. 生成模型
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        GENERATION_MODEL_ID
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        GENERATION_MODEL_ID,
+        torch_dtype=GENERATION_DTYPE,
+    ).to(DEVICE)
+
+    model.eval()
+
+职责：根据提示词预测新 Token，生成自然语言回答。
+
+3. AutoModel 与 AutoModelForCausalLM
+
+AutoModel：
+
+- 返回隐藏状态向量。
+- 适合 Embedding、特征提取等任务。
+- 不直接生成自然语言。
+
+AutoModelForCausalLM：
+
+- 包含语言模型输出层。
+- 可以预测下一个 Token 的分数。
+- 可以通过 generate() 连续生成回答。
+
+4. 当前版本警告
+
+当前代码使用：
+
+    torch_dtype=GENERATION_DTYPE
+
+如果 Transformers 显示：
+
+    torch_dtype is deprecated! Use dtype instead!
+
+可以根据当前版本接口改成：
+
+    dtype=GENERATION_DTYPE
+
+这是一条弃用警告，不代表模型加载失败。
+
+5. 为什么 Pipeline 只加载一次模型
+
+模型加载耗时并占用显存。如果每次提问都重新加载，速度会非常慢，还会反复申请资源。
+
+RAGPipeline 在进入 while 循环前初始化一次，把模型保存到 self.retrieval_model 和 self.generation_model。之后每个问题都复用同一套模型。
+
+
+七、retrieval.py：加载知识库和执行检索
+-------------------------------------
+
+1. 知识库的两部分
+
+JSON 文件：
+
+    day16_knowledge_base.json
+
+保存：
+
+- 创建向量时使用的 model_id。
+- 向量维度。
+- 文本块数量。
+- 每个文本块的标题、编号、来源和正文。
+
+PTH 文件：
+
+    day16_chunk_embeddings.pth
+
+保存文本块对应的向量矩阵，当前形状为：
+
+    (10, 512)
+
+表示 10 个文本块，每个文本块用 512 维向量表示。
+
+2. 安全加载
+
+    embeddings = torch.load(
+        EMBEDDINGS_PATH,
+        map_location="cpu",
+        weights_only=True,
+    )
+
+- map_location="cpu"：统一加载到 CPU，避免设备不匹配，也减少长期显存占用。
+- weights_only=True：限制加载内容为 Tensor 等安全数据类型，降低反序列化风险。
+
+3. 必要的一致性检查
+
+    if len(chunks) != embeddings.shape[0]:
+        raise ValueError(...)
+
+原因：文本块列表的第 i 项必须对应向量矩阵第 i 行。
+
+检索返回的是向量行索引。只有二者顺序和数量一致，才能根据该索引找到正确原文。否则系统可能计算的是 A 文本的向量，却返回 B 文本的正文。
+
+还需要检查：
+
+- embeddings 必须是 Tensor。
+- embeddings 必须是二维矩阵。
+- 实际向量维度必须与 JSON 记录一致。
+
+4. 生成查询向量
+
+    query_text = RETRIEVAL_QUERY_INSTRUCTION + query
+
+当前 BGE 查询指令：
+
+    为这个句子生成表示以用于检索相关文章：
+
+这是短问题检索较长文档的非对称检索任务。查询添加指令，文档建库时按模型规定方式编码。
+
+Tokenizer 返回一个字典：
+
+    model_inputs = {
+        name: tensor.to(DEVICE)
+        for name, tensor in model_inputs.items()
+    }
+
+因为字典中可能包含 input_ids、attention_mask 等多个 Tensor，所以要逐项移动到模型设备。
+
+5. BGE 句子向量
+
+    query_embedding = (
+        model_outputs.last_hidden_state[:, 0]
+    )
+
+这里按照当前 BGE 模型的使用方式，取得每句话第一个 Token 的上下文向量。
+
+形状：
+
+    (1, 512)
+
+随后进行 L2 归一化：
+
+    query_embedding = F.normalize(
+        query_embedding,
+        p=2,
+        dim=1,
+    )
+
+归一化后模长为 1，因此两个归一化向量的点积就等于余弦相似度。
+
+6. 相似度矩阵乘法
+
+    similarities = (
+        query_embedding @ embeddings.T
+    ).squeeze(0)
+
+形状变化：
+
+    (1, 512) @ (10, 512).T
+    = (1, 512) @ (512, 10)
+    = (1, 10)
+
+消除 512 维语义特征维度，保留：
+
+- 1 个用户问题。
+- 10 个文本块。
+
+squeeze(0) 后得到形状 (10,)，方便执行 topk。
+
+7. Top-K
+
+    actual_k = min(top_k, len(chunks))
+
+防止要求的 K 大于知识库总文本块数。
+
+    top_scores, top_indices = torch.topk(
+        similarities,
+        k=actual_k,
+    )
+
+- top_scores：最高的 K 个相似度。
+- top_indices：这些分数对应的向量矩阵行索引。
+
+torch.topk() 无论分数高低都会返回最高的 K 项，所以还必须使用相关性门槛。
+
+8. 相关性门槛
+
+    max_score = top_scores[0].item()
+    passed = max_score >= min_similarity
+
+如果最高分都没有达到门槛，说明当前知识库中没有足够相关的资料，系统不再调用生成模型，直接回答“现有资料不足”。
+
+9. 为什么使用 copy()
+
+    chunk_result = chunks[index].copy()
+    chunk_result["score"] = score
+
+这样 score 只写入本次结果的副本，不会永久修改原始知识库字典。
+
+
+八、generation.py：从提示词生成自然语言
+---------------------------------------
+
+1. 系统提示词
+
+SYSTEM_PROMPT 规定：
+
+- 只能根据用户提供的资料回答。
+- 不编造资料之外的信息。
+- 资料不足时回答“现有资料不足”。
+
+提示词可以降低幻觉风险，但不能保证模型绝对不会犯错，因此仍需要检索门槛、引用来源和人工检查。
+
+2. 消息结构
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": prompt},
+    ]
+
+- system：模型身份、行为、语言和回答规则。
+- user：增强后的资料和用户问题。
+- assistant：接下来由模型生成的回答角色。
+
+3. Chat Template
+
+    formatted_prompt = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+
+- tokenize=False：先返回格式化后的字符串。
+- add_generation_prompt=True：在末尾添加“接下来轮到 assistant 回答”的模型专用标记。
+
+不同指令模型可能有不同对话格式，因此应该使用模型配套 Tokenizer 的 Chat Template。
+
+4. 为什么记录输入长度
+
+    input_length = model_inputs["input_ids"].shape[1]
+
+generate() 返回：
+
+    原始输入 Token + 新生成 Token
+
+最终答案不应再次包含整段提示词，因此要切除原始输入：
+
+    new_token_ids = output_ids[0, input_length:]
+
+5. 推理
+
+    with torch.inference_mode():
+        output_ids = model.generate(
+            **model_inputs,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+
+- inference_mode()：关闭梯度和计算图，并进行更严格的推理优化。
+- max_new_tokens：只限制新回答长度，不包含原始提示词。
+- do_sample=False：不进行随机采样，通常选择高概率结果，使事实问答更稳定。
+
+6. 解码
+
+    answer = tokenizer.decode(
+        new_token_ids,
+        skip_special_tokens=True,
+    ).strip()
+
+decode() 把 Token ID 转换回自然语言；skip_special_tokens=True 用于去掉特殊控制 Token。
+
+
+九、RAGPipeline：负责流程编排
+-----------------------------
+
+1. 类与对象
+
+    pipeline = RAGPipeline()
+
+调用类会先创建一个对象，然后自动执行 __init__()。
+
+self 表示当前这个 RAGPipeline 实例。保存为 self.xxx 的内容可以被该对象的其他方法继续使用。
+
+2. __init__() 做什么
+
+初始化时依次：
+
+1. 加载 JSON 元数据、文本块和向量矩阵。
+2. 根据 metadata["model_id"] 加载建库时使用的检索模型。
+3. 加载生成模型和 Tokenizer。
+4. 把这些资源保存为对象属性。
+
+因此一个 Pipeline 对象可以连续回答多个问题。
+
+3. @staticmethod
+
+    @staticmethod
+    def build_rag_prompt(query, retrieved_chunks):
+        ...
+
+该方法只依赖传入的 query 和 retrieved_chunks，不访问 self.metadata、self.model 等对象属性，所以定义为静态方法。
+
+调用方式可以是：
+
+    self.build_rag_prompt(query, retrieved_chunks)
+
+也可以通过类调用：
+
+    RAGPipeline.build_rag_prompt(query, retrieved_chunks)
+
+4. Augmentation
+
+build_rag_prompt() 把以下内容组合起来：
+
+- 资料排名。
+- 资料标题。
+- 文本块编号。
+- 文本正文。
+- 用户问题。
+- 只能依据资料回答的要求。
+- 引用来源的格式要求。
+
+这一步就是 RAG 中的 Augmentation。
+
+5. 提前返回
+
+    if not retrieval_result["passed"]:
+        return {
+            "answer": "现有资料不足",
+            ...
+        }
+
+优点：
+
+- 无关问题不再调用生成模型。
+- 减少错误回答和幻觉。
+- 节省生成时间和显存计算。
+
+6. 结构化返回值
+
+answer() 返回字典，而不是只返回回答文本：
+
+    {
+        "query": ...,
+        "answer": ...,
+        "passed": ...,
+        "max_score": ...,
+        "sources": ...,
+    }
+
+这样命令行、网页和 API 都可以根据需要展示不同字段。
+
+
+十、main.py：交互式命令行入口
+-----------------------------
+
+1. 为什么把 print_result() 单独定义
+
+如果所有打印代码都写进 main()，main() 会同时负责输入、流程控制和复杂展示。
+
+单独定义 print_result() 的好处：
+
+- main() 更简洁，只负责控制流程。
+- 输出格式可以单独修改。
+- 其他地方也可以复用打印逻辑。
+- 更符合“一个函数主要负责一件事”的思想。
+
+2. Pipeline 必须在循环前初始化
+
+    pipeline = RAGPipeline()
+
+    while True:
+        ...
+
+如果写在循环内部，每次问题都会重新加载两个模型，非常慢且浪费资源。
+
+3. while True
+
+表示无限循环。程序会持续接收问题，直到遇到 break。
+
+4. 输入清洗
+
+    query = input("请输入问题：").strip()
+
+strip() 去除字符串首尾空白，不是只去除“首位”。
+
+    query.lower()
+
+把英文退出命令统一转换为小写，因此 EXIT、Exit 和 exit 都能识别。
+
+5. break 与 continue
+
+- break：结束整个循环。
+- continue：跳过本轮剩余代码，开始下一轮循环。
+
+空问题使用 continue，因此不会调用模型。
+
+6. 异常处理
+
+第一层：
+
+    except (KeyboardInterrupt, EOFError):
+
+允许 Ctrl+C、输入流结束时正常退出。
+
+第二层：
+
+    except Exception as error:
+
+单次问答出错时打印错误，但不终止整个命令行程序，用户仍可以继续提问。
+
+
+十一、相关性门槛问题与正确理解
+--------------------------------
+
+测试问题“RAG由哪三个阶段组成？”曾得到约 0.44～0.46 的最高相似度，低于原先 0.60 的门槛，因此系统返回“现有资料不足”。
+
+这不是程序崩溃，而是门槛逻辑正常工作。
+
+出现这种情况的原因：
+
+1. 当前小型知识库原文描述的是“检索资料、加入提示词、生成回答”，没有直接写出 Retrieval、Augmentation、Generation 三个英文阶段名。
+2. 简单按字符切块使一条完整知识被拆到相邻文本块中。
+3. 0.60 是人为设定的初始门槛，还没有经过测试集校准。
+
+当前练习中暂时使用：
+
+    DEFAULT_MIN_SIMILARITY = 0.40
+
+正式项目不能凭感觉确定门槛。合理方法是：
+
+1. 准备多组知识库内相关问题。
+2. 准备多组知识库外无关问题。
+3. 记录两类问题的最高相似度分布。
+4. 选择能尽量区分相关和无关问题的门槛。
+5. 使用更多测试问题持续调整。
+
+门槛过高：很多正确问题会被拒绝。
+
+门槛过低：无关资料也可能通过，增加幻觉和错误回答风险。
+
+重要提醒：如果修改了 JSON 中的文本正文，原 PTH 向量就不再对应新正文，必须重新生成向量矩阵，不能只改 JSON 而不重建 PTH。
+
+
+十二、README、requirements 与 .gitignore
+---------------------------------------
+
+1. README.md
+
+README 应说明：
+
+- 项目简介。
+- 主要功能。
+- 项目结构。
+- 各模块职责。
+- 使用的模型。
+- 安装和运行方法。
+- 完整 RAG 流程。
+- 当前局限。
+
+对求职项目而言，README 能让面试官快速理解项目，不必先读完所有源码。
+
+2. requirements.txt
+
+记录项目的直接依赖，方便在新环境中安装和复现。
+
+当前基础内容：
+
+    torch
+    transformers
+
+以后正式发布时还可以固定经过验证的版本号，以提高复现性。
+
+3. .gitignore
+
+当前重要规则：
+
+    tempCodeRunnerFile.py
+    __pycache__/
+    *.pyc
+    .venv/
+    venv/
+    .env
+    *.pth
+    *.pt
+
+原因：
+
+- 缓存和临时文件没有必要提交。
+- 虚拟环境体积大，可以根据 requirements 重新创建。
+- .env 可能包含密钥，绝不能提交公开仓库。
+- PTH/PT 往往是大型模型权重或向量矩阵，不适合直接放进普通 Git 仓库。
+
+“PTH 可以重新加载”不是忽略它的主要原因。更准确地说，如果保留了原始文档、模型 ID 和建库代码，知识库向量通常可以重新生成。
+
+如果 PTH 是无法重新获得的重要训练成果，就应该使用模型仓库、对象存储或 Git LFS 单独保存。
+
+
+十三、compileall 与真正运行项目的区别
+-------------------------------------
+
+基础语法检查：
+
+    python -m compileall .\rag_project
+
+主要检查 Python 能否编译各个文件，可以发现：
+
+- 括号错误。
+- 缩进错误。
+- 非法语法。
+
+它不能完整验证：
+
+- 模型能否下载或加载。
+- 文件路径是否存在。
+- CUDA 是否正常。
+- JSON 与 PTH 是否对应。
+- 检索结果是否合理。
+- 生成模型是否能回答。
+- 整体业务逻辑是否正确。
+
+完整运行：
+
+    python -m rag_project.main
+
+会真正加载知识库和模型，并执行问答流程。
+
+简单记忆：
+
+    compileall：检查代码能不能被 Python 读懂。
+    实际运行：检查项目能不能真正完成任务。
+
+
+十四、完整数据流
+----------------
+
+项目启动阶段：
+
+    python -m rag_project.main
+    → 执行 main()
+    → 创建 RAGPipeline
+    → 加载 JSON 文本块信息
+    → 加载 PTH 文档向量矩阵
+    → 检查文本块与向量是否一致
+    → 加载 BGE 检索模型和 Tokenizer
+    → 加载 Qwen 生成模型和 Tokenizer
+    → 进入用户输入循环
+
+每次问答阶段：
+
+    用户问题
+    → strip() 清理首尾空白
+    → 为问题添加 BGE 查询指令
+    → Tokenizer 生成 input_ids 和 attention_mask
+    → 输入移动到模型设备
+    → BGE 生成第一个 Token 的上下文向量
+    → L2 归一化得到查询向量
+    → 查询向量移回 CPU
+    → 与文档向量矩阵相乘
+    → 得到所有文本块的余弦相似度
+    → torch.topk() 得到最高分和索引
+    → 检查最高相似度是否达到门槛
+
+        ├─ 未达到门槛
+        │  → 不调用生成模型
+        │  → 返回“现有资料不足”
+        │  → sources 为空列表
+        │
+        └─ 达到门槛
+           → 根据索引取得原始文本块
+           → 给文本块副本添加 score
+           → 组合资料、标题、编号和用户问题
+           → 得到增强提示词
+           → Chat Template 转换对话格式
+           → Tokenizer 生成模型输入
+           → Qwen generate() 生成原始输入和新回答
+           → 根据 input_length 切除原始输入
+           → decode() 得到自然语言回答
+           → 整理 answer、max_score 和 sources
+
+    → main.py 调用 print_result()
+    → 展示回答、是否通过门槛、最高相似度和引用来源
+    → 等待下一个问题
+
+
+十五、今天容易混淆的知识点
+--------------------------
+
+1. main.py 不是 RAG 的算法核心，它是用户交互入口。
+
+2. RAGPipeline 不负责亲自完成所有数学计算，它负责调用不同模块并组织流程。
+
+3. build_rag_prompt() 是 Augmentation，不是 Retrieval 或 Generation。
+
+4. 模型应在循环前加载一次，不应每个问题重新加载。
+
+5. Top-K 只表示相对排名最高，不代表结果一定相关，所以还需要门槛。
+
+6. 相似度不是概率，也不是岗位匹配率或答案正确率。
+
+7. JSON 保存原文和元数据，PTH 保存向量；两者必须逐项对应。
+
+8. 检索模型与生成模型职责不同：一个生成向量，一个生成文本。
+
+9. @staticmethod 表示方法不依赖 self，但仍可以通过类或实例调用。
+
+10. strip() 去除首尾空白；lower() 统一英文大小写。
+
+11. break 退出循环；continue 跳过本轮并开始下一轮。
+
+12. compileall 通过不代表完整项目一定能运行。
+
+13. .pth 被忽略通常是因为体积大且可通过建库流程重新生成，不是因为 Python 会自动替你重新加载。
+
+14. README 和 requirements 不是算法代码，但它们是完整工程项目的重要组成部分。
+
+
+十六、Day 18 最终自测标准答案
+------------------------------
+
+第 1 题：把一个大型 Python 文件拆分成多个模块有什么好处？
+
+标准答案：
+
+把不同职责的代码分开放置，可以提高代码的可读性、可维护性和可复用性，也方便单独测试、定位错误、扩展功能和多人协作。
+
+第 2 题：config.py 的主要职责是什么？
+
+标准答案：
+
+集中保存项目名称、模型 ID、文件路径、运行设备、Top-K、相关性门槛和最大生成长度等配置，避免配置散落在多个模块中。
+
+第 3 题：model_manager.py 的主要职责是什么？
+
+标准答案：
+
+负责加载检索模型、生成模型及其配套 Tokenizer，把模型移动到指定设备，并切换为预测模式。
+
+第 4 题：retrieval.py 的主要职责是什么？
+
+标准答案：
+
+负责加载和检查知识库，将用户问题转换成归一化查询向量，计算查询向量与文档向量的相似度，执行 Top-K 检索，检查相关性门槛，并返回相关文本块。
+
+第 5 题：generation.py 的主要职责是什么？
+
+标准答案：
+
+负责构造模型消息和 Chat Template，把提示词转换为模型输入，调用生成模型产生新 Token，切除原始输入，并通过 decode() 得到自然语言回答。
+
+第 6 题：rag_pipeline.py 的主要职责是什么？
+
+标准答案：
+
+负责连接 Retrieval、Augmentation 和 Generation，控制完整 RAG 流程，并以结构化字典返回问题、回答、分数、门槛状态和引用来源。
+
+第 7 题：main.py 的主要职责是什么？
+
+标准答案：
+
+作为项目命令行入口，负责创建 Pipeline、接收用户输入、识别退出和空问题、调用问答流程、展示结果以及处理运行异常。
+
+第 8 题：为什么创建一次 RAGPipeline 后可以连续回答多个问题？
+
+标准答案：
+
+因为 RAGPipeline 在输入循环前只初始化一次，知识库、模型和 Tokenizer 被保存为对象属性。后续所有问题复用这些资源，不必重新加载模型。
+
+第 9 题：为什么 JSON 文本块必须与 PTH 向量矩阵逐行对应？
+
+标准答案：
+
+向量矩阵每一行代表一个文本块，检索返回的是行索引。只有文本块列表第 i 项与向量矩阵第 i 行对应，系统才能根据索引返回正确正文和来源。
+
+第 10 题：为什么通常在 .gitignore 中添加 *.pth？
+
+标准答案：
+
+PTH 通常保存模型权重或向量矩阵，体积较大，不适合提交到普通 Git 仓库。只要保留原始数据、模型 ID 和构建代码，这些向量通常可以重新生成；重要且不可重建的文件应另行保存。
+
+第 11 题：compileall 与真正运行项目有什么区别？
+
+标准答案：
+
+compileall 主要检查 Python 语法能否通过编译，不会完整加载模型、读取知识库或执行业务逻辑。真正运行项目才会验证路径、依赖、设备、数据和完整问答流程是否正常。
+
+第 12 题：用户输入问题到返回答案的完整流程是什么？
+
+标准答案：
+
+程序启动时先创建 RAGPipeline，并加载知识库、检索模型和生成模型。用户输入问题后，系统使用 BGE 生成并归一化查询向量，与知识库向量计算相似度，通过 Top-K 得到相关资料并检查门槛。未通过时直接回答“现有资料不足”；通过时把资料、来源和问题组合成增强提示词，通过 Chat Template 交给 Qwen 生成回答，切除原始输入并解码，最后返回答案、分数和引用来源。
+
+
+十七、常用命令汇总
+------------------
+
+进入项目父目录：
+
+    cd "C:\Users\21855\Documents\python learning"
+
+激活虚拟环境：
+
+    .\.venv\Scripts\Activate.ps1
+
+检查配置模块：
+
+    python -m rag_project.config
+
+检查模型管理模块：
+
+    python -m rag_project.model_manager
+
+检查检索模块：
+
+    python -m rag_project.retrieval
+
+检查生成模块：
+
+    python -m rag_project.generation
+
+检查 Pipeline：
+
+    python -m rag_project.rag_pipeline
+
+检查全部 Python 语法：
+
+    python -m compileall .\rag_project
+
+运行完整程序：
+
+    python -m rag_project.main
+
+查看 Git 状态：
+
+    git status
+
+查看暂存文件统计：
+
+    git diff --cached --stat
+
+提交项目：
+
+    git commit -m "完成 Day 18 RAG 项目模块化"
+
+查看最近提交：
+
+    git log --oneline -3
+
+
+十八、项目面试表达参考
+----------------------
+
+可以这样介绍今天的工程化成果：
+
+“我实现了一个本地中文 RAG 问答项目，并把原先的单文件原型重构成模块化 Python 包。项目使用 BGE 生成查询向量，在本地知识库向量矩阵上执行余弦相似度和 Top-K 检索，通过相关性门槛拒绝无关问题，再把检索资料与来源信息组成增强提示词，调用 Qwen 生成带引用的中文回答。工程上将配置、模型加载、检索、生成、Pipeline 和 CLI 分离，模型只初始化一次并支持连续问答，同时补充了 README、依赖文件、Git 忽略规则和数据一致性检查。”
+
+如果面试官问局限，可以回答：
+
+- 当前知识库规模较小。
+- 文本切块仍是简单字符切分，可能把完整语义拆开。
+- 相关性门槛还需要使用更多正负样本校准。
+- 生成模型较小，复杂问题的理解和表达能力有限。
+- 还没有加入重排序、向量数据库、API 服务、自动评估和日志监控。
+
+
+十九、今日核心结论
+------------------
+
+Day 18 的重点是从“代码能够运行”迈向“项目能够维护”。
+
+核心关系：
+
+    config          管理配置
+    model_manager   管理模型
+    retrieval       找资料
+    generation      生成回答
+    rag_pipeline    编排完整流程
+    main            接收输入并展示输出
+
+完整工程思维：
+
+    能运行
+    → 拆分职责
+    → 集中配置
+    → 复用模型
+    → 检查数据
+    → 处理异常
+    → 编写说明
+    → 记录依赖
+    → 使用 Git 管理版本
+
+今天已经完成一个可以作为后续 API、网页界面、Docker 部署和求职项目基础的模块化 RAG 系统。
