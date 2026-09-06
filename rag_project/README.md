@@ -27,6 +27,8 @@ rag_project/
 ├── retrieval.py
 ├── generation.py
 ├── rag_pipeline.py
+├── schemas.py
+├── api.py
 ├── main.py
 ├── requirements.txt
 ├── README.md
@@ -55,6 +57,14 @@ rag_project/
 ### rag_pipeline.py
 
 负责连接 Retrieval、Augmentation 和 Generation，形成完整的 RAG 流程。
+
+### schemas.py
+
+使用 Pydantic 定义 API 请求和响应的数据结构，负责类型检查、参数限制和问题文本清洗。
+
+### api.py
+
+使用 FastAPI 提供健康检查、参数验证和 RAG 问答接口。服务器启动时加载一次 RAGPipeline，并让后续请求复用同一套模型和知识库。
 
 ### main.py
 
@@ -108,3 +118,14 @@ quit
 - 生成模型规模较小
 - 当前系统主要用于学习和演示
 - 回答结果仍需要人工检查
+
+
+## API 运行方法
+
+进入项目父目录并激活虚拟环境：
+
+```powershell
+cd "C:\Users\21855\Documents\python learning"
+.\.venv\Scripts\Activate.ps1
+
+python -m uvicorn rag_project.api:app --reload --host 127.0.0.1 --port 8000
