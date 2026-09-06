@@ -1,0 +1,1054 @@
+Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API
+学习日期：2026-09-06
+
+============================================================
+一、今天完成了什么
+============================================================
+
+Day 18 已经把 RAG 项目拆分成多个模块，并通过命令行程序 main.py 接收问题。
+
+Day 19 在此基础上增加了 Web API：
+
+1. 使用 FastAPI 定义 HTTP 接口。
+2. 使用 Uvicorn 启动 ASGI 服务器。
+3. 使用 Pydantic 定义并校验请求和响应数据。
+4. 使用 lifespan 在服务器启动时只加载一次 RAGPipeline。
+5. 实现 GET /、GET /health、POST /validate 和 POST /ask。
+6. 设置 200、422、500、503 等不同状态的处理逻辑。
+7. 使用 Swagger UI 和 PowerShell 测试接口。
+8. 处理中文请求和响应的 UTF-8 编码。
+9. 更新 README.md、requirements.txt，并提交 Git 版本。
+
+最终效果：原来的本地 RAG 能力已经可以通过 HTTP 请求被浏览器、前端、脚本或其他程序调用。
+
+
+============================================================
+二、为什么要把 RAG 封装成 API
+============================================================
+
+命令行版 main.py 适合本地学习和人工输入，但其他程序不方便直接调用它。
+
+API 版 api.py 为 RAG 提供统一的 HTTP 接口。调用方只需要：
+
+1. 按规定格式发送 JSON。
+2. 等待服务器完成检索和生成。
+3. 接收结构化 JSON 结果。
+
+因此，网页前端、桌面程序、手机应用、自动化脚本以及其他后端服务都可以复用同一套 RAG 能力。
+
+main.py 与 api.py 的区别：
+
+- main.py：命令行入口，负责 input()、循环提问和在终端打印结果。
+- api.py：Web API 入口，负责接收 HTTP 请求并返回 JSON。
+- 二者都会调用 RAGPipeline，底层的检索、增强、生成逻辑不需要重复实现。
+
+
+============================================================
+三、FastAPI、Uvicorn 与 ASGI
+============================================================
+
+1. FastAPI
+
+FastAPI 是 Web API 框架，主要负责：
+
+- 创建应用对象。
+- 定义 URL 路由。
+- 接收请求参数。
+- 调用接口函数。
+- 校验请求和响应数据。
+- 把返回值序列化成 JSON。
+- 自动生成 OpenAPI 文档和 Swagger UI。
+
+2. Uvicorn
+
+Uvicorn 是 ASGI 服务器，主要负责：
+
+- 启动服务器进程。
+- 监听 IP 地址和端口。
+- 接收浏览器或其他客户端发来的 HTTP 请求。
+- 把请求交给 FastAPI 应用处理。
+- 把 FastAPI 的响应发回客户端。
+
+一句话理解：FastAPI 定义“接口如何处理请求”，Uvicorn 负责“让接口真正运行并监听请求”。
+
+3. ASGI
+
+ASGI 是 Python 异步 Web 服务器与 Web 应用之间的接口规范。Uvicorn 按照 ASGI 规范调用 FastAPI 应用。
+
+
+============================================================
+四、FastAPI 应用对象与路由
+============================================================
+
+创建应用对象：
+
+app = FastAPI(
+    title=PROJECT_NAME,
+    version="0.1.0",
+    description="一个基于本地知识库的中文 RAG 问答 API",
+    lifespan=lifespan,
+)
+
+app 是整个 Web API 的应用对象，所有路由、生命周期逻辑和中间件都会登记到它上面。
+
+路由装饰器示例：
+
+@app.get("/health")
+def health_check(request: Request) -> dict:
+    ...
+
+含义是：当服务器收到对 /health 的 GET 请求时，FastAPI 自动调用 health_check()。
+
+当前项目的接口：
+
+- GET /：返回 API 已启动和文档地址。
+- GET /health：检查服务和 Pipeline 是否可用。
+- POST /validate：学习和测试 Pydantic 请求校验。
+- POST /ask：真正执行 RAG 问答。
+
+
+============================================================
+五、GET 与 POST 的区别
+============================================================
+
+GET 通常用于读取资源或查询已有状态，例如读取 /health。
+
+POST 通常用于向服务器提交数据并触发处理，例如把问题、top_k、相关性门槛和最大生成长度作为 JSON 请求体提交给 /ask。
+
+需要注意：
+
+- GET 并不是从技术上“只能读取”，而是 HTTP 语义上约定它主要用于安全、幂等的读取操作。
+- POST 适合携带结构化请求体，也适合会消耗计算资源或产生处理行为的请求。
+- /ask 使用 POST，因为客户端需要提交完整 JSON，而且服务器需要运行检索和生成流程。
+
+
+============================================================
+六、启动命令与 rag_project.api:app
+============================================================
+
+应该先进入 rag_project 的父目录：
+
+cd "C:\Users\21855\Documents\python learning"
+
+激活虚拟环境：
+
+.\.venv\Scripts\Activate.ps1
+
+启动服务器：
+
+python -m uvicorn rag_project.api:app --reload --host 127.0.0.1 --port 8000
+
+rag_project.api:app 的含义：
+
+- rag_project：Python 包。
+- api：rag_project/api.py 模块。
+- 冒号左侧 rag_project.api：要导入的模块。
+- 冒号右侧 app：模块中名为 app 的 FastAPI 对象。
+
+为什么推荐 python -m uvicorn：
+
+- 明确使用当前虚拟环境中的 Python。
+- 包导入路径更稳定。
+- 避免系统中另一个 uvicorn 或 Python 环境被误用。
+
+--reload 的含义：
+
+- 开发阶段监视代码变化。
+- 保存 Python 文件后自动重启服务器。
+- 正式部署一般不使用 --reload。
+
+不要直接运行：
+
+python rag_project\api.py
+
+直接运行包内文件时，Python 的模块搜索路径可能不包含项目父目录，从而出现：
+
+ModuleNotFoundError: No module named 'rag_project'
+
+
+============================================================
+七、Pydantic BaseModel 的作用
+============================================================
+
+BaseModel 是 Pydantic 的数据模型基类。
+
+它可以：
+
+1. 把请求 JSON 解析为 Python 对象。
+2. 检查字段是否存在。
+3. 检查字段类型是否正确。
+4. 检查数值范围和字符串长度。
+5. 应用默认值。
+6. 生成结构化错误信息。
+7. 帮助 FastAPI 生成接口文档。
+
+本项目的数据模型分为三类：
+
+1. AskRequest：规定 /ask 接收什么数据。
+2. SourceItem：规定单条引用来源的结构。
+3. AskResponse：规定 /ask 返回什么数据。
+
+
+============================================================
+八、请求模型 AskRequest
+============================================================
+
+AskRequest 的字段：
+
+- query：用户问题。
+- top_k：最多检索的文本块数量。
+- min_similarity：相关性门槛。
+- max_new_tokens：生成模型最多新生成的 token 数量。
+
+示例：
+
+class AskRequest(BaseModel):
+    query: str = Field(
+        min_length=1,
+        max_length=500,
+        description="用户提出的问题",
+    )
+    top_k: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="最多检索的文本块数量",
+    )
+    min_similarity: float = Field(
+        default=0.40,
+        ge=-1.0,
+        le=1.0,
+        description="最低相关性门槛",
+    )
+    max_new_tokens: int = Field(
+        default=200,
+        ge=1,
+        le=512,
+        description="最多生成的新Token数量",
+    )
+
+Field 参数含义：
+
+- default=3：客户端不提供该字段时使用 3。
+- ge=1：Greater than or Equal，值必须大于或等于 1。
+- le=10：Less than or Equal，值必须小于或等于 10。
+- min_length：字符串最短长度。
+- max_length：字符串最长长度。
+- description：字段说明，会显示在 API 文档中。
+
+例如 top_k=0 不符合 ge=1，FastAPI 会直接返回 422，接口函数不会执行。
+
+
+============================================================
+九、字段验证器与问题清洗
+============================================================
+
+只设置 min_length=1 仍然存在一个问题：字符串 "   " 含有字符，因此能够通过长度检查，但它没有实际问题内容。
+
+解决方法：
+
+@field_validator("query")
+@classmethod
+def clean_query(cls, value: str) -> str:
+    value = value.strip()
+
+    if not value:
+        raise ValueError("问题不能为空")
+
+    return value
+
+执行过程：
+
+1. Pydantic 取得 query 的输入值。
+2. field_validator 对 query 执行自定义检查。
+3. strip() 删除字符串开头和结尾的空格、换行符、制表符等空白字符。
+4. 如果清洗后为空字符串，抛出 ValueError。
+5. 如果有效，返回清洗后的 value。
+6. Pydantic 把返回值保存到 AskRequest.query。
+
+注意：strip() 只删除首尾空白，不会删除句子中间的正常空格。
+
+
+============================================================
+十、响应模型 AskResponse 与 SourceItem
+============================================================
+
+SourceItem：
+
+class SourceItem(BaseModel):
+    rank: int
+    title: str
+    chunk_id: str
+    score: float
+
+AskResponse：
+
+class AskResponse(BaseModel):
+    query: str
+    answer: str
+    passed: bool
+    max_score: float
+    sources: list[SourceItem]
+
+字段含义：
+
+- query：原始用户问题。
+- answer：最终自然语言回答。
+- passed：最高相似度是否通过相关性门槛。
+- max_score：最高相似度。
+- sources：引用资料列表。
+
+每个 SourceItem 包含：
+
+- rank：检索排名。
+- title：资料标题。
+- chunk_id：文本块编号。
+- score：该文本块与问题的相似度。
+
+无关问题未通过门槛时，sources 应返回空列表 []。
+
+
+============================================================
+十一、response_model 的作用
+============================================================
+
+示例：
+
+@app.post("/ask", response_model=AskResponse)
+
+response_model=AskResponse 不只是添加类型提示，它会：
+
+1. 按 AskResponse 校验接口返回值。
+2. 过滤模型中没有声明的多余字段。
+3. 将返回数据序列化成规定的 JSON 结构。
+4. 把响应结构写入 OpenAPI 文档。
+
+如果 Pipeline 返回的数据类型与响应模型不一致，FastAPI 会产生响应校验错误。
+
+今天遇到的实际错误：
+
+- Pipeline 返回的 chunk_id 是字符串，例如 "doc_001_chunk_1"。
+- SourceItem.chunk_id 最初错误地定义为 int。
+- Pydantic 无法把该字符串解析成整数。
+- FastAPI 抛出 ResponseValidationError，客户端看到 500。
+
+正确修复：
+
+chunk_id: str
+
+这说明请求模型和响应模型必须与真实业务数据完全一致。
+
+
+============================================================
+十二、应用生命周期 lifespan
+============================================================
+
+RAGPipeline 初始化时需要加载知识库、Embedding 模型、生成模型和 tokenizer，耗时较长、占用内存或显存。
+
+如果每次 /ask 请求都重新创建 RAGPipeline，会重复加载模型，严重浪费时间和计算资源。
+
+因此使用 lifespan：
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("正在加载 RAG Pipeline，请稍候……")
+    app.state.pipeline = RAGPipeline()
+    print("RAG Pipeline 加载完成")
+
+    yield
+
+    app.state.pipeline = None
+    print("RAG Pipeline 已释放")
+
+app = FastAPI(lifespan=lifespan)
+
+含义：
+
+- @asynccontextmanager：把带有 yield 的异步函数变成异步上下文管理器。
+- yield 前：服务器启动阶段执行，创建并保存 Pipeline。
+- yield 所在期间：服务器持续运行并接收请求。
+- yield 后：服务器关闭阶段执行，释放 Pipeline 引用。
+
+app.state：
+
+- 是 FastAPI/Starlette 应用对象提供的共享状态空间。
+- 可以保存应用生命周期内需要复用的对象。
+- 本项目把 RAGPipeline 保存为 app.state.pipeline。
+- 所有请求都可以通过 request.app.state.pipeline 取得同一个实例。
+
+这保证了每个服务器进程只初始化一次 Pipeline，而不是每个请求初始化一次。
+
+注意：如果以后启动多个 worker，每个 worker 是独立进程，每个进程仍会各自加载一套模型。
+
+
+============================================================
+十三、Request 对象
+============================================================
+
+FastAPI 的 Request 表示当前 HTTP 请求对象，包含：
+
+- 请求方法和 URL。
+- 请求头。
+- 客户端信息。
+- 当前 FastAPI 应用对象。
+- 应用共享状态。
+
+本项目主要使用：
+
+request.app.state.pipeline
+
+这里的 request_data 与 request 职责不同：
+
+- request_data: AskRequest：经过 Pydantic 校验后的用户业务参数。
+- request: Request：当前 HTTP 请求上下文，用于访问 app.state 等框架信息。
+
+
+============================================================
+十四、健康检查接口
+============================================================
+
+@app.get("/health")
+def health_check(request: Request) -> dict:
+    return {
+        "status": "ok",
+        "project": PROJECT_NAME,
+        "pipeline_loaded": request.app.state.pipeline is not None,
+    }
+
+返回内容：
+
+- status="ok"：接口正常响应。
+- project：项目名称。
+- pipeline_loaded=true：RAG Pipeline 已经加载。
+
+健康检查适合：
+
+- 人工确认服务器是否可用。
+- 前端判断服务状态。
+- 部署平台进行存活或就绪检查。
+- 自动化监控。
+
+
+============================================================
+十五、真正的 /ask 接口
+============================================================
+
+核心结构：
+
+@app.post("/ask", response_model=AskResponse)
+def ask_question(
+    request_data: AskRequest,
+    request: Request,
+) -> dict:
+    pipeline = getattr(
+        request.app.state,
+        "pipeline",
+        None,
+    )
+
+    if pipeline is None:
+        raise HTTPException(
+            status_code=503,
+            detail="RAG Pipeline 尚未加载完成",
+        )
+
+    try:
+        return pipeline.answer(
+            query=request_data.query,
+            top_k=request_data.top_k,
+            min_similarity=request_data.min_similarity,
+            max_new_tokens=request_data.max_new_tokens,
+        )
+    except Exception as error:
+        logger.exception("处理RAG问答请求时发生错误")
+        raise HTTPException(
+            status_code=500,
+            detail="RAG问答处理失败，请查看服务器日志",
+        ) from error
+
+流程：
+
+1. FastAPI 接收 POST /ask 请求。
+2. Pydantic 按 AskRequest 解析和校验 JSON。
+3. 通过 Request 取得启动阶段保存的 Pipeline。
+4. Pipeline 不存在时返回 503。
+5. Pipeline 可用时调用 answer()。
+6. 把 query、top_k、min_similarity、max_new_tokens 传入。
+7. RAGPipeline 执行 Retrieval、Augmentation、Generation。
+8. FastAPI 按 AskResponse 校验 Pipeline 返回值。
+9. 校验通过后序列化为 JSON 并返回。
+
+
+============================================================
+十六、完整的 API 请求链路
+============================================================
+
+服务器启动：
+
+1. 运行 python -m uvicorn rag_project.api:app。
+2. Uvicorn 导入 rag_project.api 模块。
+3. 找到 app 这个 FastAPI 对象。
+4. FastAPI 进入 lifespan。
+5. 创建 RAGPipeline。
+6. 加载知识库、检索模型、生成模型和 tokenizer。
+7. 保存到 app.state.pipeline。
+8. 执行到 yield，服务器开始接收请求。
+
+用户请求：
+
+1. 客户端向 POST /ask 发送 JSON。
+2. Uvicorn 接收 HTTP 请求并交给 FastAPI。
+3. FastAPI 将 JSON 交给 AskRequest。
+4. Pydantic 检查类型、范围、长度和 query 验证器。
+5. 校验失败：自动返回 422，ask_question() 不执行。
+6. 校验成功：进入 ask_question()。
+7. 从 app.state 取得已经加载的 Pipeline。
+8. 如果 Pipeline 不可用：返回 503。
+9. 调用 pipeline.answer()。
+10. Retrieval 给问题添加查询指令并生成查询向量。
+11. 查询向量与知识库向量计算相似度。
+12. torch.topk() 取得最高的若干分数和索引。
+13. 检查最高相似度是否达到 min_similarity。
+14. 未达到门槛：返回“现有资料不足”、passed=false、sources=[]。
+15. 达到门槛：根据索引找到原始文本块。
+16. Augmentation 把资料、来源和问题组合成 RAG 提示词。
+17. Generation 使用 Chat Template 和 Qwen 生成回答。
+18. Pipeline 返回答案、门槛状态、最高分和引用来源。
+19. FastAPI 按 AskResponse 校验返回数据。
+20. 校验失败：服务器记录异常，客户端得到 500。
+21. 校验成功：返回 HTTP 200 和 JSON。
+
+服务器关闭：
+
+1. Uvicorn 收到停止信号。
+2. FastAPI 从 yield 后继续执行 lifespan。
+3. app.state.pipeline 被设为 None。
+4. 应用完成关闭。
+
+
+============================================================
+十七、HTTP 状态与业务状态
+============================================================
+
+1. HTTP 200
+
+请求格式正确，服务器正常完成了业务处理。
+
+2. HTTP 422 Unprocessable Content
+
+客户端提交的数据不符合 AskRequest，例如：
+
+- query 为空或只有空格。
+- top_k=0，不符合 ge=1。
+- min_similarity=2，不符合 le=1。
+- max_new_tokens 超出范围。
+
+这类错误由 FastAPI/Pydantic 自动生成，接口函数通常还没有执行。
+
+3. HTTP 500 Internal Server Error
+
+服务器在执行业务代码或校验响应时发生了未预期异常，例如模型推理错误或响应字段类型不匹配。
+
+4. HTTP 503 Service Unavailable
+
+服务暂时无法完成请求，例如 Pipeline 尚未加载完成。
+
+5. HTTP 200 + passed=false
+
+这是正常的业务结果，不是服务器错误。
+
+它表示：
+
+- 请求参数合法。
+- Pipeline 正常运行。
+- 检索也正常完成。
+- 但最高相似度没有达到业务门槛。
+- 因此回答“现有资料不足”，sources 返回空列表。
+
+必须区分“HTTP 请求是否成功”和“检索结果是否通过门槛”。
+
+
+============================================================
+十八、异常处理与日志
+============================================================
+
+logger = logging.getLogger(__name__)
+
+__name__ 是当前模块名，因此日志可以标明异常来自哪个模块。
+
+try/except 的作用：
+
+- try：执行可能发生异常的 RAG 处理逻辑。
+- except：捕获未预期异常，记录完整堆栈，并向客户端返回统一错误。
+
+logger.exception(...) 的特点：
+
+- 记录错误消息。
+- 自动记录当前异常堆栈。
+- 便于在服务器终端定位真实错误。
+
+客户端不应该直接收到完整 Python 堆栈，因为堆栈可能泄露文件路径、代码结构等内部信息。
+
+raise HTTPException(...) from error 的作用：
+
+- 对客户端返回统一 HTTP 错误。
+- 保留新异常与原始异常之间的因果关系。
+- 调试堆栈更容易追踪。
+
+getattr(request.app.state, "pipeline", None) 比直接访问更稳健：如果 pipeline 属性不存在，它返回 None，而不是立刻抛出 AttributeError。
+
+
+============================================================
+十九、Swagger UI 与 OpenAPI
+============================================================
+
+服务器运行时可以访问：
+
+- http://127.0.0.1:8000/docs
+- http://127.0.0.1:8000/openapi.json
+
+Swagger UI 适合人工调试：
+
+1. 展开接口。
+2. 点击 Try it out。
+3. 输入请求 JSON。
+4. 点击 Execute。
+5. 查看请求 URL、状态码、响应体和响应头。
+
+FastAPI 根据以下内容自动生成文档：
+
+- 路由装饰器。
+- 请求模型。
+- response_model。
+- Field 的 description 和限制条件。
+
+/docs 是测试和阅读接口的页面，不是面向最终用户的正式前端界面。
+
+
+============================================================
+二十、使用 PowerShell 调用 API
+============================================================
+
+GET 健康检查：
+
+Invoke-RestMethod `
+    -Uri "http://127.0.0.1:8000/health" `
+    -Method Get
+
+Invoke-RestMethod 是 PowerShell 用来发送 HTTP/REST 请求的命令，并会把 JSON 响应转换成便于访问属性的 PowerShell 对象。
+
+POST 问答请求示例：
+
+$requestBody = @{
+    query = "RAG由哪三个阶段组成？"
+    top_k = 3
+    min_similarity = 0.4
+    max_new_tokens = 200
+} | ConvertTo-Json
+
+$response = Invoke-RestMethod `
+    -Uri "http://127.0.0.1:8000/ask" `
+    -Method Post `
+    -ContentType "application/json; charset=utf-8" `
+    -Body ([System.Text.Encoding]::UTF8.GetBytes($requestBody))
+
+$response.answer
+$response.sources | Format-Table
+
+命令说明：
+
+- ConvertTo-Json：把 PowerShell 对象转换成 JSON 字符串。
+- -ContentType：声明请求体的媒体类型和字符编码。
+- application/json：请求体使用 JSON 格式。
+- charset=utf-8：字符采用 UTF-8 编码。
+- UTF8.GetBytes(...)：明确把请求 JSON 编码成 UTF-8 字节。
+- $response.answer：读取响应对象中的 answer 字段。
+
+ConvertTo-Json -Depth N 用于控制嵌套对象最多展开多少层。响应中有 sources 这类嵌套结构时，需要保证深度足够。
+
+Swagger UI 适合人工调试；PowerShell、前端或其他程序更接近真实客户端调用。
+
+
+============================================================
+二十一、中文乱码与 UTF-8 中间件
+============================================================
+
+浏览器能够正常显示中文，但部分 Windows PowerShell 5.1 环境可能错误解释响应编码，从而显示乱码。
+
+请求方向需要注意：
+
+- 使用 application/json; charset=utf-8。
+- 将 JSON 明确转换成 UTF-8 字节。
+
+响应方向可通过中间件为 JSON Content-Type 补充 charset=utf-8：
+
+@app.middleware("http")
+async def add_utf8_charset(request: Request, call_next):
+    response = await call_next(request)
+    content_type = response.headers.get("content-type", "")
+
+    if (
+        content_type.startswith("application/json")
+        and "charset=" not in content_type
+    ):
+        response.headers["content-type"] = (
+            f"{content_type}; charset=utf-8"
+        )
+
+    return response
+
+中间件会经过每个 HTTP 请求和响应：
+
+1. call_next(request) 让请求继续进入后面的路由处理。
+2. 得到 FastAPI 生成的 response。
+3. 检查响应是否为 application/json。
+4. 如果没有 charset，则补上 charset=utf-8。
+5. 返回响应。
+
+注意：乱码也可能由终端自身的编码行为造成。chcp 只改变控制台代码页，不一定能修复所有 PowerShell 5.1 的 HTTP 解码问题。浏览器正常、PowerShell 乱码时，应分别检查请求字节、响应头和终端显示环境。
+
+
+============================================================
+二十二、今天遇到的错误与排查方法
+============================================================
+
+1. rag_project.api:app 被当成 PowerShell 命令执行
+
+错误原因：rag_project.api:app 只是 Uvicorn 的应用定位字符串，不是独立命令。
+
+正确命令：
+
+python -m uvicorn rag_project.api:app --reload
+
+2. Attribute "app" not found in module "rag_project.api"
+
+可能原因：
+
+- api.py 尚未保存。
+- 变量名不是 app。
+- app 创建代码未成功执行。
+- 模块导入过程中先发生了其他异常。
+
+排查时看终端完整 Traceback，并确认存在：
+
+app = FastAPI(...)
+
+3. ModuleNotFoundError: No module named 'fastapi'
+
+原因：当前 Python 环境没有安装 FastAPI，或 VS Code 使用了错误解释器。
+
+应激活项目虚拟环境，并使用当前 Python 安装依赖。
+
+4. ModuleNotFoundError: No module named 'rag_project'
+
+原因：直接运行包内 api.py，或当前目录不在项目父目录。
+
+修复：进入 python learning 后使用 python -m uvicorn。
+
+5. ERR_CONNECTION_REFUSED / curl 无法连接
+
+含义：127.0.0.1:8000 当时没有服务器监听。
+
+重点检查：
+
+- Uvicorn 终端是否仍在运行。
+- 是否出现 Shutting down。
+- 是否启动了正确端口。
+- 不要在运行 Uvicorn 的同一个终端中输入下一条命令。
+- 应保留服务器终端，再开一个终端测试请求。
+
+6. ImportError: cannot import name 'AskRequest'
+
+原因：schemas.py 中没有已保存且名称完全一致的 AskRequest 类。
+
+排查：
+
+- 保存 schemas.py。
+- 检查大小写和拼写。
+- 查看类是否因语法错误而没有成功加载。
+
+7. 422 Unprocessable Content
+
+原因：请求数据不符合 AskRequest。这是客户端输入问题，不是服务器崩溃。
+
+根据响应中的 loc、msg、input 定位具体字段。
+
+8. 500 ResponseValidationError
+
+原因：接口实际返回值与 AskResponse 不一致。本次是 chunk_id 实际为字符串，但模型写成 int。
+
+修复：让 Pydantic 模型与真实 Pipeline 返回结构一致。
+
+9. 浏览器刷新仍然连接失败
+
+刷新只会重新发请求，不能启动已经停止的服务器。必须先保证 Uvicorn 进程保持运行。
+
+
+============================================================
+二十三、requirements.txt
+============================================================
+
+当前项目记录的直接依赖：
+
+torch
+transformers
+fastapi
+uvicorn
+pydantic
+
+各依赖作用：
+
+- torch：张量计算、模型推理和向量矩阵运算。
+- transformers：加载 BGE、Qwen 以及 tokenizer。
+- fastapi：定义 Web API。
+- uvicorn：运行 ASGI 服务器。
+- pydantic：定义并校验请求与响应模型。
+
+为什么 git status 可能不显示 requirements.txt：
+
+- 文件内容与最近一次提交完全相同，所以没有变化。
+- 文件已经被暂存，需要查看 git diff --cached。
+- 修改尚未保存到磁盘。
+- 当前查看的是错误目录中的同名文件。
+
+常用检查：
+
+git status
+git diff -- rag_project/requirements.txt
+git diff --cached -- rag_project/requirements.txt
+git ls-files rag_project/requirements.txt
+
+
+============================================================
+二十四、README 与 Git
+============================================================
+
+README 应记录：
+
+- 项目简介。
+- 主要功能。
+- 项目结构。
+- 使用的模型。
+- 环境安装方法。
+- 命令行运行方法。
+- API 启动方法。
+- /health、/validate、/ask 的用途。
+- 请求 JSON 示例。
+- HTTP 状态码说明。
+
+Day 19 已创建提交：
+
+14a1b1f 完成 Day 19 FastAPI RAG 接口
+
+该提交包含 api.py、schemas.py、README.md 和 requirements.txt 等 Day 19 工作。
+
+完成提交后使用：
+
+git status
+
+若显示 nothing to commit, working tree clean，说明当时所有修改已经提交。
+
+之后新增的 UTF-8 响应中间件属于新的工作区修改，需要再次 git add 和 git commit 才会进入版本历史。
+
+
+============================================================
+二十五、Day 19 复习题标准答案
+============================================================
+
+1. FastAPI 与 Uvicorn 分别负责什么？
+
+FastAPI 负责定义接口、解析和校验参数、调用接口函数、序列化响应并生成 API 文档；Uvicorn 负责启动 ASGI 服务器、监听网络端口、接收 HTTP 请求并把请求交给 FastAPI。
+
+2. app 是什么？
+
+app 是 FastAPI 应用对象，项目中的路由、中间件、生命周期和共享状态都登记或关联在这个对象上。
+
+3. @app.get("/health") 是什么意思？
+
+它是路由装饰器。当客户端对 /health 发送 GET 请求时，FastAPI 调用它下面定义的函数。
+
+4. 路由函数返回 Python 字典后发生什么？
+
+FastAPI 会将字典序列化成 JSON 响应，并设置相应的 HTTP 响应信息。
+
+5. GET 与 POST 有什么区别？
+
+GET 通常用于读取资源或状态；POST 通常用于在请求体中提交数据并触发服务器处理。它们是 HTTP 语义约定，不能简单理解为 GET 技术上只能读取。
+
+6. 为什么 /ask 使用 POST？
+
+因为客户端需要提交问题和多个检索、生成参数组成的完整 JSON 请求体，并触发一次 RAG 计算。
+
+7. BaseModel 是什么？
+
+BaseModel 是 Pydantic 的数据模型基类，用于把 JSON 转换成 Python 对象，并按类型、默认值、范围和自定义规则校验数据。
+
+8. AskRequest 与 AskResponse 的职责是什么？
+
+AskRequest 定义并校验客户端提交的数据；AskResponse 定义、校验、过滤并文档化服务器返回的数据。
+
+9. default=3、ge=1、le=10 分别表示什么？
+
+default=3 表示未提供字段时默认使用 3；ge=1 表示最小为 1；le=10 表示最大为 10。
+
+10. 为什么参数错误不会让服务器崩溃？
+
+FastAPI 会先用 Pydantic 校验请求。校验失败时自动返回结构化 422，接口函数不会继续执行，服务器仍可处理其他请求。
+
+11. field_validator 的作用是什么？
+
+为指定字段添加自定义验证或转换逻辑，例如清除 query 首尾空白，并拒绝清洗后为空的问题。
+
+12. 为什么只设置 min_length=1 还不够？
+
+因为空格也是字符，"   " 的长度大于 1，但没有实际问题内容。
+
+13. strip() 删除什么？
+
+删除字符串开头和结尾的空格、换行、制表符等空白字符，不删除中间的正常空格。
+
+14. lifespan 负责什么？
+
+负责在应用启动和关闭时执行资源初始化与清理逻辑。
+
+15. lifespan 中 yield 前后分别做什么？
+
+yield 前执行启动逻辑；服务器在 yield 期间工作；yield 后执行关闭和资源清理逻辑。
+
+16. 为什么 Pipeline 不能在每个 /ask 请求中重新创建？
+
+因为模型和知识库加载成本很高。每次重载会浪费时间、内存、显存和算力，应在启动时加载一次并复用。
+
+17. app.state.pipeline 保存了什么？
+
+保存当前 FastAPI 应用共享的 RAGPipeline 实例。
+
+18. pipeline_loaded=true 说明什么？
+
+说明应用状态中存在 Pipeline，模型和知识库初始化流程已经完成，可以处理问答请求。
+
+19. Request 与 AskRequest 有什么区别？
+
+Request 是 FastAPI/Starlette 的 HTTP 请求对象；AskRequest 是本项目定义的业务请求数据模型。
+
+20. response_model=AskResponse 有什么作用？
+
+校验和过滤响应数据、完成序列化，并生成准确的 OpenAPI 响应文档。
+
+21. 为什么 chunk_id 类型不一致会出现 500？
+
+因为 Pipeline 返回字符串，而 SourceItem 最初要求整数，响应校验失败并抛出 ResponseValidationError。应把模型定义改成与真实数据一致的 str。
+
+22. getattr(request.app.state, "pipeline", None) 的作用是什么？
+
+安全读取共享状态中的 pipeline；属性不存在时返回 None，避免直接产生 AttributeError。
+
+23. try、except、logger.exception 分别负责什么？
+
+try 执行可能失败的业务逻辑；except 捕获异常；logger.exception 记录错误消息和完整异常堆栈，便于服务器端排查。
+
+24. 200、422、500、503、passed=false 分别表示什么？
+
+200 表示 HTTP 请求正常处理；422 表示客户端请求数据不合格；500 表示服务器内部发生未预期异常；503 表示服务暂不可用；passed=false 是 HTTP 200 下的正常业务结果，表示检索结果没有通过相关性门槛。
+
+25. application/json; charset=utf-8 表示什么？
+
+请求或响应正文使用 JSON 媒体类型，并采用 UTF-8 字符编码。
+
+26. Invoke-RestMethod 与 ConvertTo-Json 是什么？
+
+Invoke-RestMethod 是 PowerShell 调用 HTTP/REST API 的命令；ConvertTo-Json 把 PowerShell 对象转换成 JSON 字符串。
+
+27. Uvicorn 停止后会发生什么？
+
+端口不再有服务器监听，浏览器和 PowerShell 请求都会连接失败，通常显示 ERR_CONNECTION_REFUSED 或 Could not connect to server。
+
+28. schemas.py、api.py、main.py、rag_pipeline.py 分别负责什么？
+
+- schemas.py：定义 API 请求和响应结构、类型限制及字段清洗。
+- api.py：Web API 入口，接收 HTTP 请求并返回 JSON。
+- main.py：命令行入口，接收终端输入并打印结果。
+- rag_pipeline.py：连接 Retrieval、Augmentation、Generation，形成完整 RAG 流程。
+
+29. Swagger UI 与 PowerShell 测试的区别是什么？
+
+Swagger UI 适合人工阅读、填写和调试接口；PowerShell 更接近脚本、前端或其他程序对 API 的真实调用。
+
+30. 从启动到返回答案的完整过程是什么？
+
+Uvicorn 导入 FastAPI app；lifespan 创建并保存 RAGPipeline；客户端向 /ask 提交 JSON；AskRequest 校验输入；接口取得共享 Pipeline；Pipeline 完成检索、门槛判断、提示词增强和生成；AskResponse 校验结果；FastAPI 序列化为 UTF-8 JSON；Uvicorn 把 HTTP 响应返回客户端。
+
+
+============================================================
+二十六、常用命令汇总
+============================================================
+
+进入项目父目录：
+
+cd "C:\Users\21855\Documents\python learning"
+
+激活虚拟环境：
+
+.\.venv\Scripts\Activate.ps1
+
+安装依赖：
+
+python -m pip install -r .\rag_project\requirements.txt
+
+检查 Python 文件语法：
+
+python -m compileall .\rag_project
+
+启动 API：
+
+python -m uvicorn rag_project.api:app --reload --host 127.0.0.1 --port 8000
+
+访问接口文档：
+
+http://127.0.0.1:8000/docs
+
+访问健康检查：
+
+http://127.0.0.1:8000/health
+
+查看 Git 状态：
+
+git status
+
+查看未暂存修改：
+
+git diff
+
+查看已暂存修改：
+
+git diff --cached
+
+
+============================================================
+二十七、面试表达
+============================================================
+
+可以这样介绍 Day 19 项目：
+
+“我将前一天完成的模块化本地 RAG 系统使用 FastAPI 封装成了 HTTP API。请求和响应使用 Pydantic 模型进行类型与范围校验，并通过字段验证器拒绝纯空白问题。为了避免每次请求重复加载模型，我使用 FastAPI lifespan 在应用启动时初始化一次 RAGPipeline，并保存在 app.state 中供所有请求复用。/ask 接口接收问题、top_k、相关性门槛和生成长度，返回答案、最高相似度、是否通过门槛以及引用来源。我还区分了 422 参数错误、503 服务未就绪、500 内部异常与 HTTP 200 下 passed=false 的正常业务拒绝，并使用 Swagger UI 和 PowerShell 完成接口测试。”
+
+
+============================================================
+二十八、Day 19 核心结论
+============================================================
+
+1. FastAPI 定义应用和接口，Uvicorn 负责运行服务器。
+2. api.py 是 Web API 入口，main.py 是命令行入口。
+3. 请求 JSON 先经过 AskRequest 校验，合法后才进入路由函数。
+4. response_model 会校验、过滤、序列化响应并生成文档。
+5. Pydantic 模型必须与真实业务数据一致，尤其要注意 chunk_id 等字段类型。
+6. 重型模型应通过 lifespan 在启动时加载一次，在请求之间复用。
+7. app.state 用于保存应用生命周期内的共享对象。
+8. GET /health 用于读取服务状态，POST /ask 用于提交 JSON 并执行问答。
+9. HTTP 状态码表示请求处理状态，passed 表示 RAG 的业务门槛结果，二者不能混淆。
+10. 422 是客户端输入问题，500 是内部异常，503 是服务暂不可用。
+11. 日志保留详细错误，客户端只接收安全、统一的错误信息。
+12. Swagger UI 适合人工调试，PowerShell 能验证真实 HTTP 调用。
+13. 中文 API 需要同时注意请求字节、Content-Type、响应头和终端编码。
+14. RAG 已从本地命令行程序升级为可被其他应用调用的服务。
+

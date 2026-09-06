@@ -10,7 +10,7 @@ from rag_project.schemas import AskRequest, AskResponse
 logger = logging.getLogger(__name__)    #logger 用于记录日志信息，__name__ 表示当前模块的名称
 
 @asynccontextmanager    #async context manager 用于管理生命周期事件
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI):   #lifespan 函数用于在应用启动和关闭时执行特定操作
     print("正在加载 RAG Pipeline，请稍候……")
     app.state.pipeline = RAGPipeline()
     print("RAG Pipeline 加载完成")
