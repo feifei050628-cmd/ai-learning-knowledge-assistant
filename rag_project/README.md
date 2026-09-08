@@ -154,3 +154,35 @@ python -m pytest .\rag_project\tests -v --cov=rag_project.schemas --cov=rag_proj
 
 ```text
 python -m rag_project.evaluate_retrieval
+```
+
+## 校准相关性门槛
+
+先运行真实检索评估：
+
+```powershell
+python -m rag_project.evaluate_retrieval
+```
+
+再使用评估报告校准相关性门槛：
+
+```powershell
+python -m rag_project.calibrate_threshold
+```
+
+校准脚本会比较 0.20～0.70 之间的候选门槛，并计算：
+
+- 混淆矩阵
+- Precision
+- Recall
+- Specificity
+- F1
+- Balanced Accuracy
+
+结果保存在：
+
+```text
+rag_project/threshold_calibration_report.json
+```
+
+当前评估集规模较小，校准结果只作为基线，不应直接代表生产环境效果。
