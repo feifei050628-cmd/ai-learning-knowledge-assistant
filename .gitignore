@@ -18,3 +18,9 @@ venv/
 
 # 个人简历
 AI大模型实习简历模板.docx
+
+
+.pytest_cache/
+.coverage
+htmlcov/
+__pycache__/

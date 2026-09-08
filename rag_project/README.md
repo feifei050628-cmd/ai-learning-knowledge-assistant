@@ -129,3 +129,20 @@ cd "C:\Users\21855\Documents\python learning"
 .\.venv\Scripts\Activate.ps1
 
 python -m uvicorn rag_project.api:app --reload --host 127.0.0.1 --port 8000
+```
+
+## 运行自动化测试
+
+安装开发依赖：
+
+```powershell
+python -m pip install -r .\rag_project\requirements-dev.txt
+```
+运行全部测试：
+```
+python -m pytest .\rag_project\tests -v
+```
+运行测试并查看覆盖率：
+```
+python -m pytest .\rag_project\tests -v --cov=rag_project.schemas --cov=rag_project.api --cov-report=term-missing
+```
