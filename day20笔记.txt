@@ -1,0 +1,842 @@
+Day 20 学习笔记：使用 pytest 自动测试 RAG API
+学习日期：2026-09-08
+
+============================================================
+一、今天完成了什么
+============================================================
+
+Day 19 已经使用 FastAPI 将本地 RAG 系统封装成了 HTTP API。Day 20 为这个 API 建立了自动化测试系统，将原来依靠 Swagger 和 PowerShell 手动检查的功能，变成可以通过一条命令反复执行的测试。
+
+今天完成的主要内容：
+
+1. 安装并使用 pytest。
+2. 区分生产依赖和开发依赖。
+3. 为 Pydantic 请求模型编写单元测试。
+4. 使用参数化测试检查字段边界值。
+5. 使用 FastAPI TestClient 测试 HTTP 接口。
+6. 使用 pytest fixture 准备和清理测试环境。
+7. 使用 FakePipeline 隔离真实的 BGE 和 Qwen 模型。
+8. 使用 monkeypatch 测试 FastAPI lifespan。
+9. 测试 HTTP 200、422、500、503 和 passed=false。
+10. 使用 pytest-cov 查看代码覆盖率。
+11. 将测试缓存和覆盖率文件加入 .gitignore。
+12. 在 README 中补充自动化测试运行方法。
+
+最终测试结果：
+
+26 passed, 1 warning in 0.18s
+
+覆盖率结果：
+
+- rag_project/api.py：98%
+- rag_project/schemas.py：100%
+- 总覆盖率：98%
+
+整个测试过程没有加载真实的 BGE 和 Qwen 模型，说明测试隔离成功。
+
+
+============================================================
+二、为什么需要自动化测试
+============================================================
+
+手动测试需要人工启动服务器、打开 Swagger、输入参数并观察结果。项目功能增多后，反复手动检查会越来越慢，也容易遗漏旧功能。
+
+自动化测试的价值：
+
+1. 可以快速、重复地检查功能。
+2. 修改代码后能够发现旧功能是否被破坏。
+3. 可以准确记录输入、预期结果和失败位置。
+4. 能覆盖正常路径、非法输入、业务拒绝和异常路径。
+5. 可以在不启动真实服务器的情况下测试 API。
+6. 可以使用测试替身避开昂贵的模型加载。
+
+修改代码后导致原本正常的功能失效，称为回归错误。自动化测试的重要作用之一就是防止回归错误。
+
+
+============================================================
+三、生产依赖与开发依赖
+============================================================
+
+requirements.txt 保存程序正常运行所需的依赖：
+
+torch
+transformers
+fastapi
+uvicorn
+pydantic
+
+requirements-dev.txt 保存开发和测试阶段需要的依赖：
+
+-r requirements.txt
+pytest
+httpx
+pytest-cov
+
+含义：
+
+- -r requirements.txt：安装开发依赖时，先安装正常运行所需的依赖。
+- pytest：测试框架。
+- httpx：TestClient 底层使用的 HTTP 客户端能力。
+- pytest-cov：统计 pytest 运行时的代码覆盖率。
+
+安装命令：
+
+python -m pip install -r .\rag_project\requirements-dev.txt
+
+
+============================================================
+四、pytest 的发现规则
+============================================================
+
+pytest 会自动发现符合命名规则的测试。
+
+常见测试文件名：
+
+test_功能名.py
+
+常见测试函数名：
+
+def test_具体行为():
+    ...
+
+例如：
+
+test_schemas.py
+test_api_basic.py
+test_api_ask.py
+test_lifespan.py
+
+如果显示 collected 0 items，说明 pytest 已启动，但没有发现测试。常见原因包括：
+
+1. 文件还没有保存到磁盘。
+2. 文件名不符合 test_*.py 规则。
+3. 函数名没有以 test_ 开头。
+4. 命令中的测试路径错误。
+
+U 表示文件尚未被 Git 跟踪，不表示 pytest 错误。
+
+
+============================================================
+五、assert：检查实际结果
+============================================================
+
+示例：
+
+assert request.top_k == 3
+
+含义是断言 request.top_k 的实际值必须等于 3。
+
+需要注意：assert 只比较结果，不会给变量赋值。
+
+如果条件成立：
+
+- 测试继续执行。
+- 所有断言都成立时，测试显示 PASSED。
+
+如果条件不成立：
+
+- 当前测试显示 FAILED。
+- pytest 显示失败位置、比较表达式和实际结果。
+- 其他独立测试通常仍会继续运行。
+
+测试通常可以理解成三个步骤：
+
+1. Arrange：准备输入和环境。
+2. Act：执行被测试代码。
+3. Assert：比较实际结果与预期结果。
+
+
+============================================================
+六、Pydantic 请求模型单元测试
+============================================================
+
+test_schemas.py 直接创建 AskRequest 对象，测试以下行为：
+
+1. query 被正确保存。
+2. top_k 默认值是 3。
+3. min_similarity 默认值是 0.40。
+4. max_new_tokens 默认值是 200。
+5. query 首尾空白会被 strip() 清除。
+6. 纯空白问题会被拒绝。
+7. 字段边界值可以通过。
+8. 超出范围的值会被拒绝。
+9. 500 字符的问题可以通过。
+10. 501 字符的问题会被拒绝。
+
+这些测试只导入 rag_project.schemas，没有访问 FastAPI 路由，也没有创建 RAGPipeline，因此不需要 Uvicorn、BGE 或 Qwen。
+
+这类只检查一个较小组件的测试称为单元测试。
+
+
+============================================================
+七、pytest.raises：验证预期异常
+============================================================
+
+示例：
+
+with pytest.raises(ValidationError):
+    AskRequest(query="  \n\t")
+
+这个测试希望代码抛出 ValidationError。
+
+执行过程：
+
+1. AskRequest 接收纯空白 query。
+2. field_validator 调用 strip()。
+3. 清洗后得到空字符串。
+4. 验证器抛出 ValueError。
+5. Pydantic 捕获并整理为 ValidationError。
+6. pytest.raises 确认出现了预期异常。
+7. 测试通过。
+
+判断规则：
+
+- 抛出指定异常：通过。
+- 没有抛出异常：失败。
+- 抛出其他异常：失败。
+
+
+============================================================
+八、边界值测试
+============================================================
+
+边界值测试用于检查规则边界上的值，以及刚刚越过边界的值。
+
+当前字段的测试值：
+
+top_k 合法范围 1～10：
+
+- 1、10：应该通过。
+- 0、11：应该拒绝。
+
+min_similarity 合法范围 -1.0～1.0：
+
+- -1.0、1.0：应该通过。
+- -1.1、1.1：应该拒绝。
+
+max_new_tokens 合法范围 1～512：
+
+- 1、512：应该通过。
+- 0、513：应该拒绝。
+
+query 最大长度 500：
+
+- 500 个字符：应该通过。
+- 501 个字符：应该拒绝。
+
+程序错误很容易发生在临界位置，因此边界值比随意选择几个中间值更有测试价值。
+
+
+============================================================
+九、参数化测试
+============================================================
+
+示例：
+
+@pytest.mark.parametrize(
+    "field_name, valid_value",
+    [
+        ("top_k", 1),
+        ("top_k", 10),
+        ("min_similarity", -1.0),
+        ("min_similarity", 1.0),
+        ("max_new_tokens", 1),
+        ("max_new_tokens", 512),
+    ],
+)
+
+parametrize 会把每组数据分别传给同一个测试函数。
+
+例如：
+
+("top_k", 10)
+
+会得到：
+
+field_name = "top_k"
+valid_value = 10
+
+每一组参数都是独立的测试用例。一组失败时，pytest 会显示具体失败参数，并继续运行其他用例。
+
+参数化的好处：
+
+1. 减少重复测试代码。
+2. 增加测试数据更方便。
+3. 每组数据仍有独立测试结果。
+4. 特别适合边界值和多输入组合。
+
+
+============================================================
+十、动态关键字参数与 getattr
+============================================================
+
+测试代码：
+
+AskRequest(
+    query="测试问题",
+    **{field_name: valid_value},
+)
+
+如果：
+
+field_name = "top_k"
+valid_value = 10
+
+那么：
+
+**{field_name: valid_value}
+
+相当于：
+
+top_k=10
+
+完整效果相当于：
+
+AskRequest(query="测试问题", top_k=10)
+
+读取动态属性：
+
+getattr(request, field_name)
+
+当 field_name 是 "top_k" 时，相当于：
+
+request.top_k
+
+这让同一个测试函数能够动态测试多个不同字段。
+
+
+============================================================
+十一、TestClient
+============================================================
+
+TestClient 可以在 Python 进程内部模拟 HTTP 客户端调用 FastAPI：
+
+测试代码
+→ TestClient
+→ FastAPI 路由
+→ Pydantic 校验
+→ 路由函数
+→ HTTP 响应
+
+它不需要：
+
+- 启动 Uvicorn。
+- 监听 8000 端口。
+- 打开浏览器。
+- 使用 PowerShell 请求。
+- 进行真实网络通信。
+
+GET 示例：
+
+response = client.get("/")
+
+POST 示例：
+
+response = client.post(
+    "/validate",
+    json={"query": "什么是 RAG？"},
+)
+
+json= 会完成：
+
+1. 将 Python 字典转换为 JSON。
+2. 把 JSON 放入请求体。
+3. 设置相应的 Content-Type。
+4. 将请求交给 FastAPI。
+
+读取响应：
+
+- response.status_code：HTTP 状态码。
+- response.json()：解析后的 Python 字典或列表。
+
+
+============================================================
+十二、单元测试与 API 集成测试
+============================================================
+
+test_schemas.py 是单元测试：
+
+- 直接测试 AskRequest。
+- 不经过 HTTP。
+- 不经过 FastAPI 路由。
+- 范围小，定位问题快。
+
+test_api_basic.py 和 test_api_ask.py 是 API 集成测试：
+
+- 通过 TestClient 发送模拟 HTTP 请求。
+- 经过 FastAPI 路由。
+- 经过 Pydantic 请求校验。
+- 经过接口函数。
+- 经过 response_model 响应处理。
+
+它们仍然没有运行真实模型，因此比完整端到端测试更快、更稳定。
+
+
+============================================================
+十三、pytest fixture 与 conftest.py
+============================================================
+
+fixture 负责为测试准备对象或环境，并在测试结束后清理。
+
+定义：
+
+@pytest.fixture
+def client():
+    test_client = TestClient(app)
+    yield test_client
+    test_client.close()
+
+使用：
+
+def test_root_returns_api_information(client):
+    ...
+
+pytest 会根据测试函数参数名找到同名 fixture，将 fixture 产生的对象传入测试函数。
+
+fixture 中的 yield：
+
+- yield 前：准备测试环境。
+- yield 的值：提供给测试函数。
+- yield 后：清理测试环境。
+
+conftest.py 是 pytest 的共享配置文件。pytest 会自动发现其中的 fixture，其他测试文件不需要手动导入 fixture。
+
+
+============================================================
+十四、FakePipeline：隔离真实模型
+============================================================
+
+真实 RAGPipeline 会加载：
+
+- 本地知识库。
+- BGE 检索模型。
+- Qwen 生成模型。
+- 对应 tokenizer。
+
+如果每次测试都加载真实模型，会导致：
+
+1. 测试速度慢。
+2. 占用大量内存或显存。
+3. 测试结果可能受模型输出变化影响。
+4. API 错误与模型错误混在一起，不容易定位。
+
+FakePipeline 使用固定规则模拟 answer()：
+
+- 正常问题返回固定答案和引用来源。
+- 无关问题返回 passed=false。
+- 特定问题抛出 RuntimeError。
+- 记录接口传入的参数。
+
+这样可以单独验证 API 层行为，而不是重复验证模型能力。
+
+Fake、Mock、Stub 都属于测试替身。当前 FakePipeline 是一个具有简化业务行为的假实现。
+
+
+============================================================
+十五、测试环境的保存与恢复
+============================================================
+
+fake_pipeline fixture 的核心逻辑：
+
+previous_pipeline = getattr(
+    app.state,
+    "pipeline",
+    None,
+)
+
+pipeline = FakePipeline()
+app.state.pipeline = pipeline
+
+yield pipeline
+
+app.state.pipeline = previous_pipeline
+
+执行过程：
+
+1. 保存原来的 Pipeline 状态。
+2. 将应用 Pipeline 替换成 FakePipeline。
+3. 测试使用 FakePipeline。
+4. 测试结束后恢复原状态。
+
+测试必须相互独立，不能依赖执行顺序。恢复现场可以防止一个测试污染后面的测试。
+
+
+============================================================
+十六、测试基础接口
+============================================================
+
+test_api_basic.py 测试了四个行为：
+
+1. GET / 返回 200 和 API 基本信息。
+2. POST /validate 接受合法 JSON 并填充默认值。
+3. top_k=0 时 FastAPI 返回 422。
+4. Pipeline 不存在时 POST /ask 返回 503。
+
+422 的执行路径：
+
+TestClient 提交 JSON
+→ FastAPI 找到路由
+→ AskRequest 校验
+→ top_k=0 不符合 ge=1
+→ 自动返回 422
+→ validate_request() 不执行
+
+503 的执行路径：
+
+TestClient 请求 /ask
+→ 接口使用 getattr 读取 Pipeline
+→ 得到 None
+→ 主动抛出 HTTPException(503)
+→ 返回“RAG Pipeline 尚未加载完成”
+
+
+============================================================
+十七、测试完整 /ask 行为
+============================================================
+
+test_api_ask.py 使用 FakePipeline 测试了：
+
+1. /health 报告 pipeline_loaded=true。
+2. /ask 正常返回答案。
+3. /ask 返回正确的 passed 和 max_score。
+4. sources 中包含正确标题和 chunk_id。
+5. query、top_k、min_similarity、max_new_tokens 被完整传入 Pipeline。
+6. 无关问题返回 HTTP 200 和 passed=false。
+7. 无关问题回答“现有资料不足”。
+8. 无关问题 sources=[]。
+9. Pipeline 抛出异常时，接口返回 HTTP 500。
+10. 客户端只收到统一错误信息。
+
+HTTP 200 + passed=false 仍然是正常业务结果：请求合法、服务器正常运行、检索正常完成，只是资料没有达到相关性门槛。
+
+
+============================================================
+十八、response_model 的过滤测试
+============================================================
+
+FakePipeline 的正常结果中故意加入：
+
+"internal_debug": "该字段不应该返回给客户端"
+
+AskResponse 没有声明 internal_debug，因此 FastAPI 的 response_model 会将它过滤掉。
+
+测试：
+
+assert "internal_debug" not in data
+
+证明了 response_model 不只用于生成文档，还会约束和过滤最终返回给客户端的数据，避免内部字段意外泄露。
+
+
+============================================================
+十九、monkeypatch 与 lifespan 测试
+============================================================
+
+普通写法：
+
+client = TestClient(app)
+
+不会主动执行完整 lifespan，因此适合测试未加载 Pipeline 的分支。
+
+上下文管理器写法：
+
+with TestClient(app) as client:
+    ...
+
+会执行应用启动和关闭生命周期。如果直接执行，就会创建真实 RAGPipeline 并加载模型。
+
+测试前使用：
+
+monkeypatch.setattr(
+    "rag_project.api.RAGPipeline",
+    LifespanFakePipeline,
+)
+
+它会在测试期间临时把 api.py 使用的 RAGPipeline 替换成轻量的 LifespanFakePipeline。
+
+测试验证：
+
+1. 进入 with 时 lifespan 创建假 Pipeline。
+2. /health 返回 pipeline_loaded=true。
+3. 离开 with 时 lifespan 执行清理。
+4. app.state.pipeline 最终变成 None。
+5. 测试完成后 monkeypatch 自动恢复真实 RAGPipeline。
+
+因此既测试了生命周期，又没有加载真实模型。
+
+
+============================================================
+二十、HTTP 状态与业务状态的测试覆盖
+============================================================
+
+Day 20 覆盖的主要状态：
+
+HTTP 200：
+
+- GET / 正常返回。
+- GET /health 正常返回。
+- POST /validate 合法请求正常返回。
+- POST /ask 正常回答。
+- POST /ask 未通过相关性门槛，但业务正常完成。
+
+HTTP 422：
+
+- 客户端请求参数不符合 AskRequest。
+- 例如 top_k=0。
+
+HTTP 500：
+
+- Pipeline 执行过程中发生未预期异常。
+- API 捕获异常、记录日志并返回统一错误。
+
+HTTP 503：
+
+- Pipeline 尚未准备好，服务暂时无法处理问答。
+
+业务 passed=false：
+
+- HTTP 请求和服务器处理都成功。
+- 最高相关性没有通过门槛。
+- 返回“现有资料不足”和空来源列表。
+
+
+============================================================
+二十一、代码覆盖率
+============================================================
+
+运行命令：
+
+python -m pytest .\rag_project\tests -v --cov=rag_project.schemas --cov=rag_project.api --cov-report=term-missing
+
+覆盖率报告字段：
+
+- Stmts：可执行语句数量。
+- Miss：测试没有执行到的语句数量。
+- Cover：语句覆盖率。
+- Missing：没有执行到的代码行号。
+
+本次结果：
+
+rag_project/api.py       44 statements, 1 missed, 98%
+rag_project/schemas.py   15 statements, 0 missed, 100%
+TOTAL                    59 statements, 1 missed, 98%
+
+唯一未覆盖的是 api.py 的直接运行提示分支。它不是 API 核心业务逻辑，无需为了形式上的 100% 强行增加低价值测试。
+
+覆盖率高不代表程序一定正确。覆盖率只表示代码被运行过，真正的质量还取决于：
+
+1. 测试场景是否重要。
+2. 输入是否有代表性。
+3. 断言是否准确。
+4. 是否覆盖正常、失败和边界路径。
+
+
+============================================================
+二十二、测试警告
+============================================================
+
+本次结果包含 1 条 StarletteDeprecationWarning。
+
+它是依赖库发出的弃用提醒，不是测试失败：
+
+- 26 个测试仍然全部通过。
+- 当前功能不受影响。
+- 不应该为了消除警告随意更换未知依赖。
+- 后续升级 FastAPI、Starlette 或测试客户端时，再根据对应版本官方说明处理。
+
+测试结果中的 PASSED、FAILED 和 ERROR 才是当前更需要关注的执行状态。
+
+
+============================================================
+二十三、.gitignore
+============================================================
+
+Day 20 加入：
+
+.pytest_cache/
+.coverage
+htmlcov/
+__pycache__/
+
+作用：
+
+- .pytest_cache/：pytest 缓存。
+- .coverage：覆盖率原始数据。
+- htmlcov/：HTML 覆盖率报告目录。
+- __pycache__/：Python 字节码缓存。
+
+这些文件可以重新生成，不属于项目源代码，因此不应提交到 Git。
+
+当前 .gitignore 中 __pycache__/ 出现了两次。它不会影响功能，之后整理文件时可以保留一条即可。
+
+
+============================================================
+二十四、测试目录结构
+============================================================
+
+rag_project/
+├── requirements.txt
+├── requirements-dev.txt
+├── api.py
+├── schemas.py
+├── tests/
+│   ├── conftest.py
+│   ├── test_schemas.py
+│   ├── test_api_basic.py
+│   ├── test_api_ask.py
+│   └── test_lifespan.py
+└── README.md
+
+文件职责：
+
+- requirements-dev.txt：测试和开发依赖。
+- conftest.py：共享 FakePipeline 和 fixture。
+- test_schemas.py：请求模型单元测试和边界值测试。
+- test_api_basic.py：根路由、参数验证、422 和 503。
+- test_api_ask.py：问答成功、业务拒绝和 500。
+- test_lifespan.py：启动、共享 Pipeline 和关闭清理。
+- README.md：记录安装、运行测试和覆盖率命令。
+
+
+============================================================
+二十五、常用测试命令
+============================================================
+
+进入项目父目录：
+
+cd "C:\Users\21855\Documents\python learning"
+
+激活虚拟环境：
+
+.\.venv\Scripts\Activate.ps1
+
+安装开发依赖：
+
+python -m pip install -r .\rag_project\requirements-dev.txt
+
+查看 pytest 版本：
+
+python -m pytest --version
+
+运行全部测试：
+
+python -m pytest .\rag_project\tests -v
+
+运行单个测试文件：
+
+python -m pytest .\rag_project\tests\test_schemas.py -v
+
+只收集测试，不执行：
+
+python -m pytest .\rag_project\tests --collect-only -v
+
+运行测试并查看覆盖率：
+
+python -m pytest .\rag_project\tests -v --cov=rag_project.schemas --cov=rag_project.api --cov-report=term-missing
+
+
+============================================================
+二十六、Day 20 知识点总结
+============================================================
+
+1. 自动化测试可以重复验证旧功能，减少回归错误。
+2. pytest 自动发现 test_*.py 文件和 test_* 函数。
+3. assert 比较实际结果与预期结果，不会设置变量。
+4. pytest.raises 用来验证代码是否抛出预期异常。
+5. Pydantic 会将字段验证过程中的 ValueError 整理成 ValidationError。
+6. 参数化测试使用多组输入重复运行同一个测试函数。
+7. 参数化中的每组参数仍然是独立测试用例。
+8. 边界值测试要检查边界本身和刚刚越过边界的值。
+9. **字典可以把动态字段拆成关键字参数。
+10. getattr 可以根据字符串动态读取对象属性。
+11. TestClient 在进程内部模拟 HTTP 请求，不需要启动 Uvicorn。
+12. client.get 模拟 GET 请求。
+13. client.post(..., json=...) 模拟带 JSON 请求体的 POST 请求。
+14. response.status_code 用于检查 HTTP 状态码。
+15. response.json() 用于取得解析后的响应数据。
+16. 单元测试只检查较小组件，集成测试会让多个组件协同运行。
+17. fixture 负责准备测试资源并在测试后清理。
+18. conftest.py 中的 fixture 会被 pytest 自动发现和共享。
+19. fixture 的 yield 前准备环境，yield 后恢复环境。
+20. FakePipeline 可以隔离真实模型，让 API 测试快速、稳定。
+21. 测试替身应该保持与真实对象一致的公开接口。
+22. 测试必须相互独立，不能依赖运行顺序。
+23. client = TestClient(app) 不主动执行完整 lifespan。
+24. with TestClient(app) 会执行应用启动和关闭生命周期。
+25. monkeypatch 可以临时替换类、函数或变量，并在测试后恢复。
+26. 422 表示请求数据没有通过 Pydantic 校验。
+27. 503 表示 Pipeline 尚未准备好。
+28. 500 表示 Pipeline 或服务器内部发生异常。
+29. HTTP 200 + passed=false 是正常的业务拒绝，不是服务器错误。
+30. response_model 会验证和过滤最终响应字段。
+31. 应同时测试正常路径、非法输入、业务拒绝和异常路径。
+32. 覆盖率显示代码是否被执行过，但不能独立证明代码正确。
+33. 高价值场景和准确断言比单纯追求 100% 覆盖率更重要。
+34. pytest 缓存、覆盖率数据和 Python 缓存不应提交到 Git。
+35. 自动化测试使用固定输入和输出，不能证明真实模型回答质量完全正确。
+
+
+============================================================
+二十七、自动化测试不能证明什么
+============================================================
+
+当前 26 个测试主要验证 schemas.py 和 api.py，不能证明：
+
+1. BGE 生成的向量语义一定正确。
+2. 正确资料一定进入 Top-K。
+3. 相关性门槛适合所有真实问题。
+4. Qwen 的回答一定完整、忠实且没有幻觉。
+5. 真实 GPU、内存和并发环境一定稳定。
+6. 大规模知识库下的性能满足要求。
+7. 网络部署、鉴权、限流等生产能力已经完成。
+
+这些能力需要检索评估、生成评估、真实端到端测试、性能测试和部署测试继续验证。
+
+
+============================================================
+二十八、面试表达
+============================================================
+
+可以这样介绍 Day 20：
+
+“我使用 pytest 为 FastAPI RAG 服务建立了自动化测试。首先对 Pydantic 请求模型进行了默认值、字符串清洗、异常和边界值单元测试，并使用 parametrize 减少重复代码。随后通过 TestClient 测试 HTTP 200、422、500、503 以及 passed=false 等 API 行为。为了避免每次测试加载真实 BGE 和 Qwen，我实现了 FakePipeline，并通过 fixture 在测试前注入、测试后恢复。对于 lifespan，我使用 monkeypatch 临时替换 RAGPipeline，验证启动加载和关闭清理。最终共 26 个测试通过，schemas.py 覆盖率 100%，api.py 覆盖率 98%，总覆盖率 98%。”
+
+
+============================================================
+二十九、版本状态
+============================================================
+
+Day 20 Git 提交：
+
+07c7e77 完成 Day 20 RAG API 自动化测试
+
+提交内容包括测试代码、开发依赖、README 测试说明和忽略规则。
+
+生成笔记时发现工作区还有一个未跟踪文件：
+
+~$大模型实习简历模板.docx
+
+这是 Microsoft Word 常见的临时锁文件，不属于 Day 20 测试代码。本次没有修改、删除或提交它。
+
+
+============================================================
+三十、Day 20 核心结论
+============================================================
+
+Day 20 将 RAG API 从“人工确认可以运行”升级为“程序能够自动验证行为”。
+
+完整测试链路：
+
+准备测试数据
+→ pytest 发现测试
+→ fixture 创建 TestClient 或 FakePipeline
+→ TestClient 模拟 HTTP 请求
+→ FastAPI 路由与 Pydantic 执行
+→ API 调用 FakePipeline
+→ response_model 校验并过滤响应
+→ assert 检查状态码和返回内容
+→ fixture 恢复测试环境
+→ pytest 汇总结果
+→ pytest-cov 统计覆盖率
+
+最终成果是 26 个测试全部通过、总覆盖率 98%，同时避免真实模型加载，使 API 测试能够在不到一秒的时间内稳定完成。
+
