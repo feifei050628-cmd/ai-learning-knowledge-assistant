@@ -146,3 +146,11 @@ python -m pytest .\rag_project\tests -v
 ```
 python -m pytest .\rag_project\tests -v --cov=rag_project.schemas --cov=rag_project.api --cov-report=term-missing
 ```
+
+
+## 运行真实检索评估
+
+执行：
+
+```text
+python -m rag_project.evaluate_retrieval
