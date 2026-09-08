@@ -186,3 +186,28 @@ rag_project/threshold_calibration_report.json
 ```
 
 当前评估集规模较小，校准结果只作为基线，不应直接代表生产环境效果。
+
+
+## 运行完整 RAG 生成质量评估
+
+生成质量评估会加载真实检索模型和生成模型：
+
+```powershell
+python -m rag_project.evaluate_generation
+```
+
+评估内容包括：
+
+- 相关性门槛判断
+- 正确来源命中
+- 关键词覆盖
+- 引用出现和引用编号合法性
+- 无关问题拒答
+
+报告保存在：
+
+```text
+rag_project/generation_evaluation_report.json
+```
+
+关键词匹配和引用检查属于规则型代理指标，不能完全代替人工评审或语义评估。
