@@ -1,0 +1,64 @@
+[
+  {
+    "id": "rag_workflow",
+    "query": "RAG如何利用外部知识生成回答？",
+    "expected_passed": true,
+    "expected_title": "RAG基础",
+    "keyword_groups": [
+      ["知识库", "外部知识"],
+      ["检索", "找到"],
+      ["提示词", "资料"],
+      ["生成", "回答"]
+    ]
+  },
+  {
+    "id": "transformer_attention",
+    "query": "Transformer如何处理Token之间的关系？",
+    "expected_passed": true,
+    "expected_title": "Transformer基础",
+    "keyword_groups": [
+      ["自注意力", "注意力"],
+      ["Token", "token"],
+      ["关系", "联系"]
+    ]
+  },
+  {
+    "id": "pytorch_training",
+    "query": "PyTorch训练循环包括哪些主要步骤？",
+    "expected_passed": true,
+    "expected_title": "PyTorch训练",
+    "keyword_groups": [
+      ["前向传播"],
+      ["损失"],
+      ["清空梯度", "zero_grad"],
+      ["反向传播", "backward"],
+      ["更新参数", "step"]
+    ]
+  },
+  {
+    "id": "docker_image",
+    "query": "Docker镜像通常会打包哪些内容？",
+    "expected_passed": true,
+    "expected_title": "Docker部署",
+    "keyword_groups": [
+      ["代码"],
+      ["依赖"],
+      ["运行环境", "环境"],
+      ["镜像"]
+    ]
+  },
+  {
+    "id": "negative_mountain",
+    "query": "世界上最高的山峰是什么？",
+    "expected_passed": false,
+    "expected_title": null,
+    "keyword_groups": []
+  },
+  {
+    "id": "negative_cooking",
+    "query": "番茄炒蛋应该怎么做？",
+    "expected_passed": false,
+    "expected_title": null,
+    "keyword_groups": []
+  }
+]
