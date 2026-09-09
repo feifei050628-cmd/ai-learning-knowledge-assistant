@@ -14,7 +14,10 @@ from rag_project.retrieval import (
 )
 
 
-CASES_PATH = PROJECT_DIR / "evaluation_cases.json"
+CASES_PATH = (
+    PROJECT_DIR
+    / "evaluation_cases_day27.json"
+)
 REPORT_PATH = PROJECT_DIR / "retrieval_evaluation_report.json"
 
 
@@ -34,16 +37,16 @@ def load_evaluation_cases() -> list:
 
 def find_expected_rank(
     retrieved_chunks: list,
-    expected_title: str | None,
+    expected_titles: list[str],
 ) -> int | None:
-    if expected_title is None:
+    if not expected_titles:
         return None
 
     for rank, chunk in enumerate(
         retrieved_chunks,
         start=1,
     ):
-        if chunk["title"] == expected_title:
+        if chunk["title"] in expected_titles:
             return rank
 
     return None
@@ -58,6 +61,36 @@ def safe_divide(
 
     return numerator / denominator
 
+def build_retrieved_details(
+    retrieved_chunks: list,
+) -> list[dict]:
+    """整理 Top-K 文本块，便于分析检索错误。"""
+
+    details = []
+
+    for rank, chunk in enumerate(
+        retrieved_chunks,
+        start=1,
+    ):
+        text_preview = (
+            chunk["text"]
+            .replace("\n", " ")
+            [:160]
+        )
+
+        details.append(
+            {
+                "rank": rank,
+                "title": chunk["title"],
+                "chunk_id": chunk["chunk_id"],
+                "score": chunk["score"],
+                "category": chunk.get("category"),
+                "day": chunk.get("day"),
+                "text_preview": text_preview,
+            }
+        )
+
+    return details
 
 def evaluate_retrieval(
     cases: list,
@@ -94,14 +127,14 @@ def evaluate_retrieval(
             "retrieved_chunks"
         ]
         max_score = retrieval_result["max_score"]
-        expected_title = case["expected_title"]
+        expected_titles = case["expected_titles"]
 
-        is_relevant = expected_title is not None
+        is_relevant = bool(expected_titles)
         accepted = max_score >= min_similarity
 
         expected_rank = find_expected_rank(
             retrieved_chunks,
-            expected_title,
+            expected_titles,
         )
 
         hit = expected_rank is not None
@@ -127,17 +160,22 @@ def evaluate_retrieval(
 
         if case_correct:
             correct_total += 1
+        
+        retrieved_details = build_retrieved_details(
+            retrieved_chunks
+        )
 
         retrieved_titles = [
-            chunk["title"]
-            for chunk in retrieved_chunks
+            item["title"]
+            for item in retrieved_details
         ]
 
         case_result = {
             "id": case["id"],
             "query": case["query"],
-            "expected_title": expected_title,
+            "expected_titles": expected_titles,
             "retrieved_titles": retrieved_titles,
+            "retrieved_details": retrieved_details,
             "expected_rank": expected_rank,
             "max_score": max_score,
             "accepted": accepted,
@@ -147,8 +185,8 @@ def evaluate_retrieval(
         case_results.append(case_result)
 
         expected_text = (
-            expected_title
-            if expected_title is not None
+            "、".join(expected_titles)
+            if expected_titles
             else "应被门槛拒绝"
         )
         rank_text = (
@@ -167,6 +205,17 @@ def evaluate_retrieval(
         print("问题：", case["query"])
         print("期望：", expected_text)
         print("Top-K标题：", retrieved_titles)
+        for item in retrieved_details:
+            print(
+                f"  排名 {item['rank']} | "
+                f"分数 {item['score']:.4f} | "
+                f"{item['title']} | "
+                f"{item['chunk_id']}"
+            )
+            print(
+                "  内容预览：",
+                item["text_preview"],
+            )
         print("正确资料排名：", rank_text)
         print("最高相似度：", f"{max_score:.4f}")
         print("是否通过门槛：", accepted)

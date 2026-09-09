@@ -43,6 +43,35 @@ def safe_divide(
 
     return numerator / denominator
 
+def get_expected_titles(
+    case: dict,
+) -> list[str]:
+    """同时兼容新旧评估报告格式。"""
+
+    if "expected_titles" in case:
+        expected_titles = case["expected_titles"]
+    else:
+        expected_title = case.get(
+            "expected_title"
+        )
+        expected_titles = (
+            [expected_title]
+            if expected_title is not None
+            else []
+        )
+
+    if not isinstance(expected_titles, list):
+        raise ValueError(
+            "expected_titles 必须是列表"
+        )
+
+    return expected_titles
+
+
+def is_relevant_case(case: dict) -> bool:
+    """判断评估样例是否属于知识库相关问题。"""
+
+    return bool(get_expected_titles(case))
 
 def build_thresholds(
     start: float,
@@ -70,9 +99,7 @@ def calculate_metrics(
     false_negative = 0
 
     for case in cases:
-        is_relevant = (
-            case["expected_title"] is not None
-        )
+        is_relevant = is_relevant_case(case)
         accepted = (
             case["max_score"] >= threshold
         )
@@ -152,13 +179,13 @@ def summarize_scores(cases: list) -> dict:
     positive_scores = [
         case["max_score"]
         for case in cases
-        if case["expected_title"] is not None
+        if is_relevant_case(case)
     ]
 
     negative_scores = [
         case["max_score"]
         for case in cases
-        if case["expected_title"] is None
+        if not is_relevant_case(case)
     ]
 
     if not positive_scores or not negative_scores:
@@ -198,9 +225,7 @@ def find_mistakes(
     mistakes = []
 
     for case in cases:
-        is_relevant = (
-            case["expected_title"] is not None
-        )
+        is_relevant = is_relevant_case(case)
         accepted = (
             case["max_score"] >= threshold
         )
@@ -210,8 +235,8 @@ def find_mistakes(
                 {
                     "id": case["id"],
                     "query": case["query"],
-                    "expected_title": (
-                        case["expected_title"]
+                    "expected_titles": (
+                        get_expected_titles(case)
                     ),
                     "max_score": case["max_score"],
                     "accepted": accepted,

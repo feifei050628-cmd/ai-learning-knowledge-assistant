@@ -146,6 +146,9 @@ def retrieve_chunks(
             score = score_tensor.item()
             index = index_tensor.item()
 
+            if score < min_similarity:
+                continue
+
             # 使用副本，避免把score永久写入原始知识库数据。
             chunk_result = chunks[index].copy()
             chunk_result["score"] = score

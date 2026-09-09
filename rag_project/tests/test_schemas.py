@@ -8,8 +8,8 @@ def test_ask_request_uses_defaults():   #test_ask_request_uses_defaults 函数�
     request = AskRequest(query="什么是 RAG？")
 
     assert request.query == "什么是 RAG？"
-    assert request.top_k == 3
-    assert request.min_similarity == 0.40
+    assert request.top_k == 5
+    assert request.min_similarity == 0.45
     assert request.max_new_tokens == 200
 
 

@@ -85,7 +85,7 @@ def test_high_threshold_creates_false_negative():
     assert result["recall"] == 0.5
 
 
-def test_best_result_prefers_current_threshold():
+def test_best_result_prefers_current_threshold():   #test_best_result_prefers_current_threshold 函数用于测试选择最佳结果时，是否优先选择当前阈值的结果。
     results = [
         {
             "threshold": 0.38,
@@ -113,3 +113,4 @@ def test_best_result_prefers_current_threshold():
     )
 
     assert selected["threshold"] == 0.40
+

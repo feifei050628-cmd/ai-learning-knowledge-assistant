@@ -1,4 +1,9 @@
 from pydantic import BaseModel, Field, field_validator
+from rag_project.config import (
+    DEFAULT_MAX_NEW_TOKENS,     
+    DEFAULT_MIN_SIMILARITY,
+    DEFAULT_TOP_K,  
+)
 
 class AskRequest(BaseModel):
     query: str = Field(
@@ -7,19 +12,19 @@ class AskRequest(BaseModel):
         description="用户提出的问题",
     )
     top_k: int = Field( #top
-        default=3,
+        default=DEFAULT_TOP_K,
         ge=1,
         le=10,
         description="最多检索的文本块数量",
     )
     min_similarity: float = Field(
-        default=0.40,
+        default=DEFAULT_MIN_SIMILARITY,
         ge=-1.0,
         le=1.0,
         description="最低相关性门槛",
     )
     max_new_tokens: int = Field(
-        default=200,
+        default=DEFAULT_MAX_NEW_TOKENS, 
         ge=1,
         le=512,
         description="最多生成的新Token数量",

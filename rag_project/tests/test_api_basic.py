@@ -21,8 +21,8 @@ def test_validate_accepts_valid_request(client):
     data = response.json()
 
     assert data["query"] == "什么是 RAG？"
-    assert data["top_k"] == 3
-    assert data["min_similarity"] == 0.40
+    assert data["top_k"] == 5
+    assert data["min_similarity"] == 0.45
     assert data["max_new_tokens"] == 200
 
 

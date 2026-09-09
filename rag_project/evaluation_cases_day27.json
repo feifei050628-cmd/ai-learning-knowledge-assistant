@@ -1,0 +1,102 @@
+[
+  {
+    "id": "rag_private_data",
+    "query": "模型参数中没有公司的内部资料时，怎样在回答之前补充这些信息？",
+    "expected_titles": [
+      "RAG基础",
+      "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+      "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统"
+    ]
+  },
+  {
+    "id": "attention_qk",
+    "query": "自注意力计算中，Query 与 Key 的匹配结果起什么作用？",
+    "expected_titles": [
+      "Transformer基础",
+      "Python Day 11 学习笔记",
+      "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"
+    ]
+  },
+  {
+    "id": "residual_layernorm",
+    "query": "Transformer编码器为什么在子层外加入残差连接和LayerNorm？",
+    "expected_titles": [
+      "Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block"
+    ]
+  },
+  {
+    "id": "inference_mode",
+    "query": "预测阶段同时使用model.eval()和inference_mode()分别解决什么问题？",
+    "expected_titles": [
+      "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+      "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+      "PyTorch训练"
+    ]
+  },
+  {
+    "id": "fastapi_lifespan",
+    "query": "为什么RAGPipeline应该在FastAPI启动时加载一次，而不是每次请求重新创建？",
+    "expected_titles": [
+      "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API"
+    ]
+  },
+  {
+    "id": "pytest_fake_pipeline",
+    "query": "测试问答接口时，怎样避免真正加载和运行本地大模型？",
+    "expected_titles": [
+      "Day 20 学习笔记：使用 pytest 自动测试 RAG API"
+    ]
+  },
+  {
+    "id": "threshold_too_high",
+    "query": "相关性门槛设置得过高时，通常会增加误接受还是误拒绝？",
+    "expected_titles": [
+      "Day 21 学习笔记：RAG 检索质量评估",
+      "Day 22 学习笔记：RAG 相关性门槛校准"
+    ]
+  },
+  {
+    "id": "chunk_overlap",
+    "query": "切分长文档时保留相邻文本块的重叠区域有什么作用？",
+    "expected_titles": [
+      "Day 24 学习笔记：文档导入与智能切块"
+    ]
+  },
+  {
+    "id": "note_day_metadata",
+    "query": "导入dayXX学习笔记时，怎样从文件名取得学习天数并保存为元数据？",
+    "expected_titles": [
+      "Day 25 学习笔记：导入历史学习笔记与扩展知识库"
+    ]
+  },
+  {
+    "id": "negative_passport",
+    "query": "护照到期后应该到哪里办理换发手续？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_badminton",
+    "query": "羽毛球双打比赛的发球规则是什么？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_air_conditioner",
+    "query": "家用空调连续运行一天大约消耗多少度电？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_cat",
+    "query": "猫咪突然停止进食应该如何处理？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_subway",
+    "query": "上海地铁最后一班车通常几点发出？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_gardening",
+    "query": "春季应该怎样修剪院子里的玫瑰花？",
+    "expected_titles": []
+  }
+]
