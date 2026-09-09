@@ -24,3 +24,5 @@ AI大模型实习简历模板.docx
 .coverage
 htmlcov/
 __pycache__/
+
+.pytest_tmp/

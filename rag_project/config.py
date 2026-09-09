@@ -8,6 +8,8 @@ PROJECT_NAME = "本地中文 RAG 问答系统"
 # __file__ 是当前 config.py 的路径，parent 得到 rag_project 文件夹。
 PROJECT_DIR = Path(__file__).resolve().parent
 KNOWLEDGE_BASE_DIR = PROJECT_DIR / "knowledge_base"
+SOURCE_DOCUMENTS_DIR = PROJECT_DIR / "source_documents"
+CHUNK_PREVIEW_PATH = KNOWLEDGE_BASE_DIR / "chunk_preview.json"
 
 METADATA_PATH = (
     KNOWLEDGE_BASE_DIR
@@ -34,7 +36,8 @@ GENERATION_DTYPE = (
 DEFAULT_TOP_K = 3
 DEFAULT_MIN_SIMILARITY = 0.40
 DEFAULT_MAX_NEW_TOKENS = 200
-
+DEFAULT_CHUNK_SIZE = 500
+DEFAULT_CHUNK_OVERLAP = 80
 
 if __name__ == "__main__":          #表示只有直接运行 config.py 这个模块时，下面的检查代码才执行；其他模块导入 config.py 时，不会自动打印这些内容。
     print("项目名称：", PROJECT_NAME)

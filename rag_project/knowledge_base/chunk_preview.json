@@ -1,0 +1,71 @@
+{
+  "version": "day24-preview-v1",
+  "chunk_size": 500,
+  "overlap": 80,
+  "document_count": 4,
+  "chunk_count": 4,
+  "documents": [
+    {
+      "document_id": "doc_c6d8626551",
+      "source": "docker.md",
+      "title": "Docker部署",
+      "char_count": 236
+    },
+    {
+      "document_id": "doc_b0fe31aa8a",
+      "source": "pytorch.md",
+      "title": "PyTorch训练",
+      "char_count": 275
+    },
+    {
+      "document_id": "doc_ba53fec8d7",
+      "source": "rag.md",
+      "title": "RAG基础",
+      "char_count": 295
+    },
+    {
+      "document_id": "doc_6f4a68f67a",
+      "source": "transformer.md",
+      "title": "Transformer基础",
+      "char_count": 220
+    }
+  ],
+  "chunks": [
+    {
+      "document_id": "doc_c6d8626551",
+      "source": "docker.md",
+      "title": "Docker部署",
+      "chunk_id": "doc_c6d8626551_chunk_0001",
+      "chunk_index": 1,
+      "text": "Docker 可以把应用程序、运行环境和依赖打包为镜像，从而减少不同计算机之间的环境差异。\n\nDockerfile 描述镜像如何构建，docker build 用于构建镜像，docker run 用于根据镜像创建并运行容器。\n\n端口映射可以把容器内部的服务端口暴露给宿主机。\n\n部署 FastAPI 服务时，需要在镜像中安装项目依赖并启动 Uvicorn。\n\n如果希望容器外部访问服务，Uvicorn 通常需要监听 0.0.0.0，同时通过 Docker 的端口映射开放对应端口。",
+      "char_count": 240
+    },
+    {
+      "document_id": "doc_b0fe31aa8a",
+      "source": "pytorch.md",
+      "title": "PyTorch训练",
+      "chunk_id": "doc_b0fe31aa8a_chunk_0001",
+      "chunk_index": 1,
+      "text": "PyTorch 是常用的深度学习框架。\n\n一个基本训练流程通常包括准备数据、定义模型、设置损失函数、创建优化器和执行训练循环。\n\n在每一轮训练中，程序先通过模型得到预测结果，再计算损失。\n\n调用 loss.backward() 会根据计算图计算梯度，optimizer.step() 根据梯度更新参数，optimizer.zero_grad() 清除上一轮保存的梯度。\n\n训练时模型通常调用 train() 进入训练模式，推理时调用 eval() 进入评估模式。\n\n使用 torch.no_grad() 可以在不计算梯度的情况下完成推理，从而减少显存和计算开销。",
+      "char_count": 281
+    },
+    {
+      "document_id": "doc_ba53fec8d7",
+      "source": "rag.md",
+      "title": "RAG基础",
+      "chunk_id": "doc_ba53fec8d7_chunk_0001",
+      "chunk_index": 1,
+      "text": "RAG 的全称是 Retrieval-Augmented Generation，即检索增强生成。\n\n它把外部知识库检索与大语言模型生成结合起来，让模型能够根据指定资料回答问题。\n\n一个基本的 RAG 系统通常包含三个阶段。\n\n第一阶段是 Retrieval，系统把用户问题转换成向量，并从知识库中检索相似文本。\n\n第二阶段是 Augmentation，系统把检索结果和问题组合成提示词。\n\n第三阶段是 Generation，生成模型根据提示词产生答案。\n\nRAG 可以减少模型仅依赖参数记忆造成的知识过时和事实错误，但检索到资料不代表答案一定正确。\n\n因此系统还需要相关性门槛、引用来源、自动化测试和质量评估。",
+      "char_count": 305
+    },
+    {
+      "document_id": "doc_6f4a68f67a",
+      "source": "transformer.md",
+      "title": "Transformer基础",
+      "chunk_id": "doc_6f4a68f67a_chunk_0001",
+      "chunk_index": 1,
+      "text": "Transformer 是一种以注意力机制为核心的神经网络架构。\n\n它不依赖循环神经网络逐步处理序列，因此能够更高效地并行训练。\n\n自注意力机制会根据 Query、Key 和 Value 计算序列中不同位置之间的关系。\n\n多头注意力会从多个表示空间学习不同类型的关系，然后将结果组合起来。\n\nTransformer 通常还包含位置编码、残差连接、层归一化和前馈神经网络。\n\n编码器适合理解输入，解码器适合逐步生成内容，而不同模型会根据任务选择不同结构。",
+      "char_count": 226
+    }
+  ]
+}

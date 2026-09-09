@@ -211,3 +211,39 @@ rag_project/generation_evaluation_report.json
 ```
 
 关键词匹配和引用检查属于规则型代理指标，不能完全代替人工评审或语义评估。
+
+
+## 文档导入与智能切块
+
+原始知识文档保存在：
+
+```text
+rag_project/source_documents/
+```
+
+支持的文档格式：
+
+- `.txt`
+- `.md`
+
+运行文档处理程序：
+
+```powershell
+python -m rag_project.document_processor
+```
+
+程序会完成：
+
+1. 递归读取原始文档。
+2. 统一换行并清理多余空行。
+3. 优先按照段落和完整句子切块。
+4. 尽量保留完整的 Markdown 代码块。
+5. 为文档和文本块生成稳定编号。
+6. 把结果保存到 `knowledge_base/chunk_preview.json`。
+
+当前切块参数：
+
+- 最大文本块长度：500字符
+- 相邻文本块重叠：80字符
+
+`chunk_preview.json` 只用于检查切块质量，目前不包含向量，也不会替换正式检索知识库。
