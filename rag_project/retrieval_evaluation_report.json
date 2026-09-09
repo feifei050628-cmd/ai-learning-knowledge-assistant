@@ -1,7 +1,7 @@
 {
   "settings": {
     "top_k": 5,
-    "min_similarity": 0.45,
+    "min_similarity": 0.48,
     "case_count": 15,
     "positive_count": 9,
     "negative_count": 6

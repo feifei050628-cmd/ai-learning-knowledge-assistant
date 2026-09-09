@@ -1,10 +1,12 @@
 import pytest
 
+from rag_project.rag_pipeline import RAGPipeline
 from rag_project.evaluate_generation import (
     check_keyword_groups,
     citations_are_valid,
     extract_citations,
     summarize_results,
+    get_expected_titles,
 )
 
 
@@ -98,3 +100,44 @@ def test_summarizes_positive_and_negative_cases():
         metrics["overall_case_pass_rate"]
         == 1.0
     )
+
+def test_get_expected_titles_supports_new_and_old_formats():
+    assert get_expected_titles(
+        {
+            "expected_titles": [
+                "资料A",
+                "资料B",
+            ]
+        }
+    ) == ["资料A", "资料B"]
+
+    assert get_expected_titles(
+        {
+            "expected_title": "资料A",
+        }
+    ) == ["资料A"]
+
+    assert get_expected_titles(
+        {
+            "expected_title": None,
+        }
+    ) == []
+
+
+def test_append_source_citations():
+    answer = RAGPipeline.append_source_citations(
+        answer="这是生成的回答。",
+        source_count=2,
+    )
+
+    assert answer == (
+        "这是生成的回答。\n\n"
+        "参考资料：【资料1】 【资料2】"
+    )
+
+    refusal = RAGPipeline.append_source_citations(
+        answer="现有资料不足",
+        source_count=2,
+    )
+
+    assert refusal == "现有资料不足"

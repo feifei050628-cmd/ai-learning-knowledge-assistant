@@ -10,12 +10,12 @@ from rag_project.config import (
 
 CASES_PATH = (
     PROJECT_DIR
-    / "generation_evaluation_cases.json"
+    / "generation_evaluation_cases_day28.json"
 )
 
 REPORT_PATH = (
     PROJECT_DIR
-    / "generation_evaluation_report.json"
+    / "generation_evaluation_report_day28.json"
 )
 
 EVALUATION_MAX_NEW_TOKENS = 120
@@ -48,6 +48,37 @@ def load_evaluation_cases() -> list:
 
     return cases
 
+def get_expected_titles(case: dict) -> list[str]:
+    """取得所有可以被判定为正确的来源标题。"""
+
+    if "expected_titles" in case:
+        expected_titles = case["expected_titles"]
+    else:
+        expected_title = case.get(
+            "expected_title"
+        )
+
+        expected_titles = (
+            [expected_title]
+            if expected_title is not None
+            else []
+        )
+
+    if not isinstance(expected_titles, list):
+        raise ValueError(
+            "expected_titles 必须是列表"
+        )
+
+    if not all(
+        isinstance(title, str)
+        and title.strip()
+        for title in expected_titles
+    ):
+        raise ValueError(
+            "expected_titles 中的标题必须是非空字符串"
+        )
+
+    return expected_titles
 
 def check_keyword_groups(
     answer: str,
@@ -119,6 +150,10 @@ def evaluate_case(
     )
 
     expected_passed = case["expected_passed"]
+    expected_titles = get_expected_titles(
+        case
+    )
+
     pass_match = (
         result["passed"] == expected_passed
     )
@@ -137,7 +172,7 @@ def evaluate_case(
     if expected_passed:
         source_title_hit = any(
             source["title"]
-            == case["expected_title"]
+            in expected_titles
             for source in result["sources"]
         )
 
@@ -179,7 +214,7 @@ def evaluate_case(
         "expected_passed": expected_passed,
         "actual_passed": result["passed"],
         "pass_match": pass_match,
-        "expected_title": case["expected_title"],
+        "expected_titles": expected_titles,
         "source_title_hit": source_title_hit,
         "max_score": result["max_score"],
         "answer": result["answer"],

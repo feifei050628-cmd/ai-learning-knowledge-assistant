@@ -40,12 +40,13 @@ class RAGPipeline:
 
         print("RAG系统初始化完成")
 
+
     @staticmethod
     def build_rag_prompt(
         query: str,
         retrieved_chunks: list,
     ) -> str:
-        """把检索资料与用户问题组合成增强提示词。"""
+        """把已经通过门槛的资料与问题组合成提示词。"""
 
         context_parts = []
 
@@ -53,24 +54,57 @@ class RAGPipeline:
             retrieved_chunks,
             start=1,
         ):
-            context_part = (
-                f"【资料{rank}】\n"
-                f"标题：{chunk['title']}\n"
-                f"文本块编号：{chunk['chunk_id']}\n"
-                f"正文：{chunk['text']}"
+            context_parts.append(
+                (
+                    f"【资料{rank}】\n"
+                    f"标题：{chunk['title']}\n"
+                    f"正文：{chunk['text']}"
+                )
             )
-
-            context_parts.append(context_part)
 
         context = "\n\n".join(context_parts)
 
         return (
-            "请严格根据以下资料回答用户问题。\n"
-            "不要使用资料之外的信息。\n"
-            "回答中请使用【资料1】这样的格式引用来源。\n"
-            "如果资料不足，请回答“现有资料不足”。\n\n"
-            f"{context}\n\n"
-            f"【用户问题】\n{query}"
+            f"【参考资料】\n{context}\n\n"
+            f"【用户问题】\n{query}\n\n"
+            "【任务】\n"
+            "根据参考资料直接回答问题。\n"
+            "请覆盖问题中的主要概念和步骤。\n"
+            "使用两到四个简洁要点。\n"
+            "不要复述题目，不要输出思考过程。"
+        )
+
+    @staticmethod   #表示这个方法不依赖于类的实例属性或方法，可以直接通过类名调用，而不需要创建类的实例。
+    def append_source_citations(
+        answer: str,
+        source_count: int,
+    ) -> str:
+        """由程序添加可靠的资料编号。"""
+
+        cleaned_answer = answer.strip()
+
+        if source_count <= 0:
+            return cleaned_answer
+
+        if (
+            cleaned_answer
+            .rstrip("。")
+            .strip()
+            == "现有资料不足"
+        ):
+            return cleaned_answer
+
+        citations = " ".join(
+            f"【资料{rank}】"
+            for rank in range(
+                1,
+                source_count + 1,
+            )
+        )
+
+        return (
+            f"{cleaned_answer}\n\n"
+            f"参考资料：{citations}"
         )
 
     def answer(
@@ -106,9 +140,11 @@ class RAGPipeline:
             "retrieved_chunks"
         ]
 
+        context_chunks = retrieved_chunks
+
         rag_prompt = self.build_rag_prompt(
             query,
-            retrieved_chunks,
+            context_chunks,
         )
 
         answer = generate_answer(
@@ -118,10 +154,15 @@ class RAGPipeline:
             max_new_tokens=max_new_tokens,
         )
 
+        answer = self.append_source_citations(
+            answer=answer,
+            source_count=len(context_chunks),
+        )
+
         sources = []
 
         for rank, chunk in enumerate(
-            retrieved_chunks,
+            context_chunks,
             start=1,
         ):
             sources.append(

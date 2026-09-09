@@ -1,0 +1,100 @@
+[
+  {
+    "id": "gradient_update_order",
+    "query": "训练神经网络时，为什么每个批次通常要先清空梯度，再进行反向传播和参数更新？",
+    "expected_passed": true,
+    "expected_titles": [
+      "PyTorch训练",
+      "Python Day 9 学习笔记",
+      "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
+    ],
+    "keyword_groups": [
+      ["清空梯度", "zero_grad"],
+      ["反向传播", "backward"],
+      ["更新参数", "参数更新", "optimizer.step", "step"]
+    ]
+  },
+  {
+    "id": "multihead_merge",
+    "query": "多头注意力计算完成后，各个注意力头的结果怎样重新合并为模型需要的隐藏维度？",
+    "expected_passed": true,
+    "expected_titles": [
+      "Transformer基础",
+      "Python Day 11 学习笔记",
+      "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"
+    ],
+    "keyword_groups": [
+      ["拼接", "concat", "concatenate"],
+      ["线性变换", "线性层", "W_O", "输出投影"],
+      ["隐藏维度", "原始维度", "d_model"]
+    ]
+  },
+  {
+    "id": "docker_image_container",
+    "query": "Docker镜像和容器分别扮演什么角色，两者之间有什么关系？",
+    "expected_passed": true,
+    "expected_titles": [
+      "Docker部署"
+    ],
+    "keyword_groups": [
+      ["镜像", "image"],
+      ["容器", "container"],
+      ["模板", "运行实例", "实例","镜像是容器的基础","基于镜像"]
+    ]
+  },
+  {
+    "id": "low_threshold_risk",
+    "query": "RAG检索的相关性门槛设置得过低，会给后续回答带来哪些风险？",
+    "expected_passed": true,
+    "expected_titles": [
+      "Day 21 学习笔记：RAG 检索质量评估",
+      "Day 22 学习笔记：RAG 相关性门槛校准"
+    ],
+    "keyword_groups": [
+      ["无关", "不相关"],
+      ["噪声", "错误资料"],
+      ["幻觉", "错误回答", "强行回答"]
+    ]
+  },
+  {
+    "id": "markdown_code_fence",
+    "query": "处理Markdown资料时，为什么应尽量保持代码块完整，而不能只按固定字符数量切分？",
+    "expected_passed": true,
+    "expected_titles": [
+      "Day 24 学习笔记：文档导入与智能切块"
+    ],
+    "keyword_groups": [
+      ["代码块", "代码围栏", "Markdown"],
+      ["完整", "结构"],
+      ["截断", "切断", "语义","丢失","影响理解"]
+    ]
+  },
+  {
+    "id": "negative_coffee_machine",
+    "query": "家用意式咖啡机萃取压力不足时应该怎样检查和除垢？",
+    "expected_passed": false,
+    "expected_titles": [],
+    "keyword_groups": []
+  },
+  {
+    "id": "negative_bicycle",
+    "query": "山地自行车后拨变速不准确时应该怎样调整限位螺丝？",
+    "expected_passed": false,
+    "expected_titles": [],
+    "keyword_groups": []
+  },
+  {
+    "id": "negative_travel",
+    "query": "冬季去北海道自驾旅行需要准备哪些防滑和保暖装备？",
+    "expected_passed": false,
+    "expected_titles": [],
+    "keyword_groups": []
+  },
+  {
+    "id": "negative_plant",
+    "query": "室内绿萝叶片持续发黄可能有哪些原因，应该怎样处理？",
+    "expected_passed": false,
+    "expected_titles": [],
+    "keyword_groups": []
+  }
+]

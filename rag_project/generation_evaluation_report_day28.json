@@ -1,0 +1,512 @@
+{
+  "settings": {
+    "top_k": 5,
+    "min_similarity": 0.48,
+    "max_new_tokens": 120
+  },
+  "metrics": {
+    "case_count": 9,
+    "positive_count": 5,
+    "negative_count": 4,
+    "gate_accuracy": 1.0,
+    "source_title_hit_rate": 1.0,
+    "average_keyword_coverage": 0.8666666666666666,
+    "citation_presence_rate": 1.0,
+    "citation_validity_rate": 1.0,
+    "refusal_accuracy": 1.0,
+    "overall_case_pass_rate": 0.8888888888888888
+  },
+  "cases": [
+    {
+      "id": "gradient_update_order",
+      "query": "训练神经网络时，为什么每个批次通常要先清空梯度，再进行反向传播和参数更新？",
+      "expected_passed": true,
+      "actual_passed": true,
+      "pass_match": true,
+      "expected_titles": [
+        "PyTorch训练",
+        "Python Day 9 学习笔记",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
+      ],
+      "source_title_hit": true,
+      "max_score": 0.7079833745956421,
+      "answer": "每个批次反向传播前都需要先清空梯度，因为这样可以避免梯度累加的影响，并且确保每次迭代都使用的是完整的梯度信息。清空梯度后，才能进行反向传播和参数更新。\n\n参考资料：【资料1】 【资料2】 【资料3】 【资料4】 【资料5】",
+      "answer_length": 111,
+      "keyword_details": [
+        {
+          "alternatives": [
+            "清空梯度",
+            "zero_grad"
+          ],
+          "matched": true,
+          "matched_keyword": "清空梯度"
+        },
+        {
+          "alternatives": [
+            "反向传播",
+            "backward"
+          ],
+          "matched": true,
+          "matched_keyword": "反向传播"
+        },
+        {
+          "alternatives": [
+            "更新参数",
+            "参数更新",
+            "optimizer.step",
+            "step"
+          ],
+          "matched": true,
+          "matched_keyword": "参数更新"
+        }
+      ],
+      "keyword_coverage": 1.0,
+      "citation_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "citation_present": true,
+      "citation_valid": true,
+      "refusal_correct": null,
+      "case_success": true,
+      "sources": [
+        {
+          "rank": 1,
+          "title": "Python Day 8 学习笔记",
+          "chunk_id": "doc_4ad2d69142_chunk_0016",
+          "score": 0.7079833745956421
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 8 学习笔记",
+          "chunk_id": "doc_4ad2d69142_chunk_0015",
+          "score": 0.6868070363998413
+        },
+        {
+          "rank": 3,
+          "title": "Python Day 8 学习笔记",
+          "chunk_id": "doc_4ad2d69142_chunk_0027",
+          "score": 0.6652013659477234
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0014",
+          "score": 0.6335676908493042
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0032",
+          "score": 0.6272083520889282
+        }
+      ]
+    },
+    {
+      "id": "multihead_merge",
+      "query": "多头注意力计算完成后，各个注意力头的结果怎样重新合并为模型需要的隐藏维度？",
+      "expected_passed": true,
+      "actual_passed": true,
+      "pass_match": true,
+      "expected_titles": [
+        "Transformer基础",
+        "Python Day 11 学习笔记",
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"
+      ],
+      "source_title_hit": true,
+      "max_score": 0.6100055575370789,
+      "answer": "多头注意力计算完成后，各个注意力头的结果重新合并为模型需要的隐藏维度的方式如下：\n1. 把完整的 token 向量投影成 Q、K、V。\n2. 把 embed_dim 平均拆分到多个注意力头中。\n3. 每个头独立计算缩放点积注意力。\n4. 使用 Key Mask 屏蔽 PAD 输出行。\n5. 把每个头的上下文向量重新拼接起来。\n6. 使用输出线性层混合不同注意力头的信息。\n7. 使用 Query Mask 把 PAD\n\n参考资料：【资料1】 【资料2】 【资料3】 【资料4】 【资料5】",
+      "answer_length": 245,
+      "keyword_details": [
+        {
+          "alternatives": [
+            "拼接",
+            "concat",
+            "concatenate"
+          ],
+          "matched": true,
+          "matched_keyword": "拼接"
+        },
+        {
+          "alternatives": [
+            "线性变换",
+            "线性层",
+            "W_O",
+            "输出投影"
+          ],
+          "matched": true,
+          "matched_keyword": "线性层"
+        },
+        {
+          "alternatives": [
+            "隐藏维度",
+            "原始维度",
+            "d_model"
+          ],
+          "matched": true,
+          "matched_keyword": "隐藏维度"
+        }
+      ],
+      "keyword_coverage": 1.0,
+      "citation_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "citation_present": true,
+      "citation_valid": true,
+      "refusal_correct": null,
+      "case_success": true,
+      "sources": [
+        {
+          "rank": 1,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0027",
+          "score": 0.6100055575370789
+        },
+        {
+          "rank": 2,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0023",
+          "score": 0.6072202920913696
+        },
+        {
+          "rank": 3,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0001",
+          "score": 0.6014339923858643
+        },
+        {
+          "rank": 4,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0002",
+          "score": 0.5985497832298279
+        },
+        {
+          "rank": 5,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0012",
+          "score": 0.5940513610839844
+        }
+      ]
+    },
+    {
+      "id": "docker_image_container",
+      "query": "Docker镜像和容器分别扮演什么角色，两者之间有什么关系？",
+      "expected_passed": true,
+      "actual_passed": true,
+      "pass_match": true,
+      "expected_titles": [
+        "Docker部署"
+      ],
+      "source_title_hit": true,
+      "max_score": 0.6025681495666504,
+      "answer": "Docker镜像是包含应用程序代码和其他依赖的可执行文件集合，它定义了应用程序的运行环境。而容器则是由一个或多个Docker镜像组成的虚拟化平台，可以独立运行，并且可以在不同的物理机器上运行。它们之间存在紧密的关系，因为镜像是容器的基础，容器则基于镜像进行构建和运行。\n\n参考资料：【资料1】",
+      "answer_length": 146,
+      "keyword_details": [
+        {
+          "alternatives": [
+            "镜像",
+            "image"
+          ],
+          "matched": true,
+          "matched_keyword": "镜像"
+        },
+        {
+          "alternatives": [
+            "容器",
+            "container"
+          ],
+          "matched": true,
+          "matched_keyword": "容器"
+        },
+        {
+          "alternatives": [
+            "模板",
+            "运行实例",
+            "实例",
+            "镜像是容器的基础",
+            "基于镜像"
+          ],
+          "matched": true,
+          "matched_keyword": "镜像是容器的基础"
+        }
+      ],
+      "keyword_coverage": 1.0,
+      "citation_numbers": [
+        1
+      ],
+      "citation_present": true,
+      "citation_valid": true,
+      "refusal_correct": null,
+      "case_success": true,
+      "sources": [
+        {
+          "rank": 1,
+          "title": "Docker部署",
+          "chunk_id": "doc_c6d8626551_chunk_0001",
+          "score": 0.6025681495666504
+        }
+      ]
+    },
+    {
+      "id": "low_threshold_risk",
+      "query": "RAG检索的相关性门槛设置得过低，会给后续回答带来哪些风险？",
+      "expected_passed": true,
+      "actual_passed": true,
+      "pass_match": true,
+      "expected_titles": [
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 22 学习笔记：RAG 相关性门槛校准"
+      ],
+      "source_title_hit": true,
+      "max_score": 0.6668177843093872,
+      "answer": "### 主要要点：\n1. **检索测试准确率**：仅表示5个测试问题中有多少个符合预期，不代表真实世界准确率。\n2. **检索评估**：应检查正确定义的正确来源、无关问题是否被门槛拒绝、相似度分数合理性、文本切块准确性、文本块与向量索引对应性等。\n3. **门槛校准**：无需修改config.py中的DEFAULT_MIN_SIMILARITY设置。\n4. **检索评估指标**：包含Precision、Recall、MRR、混淆矩阵等。\n5.\n\n参考资料：【资料1】 【资料2】 【资料3】 【资料4】 【资料5】",
+      "answer_length": 259,
+      "keyword_details": [
+        {
+          "alternatives": [
+            "无关",
+            "不相关"
+          ],
+          "matched": true,
+          "matched_keyword": "无关"
+        },
+        {
+          "alternatives": [
+            "噪声",
+            "错误资料"
+          ],
+          "matched": false,
+          "matched_keyword": null
+        },
+        {
+          "alternatives": [
+            "幻觉",
+            "错误回答",
+            "强行回答"
+          ],
+          "matched": false,
+          "matched_keyword": null
+        }
+      ],
+      "keyword_coverage": 0.3333333333333333,
+      "citation_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "citation_present": true,
+      "citation_valid": true,
+      "refusal_correct": null,
+      "case_success": false,
+      "sources": [
+        {
+          "rank": 1,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0034",
+          "score": 0.6668177843093872
+        },
+        {
+          "rank": 2,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0024",
+          "score": 0.6129512786865234
+        },
+        {
+          "rank": 3,
+          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
+          "chunk_id": "doc_55b9210b11_chunk_0030",
+          "score": 0.6109752655029297
+        },
+        {
+          "rank": 4,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0023",
+          "score": 0.6067356467247009
+        },
+        {
+          "rank": 5,
+          "title": "Day 23 学习笔记：完整 RAG 生成质量评估",
+          "chunk_id": "doc_900dfd6942_chunk_0036",
+          "score": 0.6020638942718506
+        }
+      ]
+    },
+    {
+      "id": "markdown_code_fence",
+      "query": "处理Markdown资料时，为什么应尽量保持代码块完整，而不能只按固定字符数量切分？",
+      "expected_passed": true,
+      "actual_passed": true,
+      "pass_match": true,
+      "expected_titles": [
+        "Day 24 学习笔记：文档导入与智能切块"
+      ],
+      "source_title_hit": true,
+      "max_score": 0.6834135055541992,
+      "answer": "处理Markdown资料时，应尽量保持代码块完整，因为仅按固定字符数量切分会导致代码块丢失，影响理解。\n\n参考资料：【资料1】 【资料2】 【资料3】 【资料4】 【资料5】",
+      "answer_length": 87,
+      "keyword_details": [
+        {
+          "alternatives": [
+            "代码块",
+            "代码围栏",
+            "Markdown"
+          ],
+          "matched": true,
+          "matched_keyword": "代码块"
+        },
+        {
+          "alternatives": [
+            "完整",
+            "结构"
+          ],
+          "matched": true,
+          "matched_keyword": "完整"
+        },
+        {
+          "alternatives": [
+            "截断",
+            "切断",
+            "语义",
+            "丢失",
+            "影响理解"
+          ],
+          "matched": true,
+          "matched_keyword": "丢失"
+        }
+      ],
+      "keyword_coverage": 1.0,
+      "citation_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "citation_present": true,
+      "citation_valid": true,
+      "refusal_correct": null,
+      "case_success": true,
+      "sources": [
+        {
+          "rank": 1,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0035",
+          "score": 0.6834135055541992
+        },
+        {
+          "rank": 2,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0012",
+          "score": 0.6802297830581665
+        },
+        {
+          "rank": 3,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0011",
+          "score": 0.6798967123031616
+        },
+        {
+          "rank": 4,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0041",
+          "score": 0.6538940668106079
+        },
+        {
+          "rank": 5,
+          "title": "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
+          "chunk_id": "doc_53dfa9e699_chunk_0018",
+          "score": 0.6538079977035522
+        }
+      ]
+    },
+    {
+      "id": "negative_coffee_machine",
+      "query": "家用意式咖啡机萃取压力不足时应该怎样检查和除垢？",
+      "expected_passed": false,
+      "actual_passed": false,
+      "pass_match": true,
+      "expected_titles": [],
+      "source_title_hit": null,
+      "max_score": 0.42639338970184326,
+      "answer": "现有资料不足",
+      "answer_length": 6,
+      "keyword_details": [],
+      "keyword_coverage": null,
+      "citation_numbers": [],
+      "citation_present": false,
+      "citation_valid": false,
+      "refusal_correct": true,
+      "case_success": true,
+      "sources": []
+    },
+    {
+      "id": "negative_bicycle",
+      "query": "山地自行车后拨变速不准确时应该怎样调整限位螺丝？",
+      "expected_passed": false,
+      "actual_passed": false,
+      "pass_match": true,
+      "expected_titles": [],
+      "source_title_hit": null,
+      "max_score": 0.47291550040245056,
+      "answer": "现有资料不足",
+      "answer_length": 6,
+      "keyword_details": [],
+      "keyword_coverage": null,
+      "citation_numbers": [],
+      "citation_present": false,
+      "citation_valid": false,
+      "refusal_correct": true,
+      "case_success": true,
+      "sources": []
+    },
+    {
+      "id": "negative_travel",
+      "query": "冬季去北海道自驾旅行需要准备哪些防滑和保暖装备？",
+      "expected_passed": false,
+      "actual_passed": false,
+      "pass_match": true,
+      "expected_titles": [],
+      "source_title_hit": null,
+      "max_score": 0.35355305671691895,
+      "answer": "现有资料不足",
+      "answer_length": 6,
+      "keyword_details": [],
+      "keyword_coverage": null,
+      "citation_numbers": [],
+      "citation_present": false,
+      "citation_valid": false,
+      "refusal_correct": true,
+      "case_success": true,
+      "sources": []
+    },
+    {
+      "id": "negative_plant",
+      "query": "室内绿萝叶片持续发黄可能有哪些原因，应该怎样处理？",
+      "expected_passed": false,
+      "actual_passed": false,
+      "pass_match": true,
+      "expected_titles": [],
+      "source_title_hit": null,
+      "max_score": 0.37008756399154663,
+      "answer": "现有资料不足",
+      "answer_length": 6,
+      "keyword_details": [],
+      "keyword_coverage": null,
+      "citation_numbers": [],
+      "citation_present": false,
+      "citation_valid": false,
+      "refusal_correct": true,
+      "case_success": true,
+      "sources": []
+    }
+  ]
+}
