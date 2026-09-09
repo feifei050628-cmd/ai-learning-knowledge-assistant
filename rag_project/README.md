@@ -247,3 +247,11 @@ python -m rag_project.document_processor
 - 相邻文本块重叠：80字符
 
 `chunk_preview.json` 只用于检查切块质量，目前不包含向量，也不会替换正式检索知识库。
+
+
+## 扩展知识库：导入学习笔记
+
+除了 `source_documents/` 中的基础资料，系统还可以导入项目根目录下符合以下规则的学习笔记：
+
+```text
+day[0-9][0-9]笔记.txt

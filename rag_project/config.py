@@ -11,6 +11,14 @@ KNOWLEDGE_BASE_DIR = PROJECT_DIR / "knowledge_base"
 SOURCE_DOCUMENTS_DIR = PROJECT_DIR / "source_documents"
 CHUNK_PREVIEW_PATH = KNOWLEDGE_BASE_DIR / "chunk_preview.json"
 
+LEARNING_NOTES_DIR = PROJECT_DIR.parent
+LEARNING_NOTE_PATTERN = "day[0-9][0-9]笔记.txt"
+
+EXPANDED_CHUNK_PREVIEW_PATH = (
+    KNOWLEDGE_BASE_DIR
+    / "expanded_chunk_preview.json"
+)
+
 METADATA_PATH = (
     KNOWLEDGE_BASE_DIR
     / "day16_knowledge_base.json"
