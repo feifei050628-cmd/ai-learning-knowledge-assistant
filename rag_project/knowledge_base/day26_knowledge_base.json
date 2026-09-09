@@ -1,15 +1,13 @@
 {
-  "version": "day25-expanded-preview-v1",
-  "chunk_size": 500,
-  "overlap": 80,
+  "version": "day26-knowledge-base-v1",
+  "source_preview_version": "day25-expanded-preview-v1",
+  "model_id": "BAAI/bge-small-zh-v1.5",
+  "embedding_dimension": 512,
   "document_count": 29,
   "reference_count": 4,
   "learning_note_count": 25,
   "total_character_count": 338100,
   "chunk_count": 810,
-  "minimum_chunk_length": 75,
-  "maximum_chunk_length": 500,
-  "average_chunk_length": 458.8,
   "documents": [
     {
       "document_id": "doc_c6d8626551",

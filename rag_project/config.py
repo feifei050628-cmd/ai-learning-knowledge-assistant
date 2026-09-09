@@ -19,15 +19,22 @@ EXPANDED_CHUNK_PREVIEW_PATH = (
     / "expanded_chunk_preview.json"
 )
 
-METADATA_PATH = (
+RETRIEVAL_MODEL_ID = "BAAI/bge-small-zh-v1.5"
+
+EXPANDED_METADATA_PATH = (
     KNOWLEDGE_BASE_DIR
-    / "day16_knowledge_base.json"
+    / "day26_knowledge_base.json"
 )
 
-EMBEDDINGS_PATH = (
+EXPANDED_EMBEDDINGS_PATH = (
     KNOWLEDGE_BASE_DIR
-    / "day16_chunk_embeddings.pth"
+    / "day26_chunk_embeddings.pth"
 )
+
+EMBEDDING_BATCH_SIZE = 16
+
+METADATA_PATH = EXPANDED_METADATA_PATH
+EMBEDDINGS_PATH = EXPANDED_EMBEDDINGS_PATH
 
 GENERATION_MODEL_ID = "Qwen/Qwen2.5-0.5B-Instruct"
 

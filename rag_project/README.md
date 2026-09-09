@@ -256,3 +256,54 @@ python -m rag_project.document_processor
 ```text
 day[0-9][0-9]笔记.txt
 ```
+
+
+运行学习笔记导入程序：
+
+    python -m rag_project.note_importer
+
+程序会把基础资料与学习笔记合并，并生成：
+
+    rag_project/knowledge_base/expanded_chunk_preview.json
+
+该文件是切块预览，不包含向量。新增学习笔记后，需要重新运行导入程序。
+
+当前扩展知识库包含：
+
+- 基础资料：4篇
+- 学习笔记：25篇
+- 知识源总数：29
+- 总字符数：338100
+- 文本块总数：810
+
+
+## 构建正式向量知识库
+
+运行：
+
+    python -m rag_project.knowledge_base_builder
+
+程序会：
+
+1. 加载并验证扩展切块预览。
+2. 检查字段、字符数和 chunk_id。
+3. 使用 BAAI/bge-small-zh-v1.5 分批编码文本。
+4. 对文本向量进行 L2 归一化。
+5. 保存正式元数据和向量矩阵。
+
+生成文件：
+
+    rag_project/knowledge_base/day26_knowledge_base.json
+    rag_project/knowledge_base/day26_chunk_embeddings.pth
+
+当前正式知识库规模：
+
+- 知识源：29
+- 文本块：810
+- 向量矩阵形状：(810, 512)
+- 元数据文件约：927 KB
+- 向量文件约：1.66 MB
+
+`.pth` 向量文件被 Git 忽略，不会上传 GitHub。克隆项目后，可以按照上述命令重新生成向量。
+
+当前 `config.py` 已将正式检索路径切换到 Day 26 知识库。扩充知识库后，应重新执行检索评估并校准相关性门槛。
