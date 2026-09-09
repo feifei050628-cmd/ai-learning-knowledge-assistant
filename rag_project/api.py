@@ -7,19 +7,25 @@ from rag_project.config import PROJECT_NAME
 from rag_project.rag_pipeline import RAGPipeline
 from rag_project.schemas import AskRequest, AskResponse
 
+from rag_project.update_knowledge_base import (
+    main as update_knowledge_base,
+)
+
 logger = logging.getLogger(__name__)    #logger 用于记录日志信息，__name__ 表示当前模块的名称
 
-@asynccontextmanager    #async context manager 用于管理生命周期事件
-async def lifespan(app: FastAPI):   #lifespan 函数用于在应用启动和关闭时执行特定操作
-    print("正在加载 RAG Pipeline，请稍候……")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("正在检查知识库是否需要更新……")
+    update_knowledge_base()
+
+    print("\n正在加载 RAG Pipeline，请稍候……")
     app.state.pipeline = RAGPipeline()
     print("RAG Pipeline 加载完成")
 
-    yield  # 服务器在这一行期间持续接收请求
+    yield
 
     app.state.pipeline = None
     print("RAG Pipeline 已释放")
-
 
 app = FastAPI(
     title=PROJECT_NAME,
