@@ -7,6 +7,7 @@
 ![Vue](https://img.shields.io/badge/Vue-3-42B883)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
 ![Tests](https://img.shields.io/badge/tests-74%20passed-0A9EDC)
+![CI](https://github.com/feifei050628-cmd/ai-learning-knowledge-assistant/actions/workflows/tests.yml/badge.svg)
 
 ## 为什么使用它
 
@@ -157,6 +158,16 @@ python -m rag_project.evaluate_generation
 ```
 
 当前离线测试基线：**74 项通过**。
+
+### GitHub Actions
+
+仓库的 `CI` 工作流会在推送到 `main`、创建 Pull Request 或手动触发时并行执行：
+
+- Python 3.11 后端测试；
+- Vue TypeScript 类型检查与生产构建；
+- Docker 生产镜像构建校验。
+
+工作流只验证代码，不会调用 Dify、读取本地 `.env`、发布镜像或部署服务，因此不需要在 GitHub 中配置模型密钥。可在仓库的 **Actions → CI → Run workflow** 手动运行。
 
 ## 技术栈
 
