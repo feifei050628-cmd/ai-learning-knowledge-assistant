@@ -169,6 +169,8 @@ python -m rag_project.evaluate_generation
 
 工作流只验证代码，不会调用 Dify、读取本地 `.env`、发布镜像或部署服务，因此不需要在 GitHub 中配置模型密钥。可在仓库的 **Actions → CI → Run workflow** 手动运行。
 
+![GitHub Actions CI 执行轨迹](docs/images/ci-execution.png)
+
 ## 技术栈
 
 | 层级 | 技术 |
