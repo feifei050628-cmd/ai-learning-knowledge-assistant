@@ -1,4 +1,4 @@
-import type { AskRequest, AskResponse } from "./types";
+import type { AskRequest, AskResponse, DocumentListResponse } from "./types";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -31,4 +31,17 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
+  documents: () => request<DocumentListResponse>("/documents"),
+  uploadDocument: (file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<{ message: string; document_id: string }>("/documents/upload", {
+      method: "POST",
+      body,
+    });
+  },
+  reparseDocument: (documentId: string) =>
+    request<{ message: string }>(`/documents/${encodeURIComponent(documentId)}/reparse`, { method: "POST" }),
+  deleteDocument: (documentId: string) =>
+    request<{ message: string }>(`/documents/${encodeURIComponent(documentId)}`, { method: "DELETE" }),
 };

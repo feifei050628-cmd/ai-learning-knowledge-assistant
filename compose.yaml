@@ -16,6 +16,8 @@ services:
       HF_HOME: /app/.cache/huggingface
     volumes:
       - huggingface-cache:/app/.cache/huggingface
+      - ./rag_project/source_documents:/app/rag_project/source_documents
+      - ./rag_project/knowledge_base:/app/rag_project/knowledge_base
     restart: unless-stopped
 
 volumes:

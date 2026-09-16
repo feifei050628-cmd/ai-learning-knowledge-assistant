@@ -9,8 +9,8 @@ import {
   Trash2, Upload, X, AlertCircle, CircleCheck, LoaderCircle,
 } from "lucide-vue-next";
 import { api, ApiError } from "./api";
-import { demoDocuments, demoHistory } from "./mock";
-import type { AskResponse, ChatMessage, DemoDocument, SourceItem } from "./types";
+import { demoHistory } from "./mock";
+import type { AskResponse, ChatMessage, KnowledgeDocument, SourceItem } from "./types";
 
 type ViewName = "chat" | "knowledge" | "documents" | "settings";
 const view = ref<ViewName>("chat");
@@ -26,9 +26,12 @@ const mobileNavOpen = ref(false);
 const activeResult = ref<AskResponse | null>(null);
 const expandedSource = ref<string | null>(null);
 const copied = ref<string | null>(null);
-const documents = ref<DemoDocument[]>(structuredClone(demoDocuments));
+const documents = ref<KnowledgeDocument[]>([]);
 const documentSearch = ref("");
-const confirmDelete = ref<DemoDocument | null>(null);
+const confirmDelete = ref<KnowledgeDocument | null>(null);
+const documentsLoading = ref(false);
+const documentError = ref("");
+const activeDocumentOperation = ref<string | null>(null);
 const toast = ref("");
 
 const busy = computed(() => Boolean(controller.value));
@@ -120,29 +123,77 @@ function openSource(source: SourceItem) {
 function chooseView(next: ViewName) {
   view.value = next;
   mobileNavOpen.value = false;
+  if (next === "documents") loadDocuments();
 }
-function handleUpload(event: Event) {
+async function loadDocuments() {
+  documentsLoading.value = true;
+  documentError.value = "";
+  try {
+    const result = await api.documents();
+    documents.value = result.documents;
+  } catch (error) {
+    documentError.value = error instanceof ApiError ? error.message : "无法读取文档列表，请检查服务状态。";
+  } finally {
+    documentsLoading.value = false;
+  }
+}
+async function handleUpload(event: Event) {
   const input = event.target as HTMLInputElement;
   const files = Array.from(input.files || []);
-  files.forEach((file) => {
-    const extension = file.name.split(".").pop()?.toUpperCase();
-    if (!extension || !["PDF", "TXT", "MD"].includes(extension)) return;
-    documents.value.unshift({ id: uid(), name: file.name, type: extension as DemoDocument["type"], size: formatBytes(file.size), updatedAt: "刚刚", status: "processing", chunks: 0 });
-  });
-  if (files.length) notify("文件已加入本地演示列表，尚未上传后端");
   input.value = "";
+  if (!files.length) return;
+  if (!window.confirm(`确认上传 ${files.length} 个文件并重建知识库吗？处理期间问答仍可使用现有索引。`)) return;
+  for (const file of files) {
+    const extension = file.name.split(".").pop()?.toUpperCase();
+    if (!extension || !["PDF", "TXT", "MD"].includes(extension)) {
+      documentError.value = `不支持文件“${file.name}”，仅可上传 PDF、TXT 或 Markdown。`;
+      continue;
+    }
+    activeDocumentOperation.value = `upload:${file.name}`;
+    documentError.value = "";
+    try {
+      await api.uploadDocument(file);
+      notify(`“${file.name}”已加入知识库`);
+    } catch (error) {
+      documentError.value = error instanceof ApiError ? error.message : `上传“${file.name}”失败。`;
+    } finally {
+      activeDocumentOperation.value = null;
+      await loadDocuments();
+    }
+  }
 }
 function formatBytes(bytes: number) { return bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`; }
-function reparse(document: DemoDocument) {
-  document.status = "processing";
-  document.updatedAt = "刚刚";
-  notify("已模拟重新解析，真实接口尚未接入");
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
-function deleteDocument() {
+async function reparse(document: KnowledgeDocument) {
+  activeDocumentOperation.value = document.id;
+  documentError.value = "";
+  try {
+    await api.reparseDocument(document.id);
+    notify(`“${document.name}”已重新解析`);
+  } catch (error) {
+    documentError.value = error instanceof ApiError ? error.message : "重新解析失败，请稍后重试。";
+  } finally {
+    activeDocumentOperation.value = null;
+    await loadDocuments();
+  }
+}
+async function deleteDocument() {
   if (!confirmDelete.value) return;
-  documents.value = documents.value.filter((item) => item.id !== confirmDelete.value?.id);
-  confirmDelete.value = null;
-  notify("已从本地演示列表移除");
+  const document = confirmDelete.value;
+  activeDocumentOperation.value = document.id;
+  documentError.value = "";
+  try {
+    await api.deleteDocument(document.id);
+    notify(`“${document.name}”已删除，知识库已更新`);
+    confirmDelete.value = null;
+  } catch (error) {
+    documentError.value = error instanceof ApiError ? error.message : "删除失败，请稍后重试。";
+  } finally {
+    activeDocumentOperation.value = null;
+    await loadDocuments();
+  }
 }
 function onComposerKeydown(event: KeyboardEvent) {
   if (event.key === "Enter" && !event.shiftKey) {
@@ -150,7 +201,7 @@ function onComposerKeydown(event: KeyboardEvent) {
     submitQuestion();
   }
 }
-onMounted(checkHealth);
+onMounted(() => { checkHealth(); loadDocuments(); });
 </script>
 
 <template>
@@ -235,11 +286,12 @@ onMounted(checkHealth);
       </template>
 
       <section v-else-if="view === 'documents'" class="management-page">
-        <header class="management-head"><div><p class="page-context">知识资产</p><h1>文档管理</h1><p>查看资料处理状态，管理用于问答的知识来源。</p></div><label class="upload-button"><Upload :size="17" />上传文档<input type="file" accept=".pdf,.txt,.md" multiple @change="handleUpload" /></label></header>
-        <div class="mock-notice"><AlertCircle :size="17" /><span><strong>演示模式</strong>文档 CRUD 后端接口尚未接入，本页操作仅影响当前浏览器会话。</span></div>
+        <header class="management-head"><div><p class="page-context">知识资产</p><h1>文档管理</h1><p>上传、解析并管理真实参与问答的知识来源。</p></div><label class="upload-button" :class="{ disabled: Boolean(activeDocumentOperation) }"><LoaderCircle v-if="activeDocumentOperation?.startsWith('upload:')" :size="17" /><Upload v-else :size="17" />{{ activeDocumentOperation?.startsWith('upload:') ? '正在构建知识库' : '上传文档' }}<input type="file" accept=".pdf,.txt,.md" multiple :disabled="Boolean(activeDocumentOperation)" @change="handleUpload" /></label></header>
+        <div class="live-notice"><CircleCheck :size="17" /><span><strong>实时知识库</strong>上传、删除和重新解析会更新向量索引，完成后立即用于智能问答。</span></div>
+        <div v-if="documentError" class="document-error" role="alert"><AlertCircle :size="17" /><span>{{ documentError }}</span><button type="button" @click="loadDocuments">重新加载</button></div>
         <div class="stats-strip"><div><span>文档总数</span><strong>{{ documents.length }}</strong></div><div><span>可用文档</span><strong>{{ readyCount }}</strong></div><div><span>可检索片段</span><strong>{{ totalChunks }}</strong></div><div><span>支持格式</span><strong>PDF · TXT · MD</strong></div></div>
         <div class="table-toolbar"><label><Search :size="17" /><input v-model="documentSearch" placeholder="搜索文件名" /></label><span>{{ filteredDocuments.length }} 个文档</span></div>
-        <div class="document-table" role="table" aria-label="文档列表"><div class="table-row table-header" role="row"><span>文件</span><span>类型</span><span>大小</span><span>更新时间</span><span>处理状态</span><span>操作</span></div><div v-for="document in filteredDocuments" :key="document.id" class="table-row" role="row"><span class="file-cell"><FileText :size="19" /><span><b>{{ document.name }}</b><small>{{ document.chunks ? `${document.chunks} 个片段` : '尚无可检索片段' }}</small></span></span><span><em class="file-type">{{ document.type }}</em></span><span>{{ document.size }}</span><span>{{ document.updatedAt }}</span><span><em :class="['status-label', document.status]"><LoaderCircle v-if="document.status === 'processing'" :size="13" /><CircleCheck v-else-if="document.status === 'ready'" :size="13" /><AlertCircle v-else :size="13" />{{ document.status === 'ready' ? '可用' : document.status === 'processing' ? '处理中' : '失败' }}</em></span><span class="row-actions"><button title="重新解析" @click="reparse(document)"><RefreshCw :size="16" /></button><button title="删除" @click="confirmDelete = document"><Trash2 :size="16" /></button></span></div><div v-if="!filteredDocuments.length" class="table-empty"><Search :size="25" /><p>没有找到匹配的文档</p></div></div>
+        <div class="document-table" role="table" aria-label="文档列表"><div class="table-row table-header" role="row"><span>文件</span><span>类型</span><span>大小</span><span>更新时间</span><span>处理状态</span><span>操作</span></div><div v-if="documentsLoading" class="table-empty"><LoaderCircle class="spin" :size="25" /><p>正在读取真实文档列表…</p></div><div v-for="document in filteredDocuments" v-else :key="document.id" class="table-row" role="row"><span class="file-cell"><FileText :size="19" /><span><b :title="document.name">{{ document.name }}</b><small>{{ document.error || (document.chunks ? `${document.chunks} 个片段` : '尚无可检索片段') }}</small></span></span><span><em class="file-type">{{ document.type }}</em></span><span>{{ formatBytes(document.size_bytes) }}</span><span>{{ formatDate(document.updated_at) }}</span><span><em :class="['status-label', activeDocumentOperation === document.id ? 'processing' : document.status]"><LoaderCircle v-if="activeDocumentOperation === document.id" :size="13" /><CircleCheck v-else-if="document.status === 'ready'" :size="13" /><AlertCircle v-else :size="13" />{{ activeDocumentOperation === document.id ? '处理中' : document.status === 'ready' ? '可用' : '失败' }}</em></span><span class="row-actions"><button title="重新解析" :disabled="Boolean(activeDocumentOperation)" @click="reparse(document)"><RefreshCw :size="16" /></button><button title="删除" :disabled="Boolean(activeDocumentOperation)" @click="confirmDelete = document"><Trash2 :size="16" /></button></span></div><div v-if="!documentsLoading && !filteredDocuments.length" class="table-empty"><Search :size="25" /><p>{{ documentSearch ? '没有找到匹配的文档' : '知识库中还没有文档' }}</p><small v-if="!documentSearch">上传 PDF、TXT 或 Markdown 后即可开始检索。</small></div></div>
       </section>
 
       <section v-else-if="view === 'knowledge'" class="management-page">
@@ -251,7 +303,7 @@ onMounted(checkHealth);
       <section v-else class="management-page settings-page"><header class="management-head"><div><p class="page-context">工作区</p><h1>个人设置</h1><p>调整本地问答偏好。</p></div></header><div class="settings-card"><h2>默认检索设置</h2><label><span><b>召回数量</b><small>每次问答最多取回的文本片段数</small></span><select v-model="topK"><option :value="3">3 条</option><option :value="5">5 条</option><option :value="8">8 条</option><option :value="10">10 条</option></select></label><label><span><b>相关性门槛</b><small>低于门槛时明确拒答，避免无依据生成</small></span><b>{{ minSimilarity.toFixed(2) }}</b></label><input v-model.number="minSimilarity" type="range" min="0" max="1" step="0.01" /></div></section>
     </main>
 
-    <div v-if="confirmDelete" class="modal-backdrop" @click.self="confirmDelete = null"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-title"><span class="danger-icon"><Trash2 :size="20" /></span><h2 id="delete-title">删除演示文档？</h2><p>将从当前浏览器的演示列表中移除“{{ confirmDelete.name }}”，不会删除本地真实文件。</p><div><button class="secondary-button" @click="confirmDelete = null">取消</button><button class="danger-button" @click="deleteDocument">确认移除</button></div></section></div>
+    <div v-if="confirmDelete" class="modal-backdrop" @click.self="confirmDelete = null"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-title"><span class="danger-icon"><Trash2 :size="20" /></span><h2 id="delete-title">删除知识库文档？</h2><p>“{{ confirmDelete.name }}”将从本地文件和向量索引中永久删除。完成重建前，问答继续使用当前索引。</p><div><button class="secondary-button" :disabled="Boolean(activeDocumentOperation)" @click="confirmDelete = null">取消</button><button class="danger-button" :disabled="Boolean(activeDocumentOperation)" @click="deleteDocument"><LoaderCircle v-if="activeDocumentOperation" class="spin" :size="15" />{{ activeDocumentOperation ? '正在删除' : '确认删除' }}</button></div></section></div>
     <transition name="toast"><div v-if="toast" class="toast-message" role="status"><Check :size="16" />{{ toast }}</div></transition>
   </div>
 </template>

@@ -29,12 +29,20 @@ export interface ChatMessage {
   feedback?: "up" | "down" | null;
 }
 
-export interface DemoDocument {
+export interface KnowledgeDocument {
   id: string;
   name: string;
   type: "PDF" | "TXT" | "MD";
-  size: string;
-  updatedAt: string;
+  size_bytes: number;
+  updated_at: string;
   status: "ready" | "processing" | "failed";
+  chunks: number;
+  error?: string | null;
+}
+
+export interface DocumentListResponse {
+  documents: KnowledgeDocument[];
+  total: number;
+  ready: number;
   chunks: number;
 }

@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 import json
 
+from pypdf import PdfReader
+
 from rag_project.config import (
     CHUNK_PREVIEW_PATH,
     DEFAULT_CHUNK_OVERLAP,
@@ -10,7 +12,7 @@ from rag_project.config import (
     SOURCE_DOCUMENTS_DIR,
 )
 
-SUPPORTED_SUFFIXES = {".txt", ".md"}
+SUPPORTED_SUFFIXES = {".txt", ".md", ".pdf"}
 
 def normalize_text(text: str) -> str:
     """统一换行符、删除行尾空白、压缩多余空行。"""
@@ -201,11 +203,20 @@ def read_document(
     path: Path,
     source_root: Path,
 ) -> dict:
-    """读取一个TXT或Markdown文档。"""
+    """读取一个 TXT、Markdown 或 PDF 文档。"""
 
-    text = normalize_text(
-        path.read_text(encoding="utf-8")
-    )
+    if path.suffix.lower() == ".pdf":
+        reader = PdfReader(path)
+        text = normalize_text(
+            "\n\n".join(
+                page.extract_text() or ""
+                for page in reader.pages
+            )
+        )
+    else:
+        text = normalize_text(
+            path.read_text(encoding="utf-8-sig")
+        )
 
     if not text:
         raise ValueError(f"文档内容为空：{path}")
@@ -256,7 +267,7 @@ def load_documents(
 
     if not paths:
         raise FileNotFoundError(
-            f"目录中没有TXT或Markdown文档："
+            f"目录中没有 PDF、TXT 或 Markdown 文档："
             f"{source_directory}"
         )
 

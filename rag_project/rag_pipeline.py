@@ -63,6 +63,14 @@ class RAGPipeline:
 
         print("RAG系统初始化完成")
 
+    def reload_knowledge_base(self) -> None:
+        """在不重复加载模型的情况下刷新知识库数据。"""
+        (
+            self.metadata,
+            self.chunks,
+            self.embeddings,
+        ) = load_knowledge_base()
+
 
     @staticmethod
     def build_rag_prompt(

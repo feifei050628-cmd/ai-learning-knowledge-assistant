@@ -54,3 +54,21 @@ class AskResponse(BaseModel):
     passed: bool
     max_score: float
     sources: list[SourceItem]
+
+
+class DocumentItem(BaseModel):
+    id: str
+    name: str
+    type: str
+    size_bytes: int
+    updated_at: str
+    status: str
+    chunks: int
+    error: str | None = None
+
+
+class DocumentListResponse(BaseModel):
+    documents: list[DocumentItem]
+    total: int
+    ready: int
+    chunks: int

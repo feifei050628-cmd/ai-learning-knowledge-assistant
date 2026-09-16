@@ -6,7 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688)
 ![Vue](https://img.shields.io/badge/Vue-3-42B883)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
-![Tests](https://img.shields.io/badge/tests-70%20passed-0A9EDC)
+![Tests](https://img.shields.io/badge/tests-73%20passed-0A9EDC)
 
 ## 为什么使用它
 
@@ -84,7 +84,7 @@ docker compose up --build -d
 docker compose ps
 ```
 
-首次启动会下载 BGE 检索模型，时间取决于网络速度。模型缓存保存在 Docker 命名卷中，后续启动无需重复下载。
+首次启动会下载 BGE 检索模型，时间取决于网络速度。模型缓存保存在 Docker 命名卷中；源文档与向量知识库以目录挂载方式保存在项目中，重建容器不会丢失上传资料。
 
 ### 4. 打开系统
 
@@ -156,7 +156,7 @@ python -m rag_project.calibrate_threshold
 python -m rag_project.evaluate_generation
 ```
 
-当前离线测试基线：**70 项通过**。
+当前离线测试基线：**73 项通过**。
 
 ## 技术栈
 
@@ -182,6 +182,7 @@ python -m rag_project.evaluate_generation
 │   ├── dify_client.py            # Dify 服务端 API 适配层
 │   ├── retrieval.py              # 中文语义检索
 │   ├── document_processor.py     # 文档清洗与切块
+│   ├── document_service.py       # 文档上传、删除与重解析
 │   ├── knowledge_base_builder.py # 向量知识库构建
 │   ├── frontend/                 # Vue 3 前端源码
 │   ├── web/                      # 前端生产构建产物
@@ -201,7 +202,8 @@ python -m rag_project.evaluate_generation
 ## 当前边界
 
 - 当前定位为单用户本地知识工作台，尚未实现登录、多租户和权限系统；
-- 会话历史、文档上传/删除/重新解析、回答反馈和流式生成尚无持久化后端，相关前端区域属于明确标注的演示功能；
+- 文档上传、列表、删除和重新解析已接入真实后端，并会同步更新向量索引；
+- 会话历史、回答反馈和流式生成尚无持久化后端，相关前端区域属于明确标注的演示功能；
 - 生成结果仍应结合引用原文人工核验；
 - 示例评估集规模有限，评估指标用于项目迭代，不代表生产 SLA。
 
