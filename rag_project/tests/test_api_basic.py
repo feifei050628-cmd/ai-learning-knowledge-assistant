@@ -5,7 +5,22 @@ def test_root_returns_api_information(client):
     assert response.json() == {
         "message": "RAG API 已启动",
         "docs": "/docs",
+        "chat": "/chat",
     }
+
+
+def test_chat_page_and_static_assets_are_available(client):
+    page = client.get("/chat")
+    stylesheet = client.get("/web/styles.css")
+    script = client.get("/web/app.js")
+
+    assert page.status_code == 200
+    assert "text/html" in page.headers["content-type"]
+    assert "向知识库提问" in page.text
+    assert stylesheet.status_code == 200
+    assert "text/css" in stylesheet.headers["content-type"]
+    assert script.status_code == 200
+    assert "javascript" in script.headers["content-type"]
 
 
 def test_validate_accepts_valid_request(client):

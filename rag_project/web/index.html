@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="基于本地知识库的中文 RAG 问答工作台"
+    />
+    <meta name="theme-color" content="#0b0f15" />
+    <title>本地中文 RAG · 知识工作台</title>
+    <link rel="stylesheet" href="/web/styles.css" />
+    <script src="/web/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#question">跳到提问框</a>
+
+    <header class="topbar">
+      <a class="brand" href="/chat" aria-label="返回知识工作台首页">
+        <svg
+          class="brand-mark"
+          viewBox="0 0 32 32"
+          aria-hidden="true"
+        >
+          <path d="M7 8.5 16 3l9 5.5v10L16 29l-9-5.5z" />
+          <path d="m7 8.5 9 5.5 9-5.5M16 14v15" />
+          <circle cx="16" cy="14" r="2.25" />
+        </svg>
+        <span class="brand-copy">
+          <strong>本地中文 RAG</strong>
+          <span>知识工作台</span>
+        </span>
+      </a>
+
+      <div class="topbar-actions">
+        <span class="service-state" id="service-state" role="status">
+          <span class="state-dot" aria-hidden="true"></span>
+          <span id="service-label">正在检查服务</span>
+        </span>
+        <a class="docs-link" href="/docs" target="_blank" rel="noreferrer">
+          API 文档
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M7 4h9v9M16 4 8 12M14 10v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+          </svg>
+        </a>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="conversation" aria-labelledby="workspace-title">
+        <div class="conversation-head">
+          <div>
+            <h1 id="workspace-title">向知识库提问</h1>
+            <p>答案会经过相关性门控，并附带可核验的检索来源。</p>
+          </div>
+          <button class="text-button" id="clear-button" type="button">
+            清空对话
+          </button>
+        </div>
+
+        <div
+          class="message-stream"
+          id="message-stream"
+          aria-live="polite"
+          aria-busy="false"
+        >
+          <section class="empty-state" id="empty-state">
+            <div class="empty-index" aria-hidden="true">R</div>
+            <div class="empty-copy">
+              <h2>从你的学习资料中找到依据</h2>
+              <p>
+                试着询问一个定义、实现步骤或项目决策。系统只会在检索结果达到门槛时生成回答。
+              </p>
+              <div class="example-list" aria-label="示例问题">
+                <button type="button" data-example="RAG 的完整处理流程是什么？">
+                  RAG 的完整处理流程是什么？
+                </button>
+                <button type="button" data-example="为什么要设置相关性门槛？">
+                  为什么要设置相关性门槛？
+                </button>
+                <button type="button" data-example="如何评估生成答案的质量？">
+                  如何评估生成答案的质量？
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <form class="composer" id="question-form">
+          <label for="question">输入问题</label>
+          <div class="composer-row">
+            <textarea
+              id="question"
+              name="query"
+              rows="1"
+              maxlength="500"
+              placeholder="例如：检索、增强和生成分别负责什么？"
+              autocomplete="off"
+              required
+            ></textarea>
+            <button class="send-button" id="send-button" type="submit">
+              <span>发送</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="m4 10 12-6-4.5 12-2.2-4.6L4 10Z" />
+                <path d="m9.3 11.4 2.2-2.2" />
+              </svg>
+            </button>
+          </div>
+          <div class="composer-meta">
+            <span>Enter 发送 · Shift + Enter 换行</span>
+            <span id="character-count">0 / 500</span>
+          </div>
+        </form>
+      </section>
+
+      <aside class="evidence" aria-labelledby="evidence-title">
+        <div class="evidence-head">
+          <div>
+            <h2 id="evidence-title">检索证据</h2>
+            <p id="evidence-caption">等待一次有效提问</p>
+          </div>
+          <span class="result-badge neutral" id="result-badge">待检索</span>
+        </div>
+
+        <dl class="metrics" aria-label="本次检索指标">
+          <div>
+            <dt>门控结果</dt>
+            <dd id="gate-value">—</dd>
+          </div>
+          <div>
+            <dt>最高相似度</dt>
+            <dd class="tabular" id="score-value">—</dd>
+          </div>
+          <div>
+            <dt>引用来源</dt>
+            <dd class="tabular" id="source-count">—</dd>
+          </div>
+        </dl>
+
+        <div class="source-section">
+          <div class="source-heading">
+            <h3>来源排序</h3>
+            <span>按相关性从高到低</span>
+          </div>
+          <ol class="source-list" id="source-list">
+            <li class="source-placeholder">
+              完成提问后，这里会显示标题、文本块编号和检索分数。
+            </li>
+          </ol>
+        </div>
+
+        <details class="settings">
+          <summary>
+            检索设置
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="m6 8 4 4 4-4" />
+            </svg>
+          </summary>
+          <div class="settings-body">
+            <label for="top-k">
+              <span>返回来源数量</span>
+              <select id="top-k" name="top_k">
+                <option value="3">3 条</option>
+                <option value="5" selected>5 条</option>
+                <option value="8">8 条</option>
+                <option value="10">10 条</option>
+              </select>
+            </label>
+            <label for="min-similarity">
+              <span>最低相似度</span>
+              <span class="range-value tabular" id="similarity-value">0.48</span>
+            </label>
+            <input
+              id="min-similarity"
+              name="min_similarity"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value="0.48"
+            />
+          </div>
+        </details>
+      </aside>
+    </main>
+  </body>
+</html>

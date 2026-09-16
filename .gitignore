@@ -26,3 +26,6 @@ htmlcov/
 __pycache__/
 
 .pytest_tmp/
+
+# 本地设计工具缓存
+.impeccable/
