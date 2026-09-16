@@ -65,6 +65,8 @@ class DocumentItem(BaseModel):
     status: str
     chunks: int
     error: str | None = None
+    category: str
+    read_only: bool
 
 
 class DocumentListResponse(BaseModel):

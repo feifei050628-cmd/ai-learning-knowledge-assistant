@@ -6,7 +6,12 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-from rag_project.config import EXPANDED_METADATA_PATH, SOURCE_DOCUMENTS_DIR
+from rag_project.config import (
+    EXPANDED_METADATA_PATH,
+    LEARNING_NOTES_DIR,
+    LEARNING_NOTE_PATTERN,
+    SOURCE_DOCUMENTS_DIR,
+)
 from rag_project.document_processor import (
     SUPPORTED_SUFFIXES,
     create_document_id,
@@ -40,6 +45,10 @@ def _document_id(path: Path) -> str:
     return create_document_id(relative_path)
 
 
+def _learning_note_id(path: Path) -> str:
+    return create_document_id(f"learning_notes/{path.name}")
+
+
 def _chunk_counts() -> Counter:
     if not EXPANDED_METADATA_PATH.exists():
         return Counter()
@@ -69,6 +78,27 @@ def list_documents() -> list[dict]:
             "status": "failed" if error else "ready",
             "chunks": chunk_counts[document_id],
             "error": error,
+            "category": "reference",
+            "read_only": False,
+        })
+
+    for path in sorted(LEARNING_NOTES_DIR.glob(LEARNING_NOTE_PATTERN)):
+        if not path.is_file():
+            continue
+        document_id = _learning_note_id(path)
+        stat = path.stat()
+        error = _failures.get(document_id)
+        items.append({
+            "id": document_id,
+            "name": path.name,
+            "type": "TXT",
+            "size_bytes": stat.st_size,
+            "updated_at": datetime.fromtimestamp(stat.st_mtime).astimezone().isoformat(),
+            "status": "failed" if error else "ready",
+            "chunks": chunk_counts[document_id],
+            "error": error,
+            "category": "learning_note",
+            "read_only": True,
         })
     return sorted(items, key=lambda item: item["updated_at"], reverse=True)
 

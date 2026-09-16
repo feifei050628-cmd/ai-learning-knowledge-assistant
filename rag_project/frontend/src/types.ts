@@ -38,6 +38,8 @@ export interface KnowledgeDocument {
   status: "ready" | "processing" | "failed";
   chunks: number;
   error?: string | null;
+  category: "reference" | "learning_note";
+  read_only: boolean;
 }
 
 export interface DocumentListResponse {

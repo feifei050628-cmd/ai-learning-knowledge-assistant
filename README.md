@@ -6,7 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688)
 ![Vue](https://img.shields.io/badge/Vue-3-42B883)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
-![Tests](https://img.shields.io/badge/tests-73%20passed-0A9EDC)
+![Tests](https://img.shields.io/badge/tests-74%20passed-0A9EDC)
 
 ## 为什么使用它
 
@@ -156,7 +156,7 @@ python -m rag_project.calibrate_threshold
 python -m rag_project.evaluate_generation
 ```
 
-当前离线测试基线：**73 项通过**。
+当前离线测试基线：**74 项通过**。
 
 ## 技术栈
 
@@ -202,7 +202,7 @@ python -m rag_project.evaluate_generation
 ## 当前边界
 
 - 当前定位为单用户本地知识工作台，尚未实现登录、多租户和权限系统；
-- 文档上传、列表、删除和重新解析已接入真实后端，并会同步更新向量索引；
+- 文档列表统一展示 29 篇只读学习笔记与上传资料；上传资料支持删除和重新解析，并会同步更新向量索引；
 - 会话历史、回答反馈和流式生成尚无持久化后端，相关前端区域属于明确标注的演示功能；
 - 生成结果仍应结合引用原文人工核验；
 - 示例评估集规模有限，评估指标用于项目迭代，不代表生产 SLA。
