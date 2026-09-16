@@ -1,3 +1,6 @@
+import re
+
+
 def test_root_returns_api_information(client):
     response = client.get("/")
 
@@ -11,12 +14,26 @@ def test_root_returns_api_information(client):
 
 def test_chat_page_and_static_assets_are_available(client):
     page = client.get("/chat")
-    stylesheet = client.get("/web/styles.css")
-    script = client.get("/web/app.js")
 
     assert page.status_code == 200
     assert "text/html" in page.headers["content-type"]
-    assert "向知识库提问" in page.text
+    assert "AI 技术学习助手" in page.text
+
+    stylesheet_path = re.search(
+        r'href="([^"]+\.css)"',
+        page.text,
+    )
+    script_path = re.search(
+        r'src="([^"]+\.js)"',
+        page.text,
+    )
+
+    assert stylesheet_path is not None
+    assert script_path is not None
+
+    stylesheet = client.get(stylesheet_path.group(1))
+    script = client.get(script_path.group(1))
+
     assert stylesheet.status_code == 200
     assert "text/css" in stylesheet.headers["content-type"]
     assert script.status_code == 200

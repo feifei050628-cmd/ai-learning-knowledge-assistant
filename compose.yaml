@@ -1,0 +1,22 @@
+services:
+  ai-knowledge-assistant:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-knowledge-assistant:latest
+    ports:
+      - "8001:8000"
+    environment:
+      GENERATION_PROVIDER: ${GENERATION_PROVIDER:-local}
+      DIFY_API_BASE_URL: ${DIFY_API_BASE_URL:-https://api.dify.ai/v1}
+      DIFY_API_KEY: ${DIFY_API_KEY:-}
+      DIFY_USER: ${DIFY_USER:-ai-learning-assistant}
+      DIFY_TIMEOUT_SECONDS: ${DIFY_TIMEOUT_SECONDS:-60}
+      DIFY_VERIFY_SSL: ${DIFY_VERIFY_SSL:-true}
+      HF_HOME: /app/.cache/huggingface
+    volumes:
+      - huggingface-cache:/app/.cache/huggingface
+    restart: unless-stopped
+
+volumes:
+  huggingface-cache:

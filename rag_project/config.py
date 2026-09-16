@@ -1,9 +1,17 @@
+import os
 from pathlib import Path
 
 import torch
 
 
 PROJECT_NAME = "本地中文 RAG 问答系统"
+
+
+def _get_bool_env(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 # __file__ 是当前 config.py 的路径，parent 得到 rag_project 文件夹。
 PROJECT_DIR = Path(__file__).resolve().parent
@@ -37,6 +45,21 @@ METADATA_PATH = EXPANDED_METADATA_PATH
 EMBEDDINGS_PATH = EXPANDED_EMBEDDINGS_PATH
 
 GENERATION_MODEL_ID = "Qwen/Qwen2.5-0.5B-Instruct"
+
+# 生成端可以保留本地 Qwen，也可以切换为 Dify Chat/Chatflow 应用。
+# Dify 密钥只在服务端读取，禁止放入 Vite 环境变量或前端代码。
+GENERATION_PROVIDER = os.getenv("GENERATION_PROVIDER", "local").strip().lower()
+if GENERATION_PROVIDER not in {"local", "dify"}:
+    raise ValueError("GENERATION_PROVIDER 仅支持 local 或 dify")
+
+DIFY_API_BASE_URL = os.getenv(
+    "DIFY_API_BASE_URL",
+    "https://api.dify.ai/v1",
+).rstrip("/")
+DIFY_API_KEY = os.getenv("DIFY_API_KEY", "").strip()
+DIFY_USER = os.getenv("DIFY_USER", "ai-learning-assistant").strip()
+DIFY_TIMEOUT_SECONDS = float(os.getenv("DIFY_TIMEOUT_SECONDS", "60"))
+DIFY_VERIFY_SSL = _get_bool_env("DIFY_VERIFY_SSL", True)
 
 DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"

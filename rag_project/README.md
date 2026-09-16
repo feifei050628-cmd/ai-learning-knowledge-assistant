@@ -1,5 +1,14 @@
 # 模块化中文 RAG 问答系统
 
+## 生成后端
+
+`RAGPipeline` 支持两种生成后端：
+
+- `GENERATION_PROVIDER=local`：加载本地 `Qwen/Qwen2.5-0.5B-Instruct`；
+- `GENERATION_PROVIDER=dify`：调用 Dify Chat/Chatflow 应用的 `/chat-messages` API。
+
+Dify 模式仍由本项目执行检索、门槛判断和引用编号，只把包含召回资料的增强提示词交给 Dify。配置项见项目根目录 `.env.example`，部署步骤见根目录 `README.md`。
+
 ## 项目简介
 
 这是一个使用 Python、PyTorch、Transformers、BGE 向量模型和 Qwen 生成模型实现的中文 RAG 问答项目。

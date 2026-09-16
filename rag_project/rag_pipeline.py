@@ -2,7 +2,14 @@ from rag_project.config import (
     DEFAULT_MAX_NEW_TOKENS,
     DEFAULT_MIN_SIMILARITY,
     DEFAULT_TOP_K,
+    DIFY_API_BASE_URL,
+    DIFY_API_KEY,
+    DIFY_TIMEOUT_SECONDS,
+    DIFY_USER,
+    DIFY_VERIFY_SSL,
+    GENERATION_PROVIDER,
 )
+from rag_project.dify_client import DifyClient
 from rag_project.generation import generate_answer
 from rag_project.model_manager import (
     load_generation_components,
@@ -33,10 +40,26 @@ class RAGPipeline:
             self.metadata["model_id"]
         )
 
-        (
-            self.generation_tokenizer,
-            self.generation_model,
-        ) = load_generation_components()
+        self.generation_provider = GENERATION_PROVIDER
+        self.generation_tokenizer = None
+        self.generation_model = None
+        self.dify_client = None
+
+        if self.generation_provider == "dify":
+            self.dify_client = DifyClient(
+                base_url=DIFY_API_BASE_URL,
+                api_key=DIFY_API_KEY,
+                user=DIFY_USER,
+                timeout_seconds=DIFY_TIMEOUT_SECONDS,
+                verify_ssl=DIFY_VERIFY_SSL,
+            )
+            print(f"生成后端：Dify（{DIFY_API_BASE_URL}）")
+        else:
+            (
+                self.generation_tokenizer,
+                self.generation_model,
+            ) = load_generation_components()
+            print("生成后端：本地 Qwen")
 
         print("RAG系统初始化完成")
 
@@ -147,12 +170,15 @@ class RAGPipeline:
             context_chunks,
         )
 
-        answer = generate_answer(
-            prompt=rag_prompt,
-            tokenizer=self.generation_tokenizer,
-            model=self.generation_model,
-            max_new_tokens=max_new_tokens,
-        )
+        if self.generation_provider == "dify":
+            answer = self.dify_client.generate(rag_prompt).answer
+        else:
+            answer = generate_answer(
+                prompt=rag_prompt,
+                tokenizer=self.generation_tokenizer,
+                model=self.generation_model,
+                max_new_tokens=max_new_tokens,
+            )
 
         answer = self.append_source_citations(
             answer=answer,

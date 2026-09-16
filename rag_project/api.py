@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from rag_project.config import PROJECT_NAME
+from rag_project.config import GENERATION_PROVIDER, PROJECT_NAME
 from rag_project.rag_pipeline import RAGPipeline
 from rag_project.schemas import AskRequest, AskResponse
 
@@ -88,6 +88,7 @@ def health_check(request: Request) -> dict:     #request: Request: FastAPI 的�
         "status": "ok",
         "project": PROJECT_NAME,
         "pipeline_loaded": request.app.state.pipeline is not None,  #app.state.pipeline 是否已加载
+        "generation_provider": GENERATION_PROVIDER,
     }
 
 

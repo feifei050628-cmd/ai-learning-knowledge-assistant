@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+venv
+**/__pycache__
+**/.pytest_cache
+**/node_modules
+rag_project/frontend
+.env
+*.pyc
+*.pyo
+.coverage
+htmlcov
+*.docx
+*.pth
+!rag_project/knowledge_base/*.pth
