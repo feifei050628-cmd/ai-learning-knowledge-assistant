@@ -1,4 +1,5 @@
 from rag_project.config import (
+    DEFAULT_GATE_HIGH,
     DEFAULT_MAX_NEW_TOKENS,
     DEFAULT_MIN_SIMILARITY,
     DEFAULT_TOP_K,
@@ -8,16 +9,22 @@ from rag_project.config import (
     DIFY_USER,
     DIFY_VERIFY_SSL,
     GENERATION_PROVIDER,
+    ENABLE_HYBRID_RETRIEVAL,
+    ENABLE_POST_GENERATION_VERIFICATION,
+    ENABLE_RERANKER,
+    MAX_UNSUPPORTED_CLAIM_RATIO,
 )
 from rag_project.dify_client import DifyClient
 from rag_project.generation import generate_answer
 from rag_project.model_manager import (
     load_generation_components,
+    load_reranker_components,
     load_retrieval_components,
 )
 from rag_project.retrieval import (
     load_knowledge_base,
     retrieve_chunks,
+    tokenize_for_bm25,
 )
 
 
@@ -39,6 +46,17 @@ class RAGPipeline:
         ) = load_retrieval_components(
             self.metadata["model_id"]
         )
+
+        self.reranker_tokenizer = None
+        self.reranker_model = None
+        if ENABLE_RERANKER:
+            try:
+                (
+                    self.reranker_tokenizer,
+                    self.reranker_model,
+                ) = load_reranker_components()
+            except Exception as error:
+                print(f"重排模型加载失败，回退到向量门控：{error}")
 
         self.generation_provider = GENERATION_PROVIDER
         self.generation_tokenizer = None
@@ -138,6 +156,69 @@ class RAGPipeline:
             f"参考资料：{citations}"
         )
 
+    @staticmethod
+    def verify_answer_support(
+        answer: str,
+        context_chunks: list[dict],
+    ) -> dict:
+        """逐条检查答案声明能否在返回 chunk 中找到词法证据。"""
+        claims = [
+            item.strip(" -•\t")
+            for item in __import__("re").split(
+                r"[。！？\n]+",
+                answer,
+            )
+            if item.strip(" -•\t")
+        ]
+        evidence = []
+        unsupported = 0
+        for claim in claims:
+            claim_terms = set(tokenize_for_bm25(claim))
+            best_chunk = None
+            best_coverage = 0.0
+            for chunk in context_chunks:
+                chunk_terms = set(tokenize_for_bm25(chunk["text"]))
+                coverage = (
+                    len(claim_terms & chunk_terms) / len(claim_terms)
+                    if claim_terms else 0.0
+                )
+                if coverage > best_coverage:
+                    best_coverage = coverage
+                    best_chunk = chunk
+            supported = best_coverage >= 0.25
+            if not supported:
+                unsupported += 1
+            evidence.append(
+                {
+                    "claim": claim,
+                    "supported": supported,
+                    "chunk_id": (
+                        best_chunk["chunk_id"]
+                        if supported and best_chunk
+                        else None
+                    ),
+                    "coverage": best_coverage,
+                }
+            )
+        ratio = unsupported / len(claims) if claims else 0.0
+        return {
+            "claims": evidence,
+            "unsupported_claim_ratio": ratio,
+            "verified": ratio <= MAX_UNSUPPORTED_CLAIM_RATIO,
+        }
+
+    @staticmethod
+    def build_gray_answer(context_chunks: list[dict]) -> str:
+        excerpts = []
+        for rank, chunk in enumerate(context_chunks[:3], start=1):
+            excerpt = chunk["text"].strip().replace("\n", " ")[:220]
+            excerpts.append(f"【资料{rank}】{excerpt}")
+        return (
+            "检索到相关资料，但现有资料不足以完整回答。"
+            "以下仅展示最接近的原文片段：\n"
+            + "\n".join(excerpts)
+        )
+
     def answer(
         self,
         query: str,
@@ -155,6 +236,11 @@ class RAGPipeline:
             embeddings=self.embeddings,
             top_k=top_k,
             min_similarity=min_similarity,
+            use_hybrid=ENABLE_HYBRID_RETRIEVAL,
+            reranker_tokenizer=self.reranker_tokenizer,
+            reranker_model=self.reranker_model,
+            gate_low=min_similarity,
+            gate_high=max(DEFAULT_GATE_HIGH, min_similarity),
         )
 
         # 没有通过门槛时提前结束，不调用生成模型。
@@ -164,6 +250,10 @@ class RAGPipeline:
                 "answer": "现有资料不足",
                 "passed": False,
                 "max_score": retrieval_result["max_score"],
+                "gate_score": retrieval_result["gate_score"],
+                "gate_status": "reject",
+                "answerable": False,
+                "verification": None,
                 "sources": [],
             }
 
@@ -172,6 +262,20 @@ class RAGPipeline:
         ]
 
         context_chunks = retrieved_chunks
+
+        if retrieval_result["gate_status"] == "gray":
+            sources = self._build_sources(context_chunks)
+            return {
+                "query": query,
+                "answer": self.build_gray_answer(context_chunks),
+                "passed": False,
+                "max_score": retrieval_result["max_score"],
+                "gate_score": retrieval_result["gate_score"],
+                "gate_status": "gray",
+                "answerable": False,
+                "verification": None,
+                "sources": sources,
+            }
 
         rag_prompt = self.build_rag_prompt(
             query,
@@ -193,28 +297,55 @@ class RAGPipeline:
             source_count=len(context_chunks),
         )
 
-        sources = []
-
-        for rank, chunk in enumerate(
-            context_chunks,
-            start=1,
-        ):
-            sources.append(
-                {
-                    "rank": rank,
-                    "title": chunk["title"],
-                    "chunk_id": chunk["chunk_id"],
-                    "score": chunk["score"],
-                }
+        verification = None
+        if ENABLE_POST_GENERATION_VERIFICATION:
+            verification = self.verify_answer_support(
+                answer.split("\n\n参考资料：", 1)[0],
+                context_chunks,
             )
+            if not verification["verified"]:
+                return {
+                    "query": query,
+                    "answer": "现有资料不足",
+                    "passed": False,
+                    "max_score": retrieval_result["max_score"],
+                    "gate_score": retrieval_result["gate_score"],
+                    "gate_status": "verification_reject",
+                    "answerable": False,
+                    "verification": verification,
+                    "sources": [],
+                }
+
+        sources = self._build_sources(context_chunks)
 
         return {
             "query": query,
             "answer": answer,
             "passed": True,
             "max_score": retrieval_result["max_score"],
+            "gate_score": retrieval_result["gate_score"],
+            "gate_status": "answer",
+            "answerable": True,
+            "verification": verification,
             "sources": sources,
         }
+
+    @staticmethod
+    def _build_sources(context_chunks: list[dict]) -> list[dict]:
+        sources = []
+        for rank, chunk in enumerate(context_chunks, start=1):
+            sources.append(
+                {
+                    "rank": rank,
+                    "title": chunk["title"],
+                    "chunk_id": chunk["chunk_id"],
+                    "score": chunk["score"],
+                    "vector_score": chunk.get("vector_score"),
+                    "bm25_score": chunk.get("bm25_score"),
+                    "rerank_score": chunk.get("rerank_score"),
+                }
+            )
+        return sources
 
 
 if __name__ == "__main__":

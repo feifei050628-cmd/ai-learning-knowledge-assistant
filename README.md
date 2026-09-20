@@ -6,7 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688)
 ![Vue](https://img.shields.io/badge/Vue-3-42B883)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
-![Tests](https://img.shields.io/badge/tests-74%20passed-0A9EDC)
+![Tests](https://img.shields.io/badge/tests-82%20passed-0A9EDC)
 ![CI](https://github.com/feifei050628-cmd/ai-learning-knowledge-assistant/actions/workflows/tests.yml/badge.svg)
 
 ## 为什么使用它
@@ -14,9 +14,9 @@
 通用聊天工具可以快速生成内容，却不一定知道答案来自哪份内部资料。本系统围绕“可验证回答”设计：先从指定知识库检索，再让模型根据召回内容回答；当相关度不足时明确拒答，避免把模型猜测伪装成知识库结论。
 
 - **资料集中管理**：将 Markdown、TXT 和学习笔记整理成统一知识库。
-- **中文语义检索**：使用 BGE 向量模型理解问题含义，而不只依赖关键词。
+- **混合检索与重排**：使用 BM25 与 BGE 向量召回，经 RRF 融合后由 Cross-Encoder 重排。
 - **回答有据可查**：展示引用文件、文本块编号和相似度，便于回看原始依据。
-- **低置信度拒答**：检索结果未达到门槛时返回“现有资料不足”。
+- **双阈值可信门控**：高置信度回答并引用，灰区仅摘录原文，低置信度明确拒答。
 - **灵活生成后端**：可使用 Dify Chatflow，也可切换到本地 Qwen。
 - **本地数据链路**：文档处理、向量检索和引用管理均在本系统内完成。
 - **开箱即用的工作台**：提供响应式 Web 页面、检索详情和知识库状态视图。
@@ -36,7 +36,9 @@
         ▼
 清洗与切块 ──► BGE 向量化 ──► 本地知识库
                                    │
-用户问题 ──► 语义检索 ──► 相关性门控
+用户问题 ──► BM25 + 向量召回 ──► RRF 融合 ──► Cross-Encoder 重排
+                                   │
+                              双阈值门控
                                    │
                        ┌───────────┴───────────┐
                        ▼                       ▼
@@ -74,6 +76,10 @@ DIFY_API_KEY=app-your-real-key
 DIFY_USER=ai-learning-assistant
 DIFY_TIMEOUT_SECONDS=60
 DIFY_VERIFY_SSL=true
+ENABLE_HYBRID_RETRIEVAL=true
+ENABLE_RERANKER=true
+RAG_GATE_LOW=0.48
+RAG_GATE_HIGH=0.83
 ```
 
 > API Key 只由 FastAPI 服务端读取。`.env` 已加入 Git 忽略规则，请勿把真实密钥写入前端、截图或提交记录。
@@ -153,11 +159,25 @@ python -m rag_project.knowledge_base_builder
 ```powershell
 python -m pytest .\rag_project\tests -q
 python -m rag_project.evaluate_retrieval
-python -m rag_project.calibrate_threshold
+python -m rag_project.rag_gate_calibrate
 python -m rag_project.evaluate_generation
 ```
 
-当前离线测试基线：**74 项通过**。
+当前离线测试基线：**82 项通过**。
+
+### 幻觉治理实测结果
+
+项目使用 77 条分层用例进行同口径对比，其中包含 40 条可回答问题、12 条库外无关问题和 25 条“主题相关但知识库无完整答案”的边界负例。旧方案为单路向量检索和 0.48 单阈值；新方案采用 BM25 + 向量 RRF、Cross-Encoder 重排和由数据标定的 0.48/0.83 双阈值。
+
+| 指标 | 旧方案 | 新方案 |
+| --- | ---: | ---: |
+| Hit@5 | 87.50% | 95.00% |
+| MRR@5 | 71.67% | 82.08% |
+| 边界负例拒绝率 | 0.00%（0/25） | 84.00%（21/25） |
+| 全部负例拒绝率 | 32.43% | 86.49% |
+| 总体正确率 | 61.04% | 89.61% |
+
+高阈值通过 0.20–0.90 网格搜索确定，在正样本召回率不低于 95% 的约束下优先减少误接受。完整方法、误差分析和复现命令见 [`docs/rag-hallucination-governance-report.md`](docs/rag-hallucination-governance-report.md)。指标仅代表当前固定评测集，不作为生产 SLA。
 
 ### GitHub Actions
 
@@ -177,7 +197,7 @@ python -m rag_project.evaluate_generation
 | --- | --- |
 | Web 前端 | Vue 3、TypeScript、Vite |
 | API 服务 | FastAPI、Pydantic、Uvicorn |
-| 语义检索 | PyTorch、Transformers、BGE-small-zh-v1.5 |
+| 检索与重排 | BM25、RRF、BGE-small-zh-v1.5、BGE-reranker-base |
 | 答案生成 | Dify Chat/Chatflow 或本地 Qwen |
 | 数据与评估 | JSON、PyTorch Tensor、pytest |
 | 部署 | Docker、Docker Compose |

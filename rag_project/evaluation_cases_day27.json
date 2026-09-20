@@ -358,5 +358,124 @@
     "category": "negative_boundary",
     "query": "GitHub Actions 怎样自动部署到阿里云 ECS 并配置 HTTPS 证书？",
     "expected_titles": []
+  },
+  {
+    "id": "boundary_python_async_performance",
+    "category": "negative_boundary",
+    "query": "Python asyncio 服务吞吐量低时，怎样定位事件循环阻塞并调优？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_python_sqlalchemy_migration",
+    "category": "negative_boundary",
+    "query": "Python 项目怎样使用 SQLAlchemy 和 Alembic 完成数据库迁移？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_pytorch_ddp",
+    "category": "negative_boundary",
+    "query": "PyTorch 多机多卡训练怎样配置 DDP 和梯度同步？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_pytorch_quantization",
+    "category": "negative_boundary",
+    "query": "PyTorch 模型部署前怎样进行 INT8 量化并评估精度损失？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_transformer_lora",
+    "category": "negative_boundary",
+    "query": "Transformer 使用 LoRA 微调时 rank、alpha 和目标层应该怎么选？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_transformer_rope",
+    "category": "negative_boundary",
+    "query": "RoPE 位置编码怎样外推到更长上下文并避免性能下降？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_rag_multitenancy",
+    "category": "negative_boundary",
+    "query": "企业 RAG 系统怎样实现多租户知识库隔离和权限过滤？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_graph_rag",
+    "category": "negative_boundary",
+    "query": "GraphRAG 中实体抽取、社区发现和全局查询应该怎样实现？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_ragas_metrics",
+    "category": "negative_boundary",
+    "query": "如何使用 RAGAS 计算 faithfulness 和 answer relevancy 指标？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_fastapi_websocket",
+    "category": "negative_boundary",
+    "query": "FastAPI 怎样用 WebSocket 实现大模型流式输出和断线重连？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_fastapi_rate_limit",
+    "category": "negative_boundary",
+    "query": "FastAPI 接口怎样基于 Redis 实现分布式限流？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_docker_swarm",
+    "category": "negative_boundary",
+    "query": "Docker Swarm 怎样配置滚动更新、服务发现和故障迁移？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_docker_registry_security",
+    "category": "negative_boundary",
+    "query": "私有 Docker Registry 怎样配置镜像签名和漏洞扫描？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_dify_plugin",
+    "category": "negative_boundary",
+    "query": "Dify 插件系统怎样开发自定义工具并发布到 Marketplace？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_github_secret_rotation",
+    "category": "negative_boundary",
+    "query": "GitHub Actions 怎样自动轮换云平台密钥并审计 Secret 使用？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_pytest_load_test",
+    "category": "negative_boundary",
+    "query": "pytest 怎样结合 Locust 对 FastAPI 做并发压测和性能回归？",
+    "expected_titles": [],
+    "answerable": false
+  },
+  {
+    "id": "boundary_qwen_finetune",
+    "category": "negative_boundary",
+    "query": "Qwen 模型怎样使用 QLoRA 做领域微调并合并适配器权重？",
+    "expected_titles": [],
+    "answerable": false
   }
 ]

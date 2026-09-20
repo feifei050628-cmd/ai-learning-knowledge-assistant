@@ -46,6 +46,9 @@ class SourceItem(BaseModel):
     title: str
     chunk_id: str
     score: float
+    vector_score: float | None = None
+    bm25_score: float | None = None
+    rerank_score: float | None = None
 
 
 class AskResponse(BaseModel):
@@ -53,6 +56,10 @@ class AskResponse(BaseModel):
     answer: str
     passed: bool
     max_score: float
+    gate_score: float | None = None
+    gate_status: str | None = None
+    answerable: bool | None = None
+    verification: dict | None = None
     sources: list[SourceItem]
 
 

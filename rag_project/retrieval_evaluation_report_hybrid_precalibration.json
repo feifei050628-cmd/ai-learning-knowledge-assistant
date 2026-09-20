@@ -2,8 +2,8 @@
   "settings": {
     "top_k": 5,
     "min_similarity": 0.48,
-    "gate_low": 0.48,
-    "gate_high": 0.83,
+    "gate_low": 0.45,
+    "gate_high": 0.62,
     "hybrid_retrieval": true,
     "reranker_enabled": true,
     "case_count": 77,
@@ -13,9 +13,9 @@
   "metrics": {
     "hit_at_5": 0.95,
     "mrr_at_5": 0.8208333333333332,
-    "relevant_accept_rate": 0.95,
-    "irrelevant_rejection_rate": 0.8648648648648649,
-    "overall_accuracy": 0.8961038961038961
+    "relevant_accept_rate": 0.975,
+    "irrelevant_rejection_rate": 0.8108108108108109,
+    "overall_accuracy": 0.8831168831168831
   },
   "cases": [
     {
@@ -1426,11 +1426,11 @@
       "expected_rank": 1,
       "max_score": 0.697822630405426,
       "vector_max_score": 0.6073267459869385,
-      "gate_status": "gray",
+      "gate_status": "answer",
       "score_type": "rerank",
       "answerable": true,
-      "accepted": false,
-      "correct": false
+      "accepted": true,
+      "correct": true
     },
     {
       "id": "code_python_dict_get",
@@ -4409,11 +4409,11 @@
       "expected_rank": null,
       "max_score": 0.6870630383491516,
       "vector_max_score": 0.5915576815605164,
-      "gate_status": "gray",
+      "gate_status": "answer",
       "score_type": "rerank",
       "answerable": false,
-      "accepted": false,
-      "correct": true
+      "accepted": true,
+      "correct": false
     },
     {
       "id": "boundary_pytorch_quantization",
@@ -5293,11 +5293,11 @@
       "expected_rank": null,
       "max_score": 0.8283722996711731,
       "vector_max_score": 0.5766700506210327,
-      "gate_status": "gray",
+      "gate_status": "answer",
       "score_type": "rerank",
       "answerable": false,
-      "accepted": false,
-      "correct": true
+      "accepted": true,
+      "correct": false
     },
     {
       "id": "boundary_qwen_finetune",

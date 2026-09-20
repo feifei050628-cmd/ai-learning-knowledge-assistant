@@ -3,6 +3,7 @@ import json
 from transformers import (
     AutoModel,
     AutoModelForCausalLM,
+    AutoModelForSequenceClassification,
     AutoTokenizer,
 )
 
@@ -11,6 +12,7 @@ from rag_project.config import (
     GENERATION_DTYPE,
     GENERATION_MODEL_ID,
     METADATA_PATH,
+    RERANKER_MODEL_ID,
 )
 
 
@@ -49,6 +51,20 @@ def load_generation_components():
 
     model.eval()
 
+    return tokenizer, model
+
+
+def load_reranker_components(
+    model_id: str = RERANKER_MODEL_ID,
+):
+    """加载 query-chunk Cross-Encoder，用其分数做排序与门控。"""
+
+    print(f"正在加载重排模型：{model_id}")
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_id,
+    ).to(DEVICE)
+    model.eval()
     return tokenizer, model
 
 

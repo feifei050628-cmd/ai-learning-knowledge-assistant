@@ -1,12 +1,17 @@
 import json
 
 from rag_project.config import (
+    DEFAULT_GATE_HIGH,
+    DEFAULT_GATE_LOW,
     DEFAULT_MIN_SIMILARITY,
     DEFAULT_TOP_K,
+    ENABLE_HYBRID_RETRIEVAL,
+    ENABLE_RERANKER,
     PROJECT_DIR,
 )
 from rag_project.model_manager import (
     load_retrieval_components,
+    load_reranker_components,
 )
 from rag_project.retrieval import (
     load_knowledge_base,
@@ -100,6 +105,8 @@ def evaluate_retrieval(
     embeddings,
     top_k: int,
     min_similarity: float,
+    reranker_tokenizer=None,
+    reranker_model=None,
 ) -> dict:
     positive_total = 0
     positive_hits = 0
@@ -120,17 +127,25 @@ def evaluate_retrieval(
             chunks=chunks,
             embeddings=embeddings,
             top_k=top_k,
-            min_similarity=-1.0,
+            min_similarity=min_similarity,
+            use_hybrid=ENABLE_HYBRID_RETRIEVAL,
+            reranker_tokenizer=reranker_tokenizer,
+            reranker_model=reranker_model,
+            gate_low=DEFAULT_GATE_LOW,
+            gate_high=DEFAULT_GATE_HIGH,
         )
 
         retrieved_chunks = retrieval_result[
-            "retrieved_chunks"
+            "reference_chunks"
         ]
-        max_score = retrieval_result["max_score"]
+        max_score = retrieval_result["gate_score"]
         expected_titles = case["expected_titles"]
 
-        is_relevant = bool(expected_titles)
-        accepted = max_score >= min_similarity
+        is_relevant = case.get(
+            "answerable",
+            bool(expected_titles),
+        )
+        accepted = retrieval_result["gate_status"] == "answer"
 
         expected_rank = find_expected_rank(
             retrieved_chunks,
@@ -172,12 +187,17 @@ def evaluate_retrieval(
 
         case_result = {
             "id": case["id"],
+            "category": case.get("category", "unknown"),
             "query": case["query"],
             "expected_titles": expected_titles,
             "retrieved_titles": retrieved_titles,
             "retrieved_details": retrieved_details,
             "expected_rank": expected_rank,
             "max_score": max_score,
+            "vector_max_score": retrieval_result["max_score"],
+            "gate_status": retrieval_result["gate_status"],
+            "score_type": retrieval_result["score_type"],
+            "answerable": is_relevant,
             "accepted": accepted,
             "correct": case_correct,
         }
@@ -248,6 +268,10 @@ def evaluate_retrieval(
         "settings": {
             "top_k": top_k,
             "min_similarity": min_similarity,
+            "gate_low": DEFAULT_GATE_LOW,
+            "gate_high": DEFAULT_GATE_HIGH,
+            "hybrid_retrieval": ENABLE_HYBRID_RETRIEVAL,
+            "reranker_enabled": reranker_model is not None,
             "case_count": len(cases),
             "positive_count": positive_total,
             "negative_count": negative_total,
@@ -307,6 +331,13 @@ def main() -> None:
         metadata["model_id"]
     )
 
+    reranker_tokenizer = None
+    reranker_model = None
+    if ENABLE_RERANKER:
+        reranker_tokenizer, reranker_model = (
+            load_reranker_components()
+        )
+
     report = evaluate_retrieval(
         cases=cases,
         tokenizer=tokenizer,
@@ -315,6 +346,8 @@ def main() -> None:
         embeddings=embeddings,
         top_k=DEFAULT_TOP_K,
         min_similarity=DEFAULT_MIN_SIMILARITY,
+        reranker_tokenizer=reranker_tokenizer,
+        reranker_model=reranker_model,
     )
 
     print_summary(report)

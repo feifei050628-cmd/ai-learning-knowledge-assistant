@@ -13,6 +13,13 @@ services:
       DIFY_USER: ${DIFY_USER:-ai-learning-assistant}
       DIFY_TIMEOUT_SECONDS: ${DIFY_TIMEOUT_SECONDS:-60}
       DIFY_VERIFY_SSL: ${DIFY_VERIFY_SSL:-true}
+      ENABLE_HYBRID_RETRIEVAL: ${ENABLE_HYBRID_RETRIEVAL:-true}
+      ENABLE_RERANKER: ${ENABLE_RERANKER:-true}
+      RERANKER_MODEL_ID: ${RERANKER_MODEL_ID:-BAAI/bge-reranker-base}
+      RAG_GATE_LOW: ${RAG_GATE_LOW:-0.48}
+      RAG_GATE_HIGH: ${RAG_GATE_HIGH:-0.83}
+      ENABLE_POST_GENERATION_VERIFICATION: ${ENABLE_POST_GENERATION_VERIFICATION:-true}
+      MAX_UNSUPPORTED_CLAIM_RATIO: ${MAX_UNSUPPORTED_CLAIM_RATIO:-0.15}
       HF_HOME: /app/.cache/huggingface
     volumes:
       - huggingface-cache:/app/.cache/huggingface

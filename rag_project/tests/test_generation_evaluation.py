@@ -141,3 +141,39 @@ def test_append_source_citations():
     )
 
     assert refusal == "现有资料不足"
+
+
+def test_post_generation_verification_maps_claim_to_chunk():
+    verification = RAGPipeline.verify_answer_support(
+        "RAG 包含检索、增强和生成三个阶段。",
+        [
+            {
+                "chunk_id": "rag_1",
+                "text": "RAG 系统通常由检索、增强和生成三个阶段组成。",
+            }
+        ],
+    )
+    assert verification["verified"] is True
+    assert verification["claims"][0]["chunk_id"] == "rag_1"
+
+
+def test_post_generation_verification_rejects_unsupported_claim():
+    verification = RAGPipeline.verify_answer_support(
+        "北京是世界上面积最大的城市。",
+        [
+            {
+                "chunk_id": "rag_1",
+                "text": "RAG 系统通常由检索、增强和生成三个阶段组成。",
+            }
+        ],
+    )
+    assert verification["verified"] is False
+    assert verification["unsupported_claim_ratio"] == 1.0
+
+
+def test_gray_answer_is_explicitly_incomplete():
+    answer = RAGPipeline.build_gray_answer(
+        [{"text": "这是最接近的原文。"}]
+    )
+    assert "不足以完整回答" in answer
+    assert "最接近的原文" in answer
