@@ -1,102 +1,362 @@
 [
   {
-    "id": "rag_private_data",
+    "id": "fact_rag_three_stages",
+    "category": "fact",
+    "query": "一个基本 RAG 系统通常包含哪三个阶段？",
+    "expected_titles": ["RAG基础", "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库"]
+  },
+  {
+    "id": "fact_rag_private_data",
+    "category": "fact",
     "query": "模型参数中没有公司的内部资料时，怎样在回答之前补充这些信息？",
-    "expected_titles": [
-      "RAG基础",
-      "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
-      "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统"
-    ]
+    "expected_titles": ["RAG基础", "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库", "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统"]
   },
   {
-    "id": "attention_qk",
+    "id": "fact_transformer_qkv",
+    "category": "fact",
+    "query": "Query、Key、Value 在注意力机制中分别可以怎样理解？",
+    "expected_titles": ["Transformer基础", "Python Day 11 学习笔记", "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"]
+  },
+  {
+    "id": "fact_attention_score",
+    "category": "fact",
     "query": "自注意力计算中，Query 与 Key 的匹配结果起什么作用？",
-    "expected_titles": [
-      "Transformer基础",
-      "Python Day 11 学习笔记",
-      "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"
-    ]
+    "expected_titles": ["Transformer基础", "Python Day 11 学习笔记", "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"]
   },
   {
-    "id": "residual_layernorm",
-    "query": "Transformer编码器为什么在子层外加入残差连接和LayerNorm？",
-    "expected_titles": [
-      "Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block"
-    ]
+    "id": "fact_residual_layernorm",
+    "category": "fact",
+    "query": "Transformer 编码器为什么在子层外加入残差连接和 LayerNorm？",
+    "expected_titles": ["Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block"]
   },
   {
-    "id": "inference_mode",
-    "query": "预测阶段同时使用model.eval()和inference_mode()分别解决什么问题？",
-    "expected_titles": [
-      "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
-      "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
-      "PyTorch训练"
-    ]
+    "id": "fact_token_position_embedding",
+    "category": "fact",
+    "query": "Token Embedding 和 Position Embedding 分别提供了什么信息？",
+    "expected_titles": ["Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block", "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"]
   },
   {
-    "id": "fastapi_lifespan",
-    "query": "为什么RAGPipeline应该在FastAPI启动时加载一次，而不是每次请求重新创建？",
-    "expected_titles": [
-      "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API"
-    ]
+    "id": "fact_bge_instruction",
+    "category": "fact",
+    "query": "使用 BGE 做中文检索时，为什么查询文本需要加检索指令？",
+    "expected_titles": ["Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库"]
   },
   {
-    "id": "pytest_fake_pipeline",
-    "query": "测试问答接口时，怎样避免真正加载和运行本地大模型？",
-    "expected_titles": [
-      "Day 20 学习笔记：使用 pytest 自动测试 RAG API"
-    ]
+    "id": "fact_l2_dot",
+    "category": "fact",
+    "query": "向量做 L2 归一化后，为什么点积可以等价表示余弦相似度？",
+    "expected_titles": ["Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配", "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库", "Day 26 学习笔记：扩展知识库向量化与正式索引构建"]
   },
   {
-    "id": "threshold_too_high",
+    "id": "fact_fastapi_lifespan",
+    "category": "fact",
+    "query": "为什么 RAGPipeline 应该在 FastAPI 启动时加载一次，而不是每次请求重新创建？",
+    "expected_titles": ["Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API"]
+  },
+  {
+    "id": "fact_api_status",
+    "category": "fact",
+    "query": "问答 API 中 200、422、500、503 分别适合表示什么情况？",
+    "expected_titles": ["Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API", "Day 20 学习笔记：使用 pytest 自动测试 RAG API"]
+  },
+  {
+    "id": "fact_hit_mrr",
+    "category": "fact",
+    "query": "Hit@K 和 MRR@K 在检索质量评估中分别衡量什么？",
+    "expected_titles": ["Day 21 学习笔记：RAG 检索质量评估", "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"]
+  },
+  {
+    "id": "fact_threshold_high",
+    "category": "fact",
     "query": "相关性门槛设置得过高时，通常会增加误接受还是误拒绝？",
-    "expected_titles": [
-      "Day 21 学习笔记：RAG 检索质量评估",
-      "Day 22 学习笔记：RAG 相关性门槛校准"
-    ]
+    "expected_titles": ["Day 21 学习笔记：RAG 检索质量评估", "Day 22 学习笔记：RAG 相关性门槛校准"]
   },
   {
-    "id": "chunk_overlap",
+    "id": "fact_chunk_overlap",
+    "category": "fact",
     "query": "切分长文档时保留相邻文本块的重叠区域有什么作用？",
-    "expected_titles": [
-      "Day 24 学习笔记：文档导入与智能切块"
-    ]
+    "expected_titles": ["Day 24 学习笔记：文档导入与智能切块"]
   },
   {
-    "id": "note_day_metadata",
-    "query": "导入dayXX学习笔记时，怎样从文件名取得学习天数并保存为元数据？",
-    "expected_titles": [
-      "Day 25 学习笔记：导入历史学习笔记与扩展知识库"
-    ]
+    "id": "fact_markdown_code_fence",
+    "category": "fact",
+    "query": "处理 Markdown 文档时，为什么要尽量保持代码块完整？",
+    "expected_titles": ["Day 24 学习笔记：文档导入与智能切块"]
+  },
+  {
+    "id": "fact_note_metadata",
+    "category": "fact",
+    "query": "导入 dayXX 学习笔记时，怎样从文件名取得学习天数并保存为元数据？",
+    "expected_titles": ["Day 25 学习笔记：导入历史学习笔记与扩展知识库"]
+  },
+  {
+    "id": "fact_vector_build",
+    "category": "fact",
+    "query": "构建正式向量知识库前，为什么要检查 chunk 数量、字段和向量维度？",
+    "expected_titles": ["Day 26 学习笔记：扩展知识库向量化与正式索引构建", "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"]
+  },
+  {
+    "id": "fact_data_leakage",
+    "category": "fact",
+    "query": "为什么知识库扩大后，原来的负例可能变成数据泄漏？",
+    "expected_titles": ["Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"]
+  },
+  {
+    "id": "fact_programmatic_citation",
+    "category": "fact",
+    "query": "为什么程序化追加引用比完全依赖小模型自己输出引用更可靠？",
+    "expected_titles": ["Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"]
+  },
+  {
+    "id": "fact_idempotent_update",
+    "category": "fact",
+    "query": "知识库自动更新流程里，幂等性具体指什么？",
+    "expected_titles": ["Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"]
+  },
+  {
+    "id": "fact_docker_image_container",
+    "category": "fact",
+    "query": "Docker 镜像和容器分别扮演什么角色？",
+    "expected_titles": ["Docker部署"]
+  },
+  {
+    "id": "code_python_dict_get",
+    "category": "code",
+    "query": "为什么键可能不存在时更适合用 dict.get，而不是直接用 dict[key]？",
+    "expected_titles": ["Python Day 1｜六道复习题与核心代码"]
+  },
+  {
+    "id": "code_python_split_strip",
+    "category": "code",
+    "query": "split 返回什么类型，清洗文本时为什么常和 strip 一起使用？",
+    "expected_titles": ["Python Day 1｜六道复习题与核心代码"]
+  },
+  {
+    "id": "code_python_function_scope",
+    "category": "code",
+    "query": "Python 函数中的参数、返回值和作用域分别解决什么问题？",
+    "expected_titles": ["Python Day 2｜函数、参数、返回值与作用域"]
+  },
+  {
+    "id": "code_python_exception",
+    "category": "code",
+    "query": "try except 通常用来处理什么类型的问题？",
+    "expected_titles": ["Python Day 4 学习笔记", "Python Day 5 学习笔记"]
+  },
+  {
+    "id": "code_pytorch_training_order",
+    "category": "code",
+    "query": "PyTorch 训练循环里 zero_grad、backward 和 optimizer.step 的顺序为什么重要？",
+    "expected_titles": ["PyTorch训练", "Python Day 8 学习笔记", "Python Day 9 学习笔记"]
+  },
+  {
+    "id": "code_eval_no_grad",
+    "category": "code",
+    "query": "模型预测时 eval 和 no_grad 分别控制什么？",
+    "expected_titles": ["PyTorch训练", "Python Day 6 学习笔记", "Python Day 7 学习笔记"]
+  },
+  {
+    "id": "code_bce_logits",
+    "category": "code",
+    "query": "二分类训练中为什么常用 BCEWithLogitsLoss，而不是先手动 sigmoid 再算损失？",
+    "expected_titles": ["Python Day 8 学习笔记", "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"]
+  },
+  {
+    "id": "code_dataloader_shuffle",
+    "category": "code",
+    "query": "DataLoader 打乱数据时，为什么不会让特征和标签错位？",
+    "expected_titles": ["Python Day 9 学习笔记", "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"]
+  },
+  {
+    "id": "code_pytest_fake_pipeline",
+    "category": "code",
+    "query": "测试问答接口时，怎样避免真正加载和运行本地大模型？",
+    "expected_titles": ["Day 20 学习笔记：使用 pytest 自动测试 RAG API"]
+  },
+  {
+    "id": "code_fixture_monkeypatch",
+    "category": "code",
+    "query": "pytest 中 fixture 和 monkeypatch 在隔离测试环境时分别有什么作用？",
+    "expected_titles": ["Day 20 学习笔记：使用 pytest 自动测试 RAG API", "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"]
+  },
+  {
+    "id": "multi_attention_mask",
+    "category": "multi_hop",
+    "query": "Key Padding Mask 为什么能避免真实 token 注意到 PAD 位置？",
+    "expected_titles": ["Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）", "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"]
+  },
+  {
+    "id": "multi_head_split_merge",
+    "category": "multi_hop",
+    "query": "多头注意力为什么要拆成多个头，计算后又如何合并？",
+    "expected_titles": ["Transformer基础", "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"]
+  },
+  {
+    "id": "multi_threshold_tradeoff",
+    "category": "multi_hop",
+    "query": "相关性门槛调低或调高时，Precision、Recall 和拒答表现通常会怎样变化？",
+    "expected_titles": ["Day 21 学习笔记：RAG 检索质量评估", "Day 22 学习笔记：RAG 相关性门槛校准"]
+  },
+  {
+    "id": "multi_retrieval_generation_eval",
+    "category": "multi_hop",
+    "query": "为什么检索评估通过后，还需要单独做生成质量评估？",
+    "expected_titles": ["Day 21 学习笔记：RAG 检索质量评估", "Day 23 学习笔记：完整 RAG 生成质量评估", "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"]
+  },
+  {
+    "id": "multi_chunk_to_answer_failure",
+    "category": "multi_hop",
+    "query": "固定字符切块为什么可能导致检索命中但最终回答仍然不完整？",
+    "expected_titles": ["Day 23 学习笔记：完整 RAG 生成质量评估", "Day 24 学习笔记：文档导入与智能切块"]
+  },
+  {
+    "id": "multi_source_traceability",
+    "category": "multi_hop",
+    "query": "chunk_id、source、title 和相似度一起返回，怎样帮助排查 RAG 问答问题？",
+    "expected_titles": ["Day 24 学习笔记：文档导入与智能切块", "Day 25 学习笔记：导入历史学习笔记与扩展知识库", "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"]
+  },
+  {
+    "id": "multi_update_consistency",
+    "category": "multi_hop",
+    "query": "为什么知识库更新时必须同步切块、元数据、向量矩阵和内存中的 Pipeline？",
+    "expected_titles": ["Day 26 学习笔记：扩展知识库向量化与正式索引构建", "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"]
+  },
+  {
+    "id": "multi_topk_after_expansion",
+    "category": "multi_hop",
+    "query": "为什么扩展知识库后要重新分析 Hit@1、Hit@3、Hit@5 和 Hit@10？",
+    "expected_titles": ["Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"]
+  },
+  {
+    "id": "multi_dify_provider",
+    "category": "multi_hop",
+    "query": "系统接入 Dify 后，哪些部分仍然由本项目负责，哪些部分交给 Dify？",
+    "expected_titles": ["Day 17 学习笔记：本地生成模型与完整 RAG 问答系统", "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"]
+  },
+  {
+    "id": "multi_docker_fastapi",
+    "category": "multi_hop",
+    "query": "把 FastAPI 服务放进 Docker 时，为什么既要让 Uvicorn 监听 0.0.0.0，又要配置端口映射？",
+    "expected_titles": ["Docker部署", "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API"]
   },
   {
     "id": "negative_passport",
+    "category": "negative_unrelated",
     "query": "护照到期后应该到哪里办理换发手续？",
     "expected_titles": []
   },
   {
     "id": "negative_badminton",
+    "category": "negative_unrelated",
     "query": "羽毛球双打比赛的发球规则是什么？",
     "expected_titles": []
   },
   {
     "id": "negative_air_conditioner",
+    "category": "negative_unrelated",
     "query": "家用空调连续运行一天大约消耗多少度电？",
     "expected_titles": []
   },
   {
     "id": "negative_cat",
+    "category": "negative_unrelated",
     "query": "猫咪突然停止进食应该如何处理？",
     "expected_titles": []
   },
   {
     "id": "negative_subway",
+    "category": "negative_unrelated",
     "query": "上海地铁最后一班车通常几点发出？",
     "expected_titles": []
   },
   {
     "id": "negative_gardening",
+    "category": "negative_unrelated",
     "query": "春季应该怎样修剪院子里的玫瑰花？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_stock",
+    "category": "negative_unrelated",
+    "query": "现在应该买入哪只股票，未来一个月收益最高？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_medical",
+    "category": "negative_unrelated",
+    "query": "喉咙痛发烧三天应该吃什么抗生素？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_travel",
+    "category": "negative_unrelated",
+    "query": "冬季去北海道自驾旅行需要准备哪些防滑装备？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_recipe",
+    "category": "negative_unrelated",
+    "query": "红烧牛肉怎样炖得更软烂？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_real_estate",
+    "category": "negative_unrelated",
+    "query": "现在上海哪几个板块最适合买房投资？",
+    "expected_titles": []
+  },
+  {
+    "id": "negative_law",
+    "category": "negative_unrelated",
+    "query": "租房合同纠纷应该怎么起诉房东？",
+    "expected_titles": []
+  },
+  {
+    "id": "boundary_python_excel",
+    "category": "negative_boundary",
+    "query": "用 Python 自动整理 Excel 财务报表时，应该怎么设计公式和透视表？",
+    "expected_titles": []
+  },
+  {
+    "id": "boundary_docker_k8s",
+    "category": "negative_boundary",
+    "query": "Docker 服务上线后，Kubernetes HPA 应该怎样配置扩缩容策略？",
+    "expected_titles": []
+  },
+  {
+    "id": "boundary_transformer_translation",
+    "category": "negative_boundary",
+    "query": "Transformer 做机器翻译时 BLEU 分数低，应该怎样调参？",
+    "expected_titles": []
+  },
+  {
+    "id": "boundary_fastapi_oauth",
+    "category": "negative_boundary",
+    "query": "FastAPI 项目如何接入 OAuth2 登录和刷新令牌？",
+    "expected_titles": []
+  },
+  {
+    "id": "boundary_pytorch_cuda_oom",
+    "category": "negative_boundary",
+    "query": "PyTorch 训练大模型出现 CUDA out of memory，应该怎样优化显存？",
+    "expected_titles": []
+  },
+  {
+    "id": "boundary_rag_vector_database",
+    "category": "negative_boundary",
+    "query": "生产级 RAG 应该选择 Milvus、Qdrant 还是 Elasticsearch 作为向量数据库？",
+    "expected_titles": []
+  },
+  {
+    "id": "boundary_dify_billing",
+    "category": "negative_boundary",
+    "query": "Dify 云服务的团队版计费和调用额度应该怎么选？",
+    "expected_titles": []
+  },
+  {
+    "id": "boundary_github_actions_deploy",
+    "category": "negative_boundary",
+    "query": "GitHub Actions 怎样自动部署到阿里云 ECS 并配置 HTTPS 证书？",
     "expected_titles": []
   }
 ]

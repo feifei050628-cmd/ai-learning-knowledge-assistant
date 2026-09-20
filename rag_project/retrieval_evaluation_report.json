@@ -2,20 +2,86 @@
   "settings": {
     "top_k": 5,
     "min_similarity": 0.48,
-    "case_count": 15,
-    "positive_count": 9,
-    "negative_count": 6
+    "case_count": 60,
+    "positive_count": 40,
+    "negative_count": 20
   },
   "metrics": {
-    "hit_at_5": 0.8888888888888888,
-    "mrr_at_5": 0.5648148148148148,
+    "hit_at_5": 0.875,
+    "mrr_at_5": 0.7166666666666666,
     "relevant_accept_rate": 1.0,
-    "irrelevant_rejection_rate": 1.0,
-    "overall_accuracy": 0.9333333333333333
+    "irrelevant_rejection_rate": 0.6,
+    "overall_accuracy": 0.7833333333333333
   },
   "cases": [
     {
-      "id": "rag_private_data",
+      "id": "fact_rag_three_stages",
+      "query": "一个基本 RAG 系统通常包含哪三个阶段？",
+      "expected_titles": [
+        "RAG基础",
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库"
+      ],
+      "retrieved_titles": [
+        "RAG基础",
+        "Python Day 11 学习笔记",
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+        "Python Day 1｜六道复习题与核心代码",
+        "Python Day 10 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "RAG基础",
+          "chunk_id": "doc_ba53fec8d7_chunk_0001",
+          "score": 0.6313351392745972,
+          "category": "reference",
+          "day": null,
+          "text_preview": "RAG 的全称是 Retrieval-Augmented Generation，即检索增强生成。  它把外部知识库检索与大语言模型生成结合起来，让模型能够根据指定资料回答问题。  一个基本的 RAG 系统通常包含三个阶段。  第一阶段是 Retrieval，系统把用户问题转换成向量，并从知识库中检索相似文本。  第二阶"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 11 学习笔记",
+          "chunk_id": "doc_9b983c3ee6_chunk_0005",
+          "score": 0.5659669637680054,
+          "category": "learning_note",
+          "day": 11,
+          "text_preview": "三个 Linear 层拥有不同的参数 W_q、W_k、W_v，因此输入相同，生成的 Q、K、V 数值也不同。  需要准确区分：  Q、K、V 是计算得到的向量。  随机初始化的是三个 Linear 层的参数 W_q、W_k、W_v。  =========================================="
+        },
+        {
+          "rank": 3,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0028",
+          "score": 0.5420920848846436,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "测试问题“RAG由哪三个阶段组成？  ”曾得到约 0.44～0.46 的最高相似度，低于原先 0.60 的门槛，因此系统返回“现有资料不足”。  这不是程序崩溃，而是门槛逻辑正常工作。  出现这种情况的原因：  1. 当前小型知识库原文描述的是“检索资料、加入提示词、生成回答”，没有直接写出 Retrieval、Aug"
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 1｜六道复习题与核心代码",
+          "chunk_id": "doc_485b9ca9c1_chunk_0018",
+          "score": 0.5270185470581055,
+          "category": "learning_note",
+          "day": 1,
+          "text_preview": "Day 1 学习结论 =================================  已完成Python基础、三道Python练习、六道知识自测、Git仓库初始化、版本提交、差异查看、分支创建、分支切换以及分支合并。"
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 10 学习笔记",
+          "chunk_id": "doc_cdf150f06b_chunk_0034",
+          "score": 0.5182138681411743,
+          "category": "learning_note",
+          "day": 10,
+          "text_preview": "1. 文本必须先转换成 Token ID，神经网络才能处理。  2. Padding 负责统一长度，Attention Mask 负责告诉模型哪些位置是真的。  3. Embedding 是一张可学习的参数表，Token ID 用来查询其中的一行。  4. Masked Mean Pooling 会忽略 PAD，把多个"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6313351392745972,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_rag_private_data",
       "query": "模型参数中没有公司的内部资料时，怎样在回答之前补充这些信息？",
       "expected_titles": [
         "RAG基础",
@@ -82,7 +148,74 @@
       "correct": true
     },
     {
-      "id": "attention_qk",
+      "id": "fact_transformer_qkv",
+      "query": "Query、Key、Value 在注意力机制中分别可以怎样理解？",
+      "expected_titles": [
+        "Transformer基础",
+        "Python Day 11 学习笔记",
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"
+      ],
+      "retrieved_titles": [
+        "Transformer基础",
+        "Python Day 10 学习笔记",
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+        "Python Day 11 学习笔记",
+        "Python Day 11 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Transformer基础",
+          "chunk_id": "doc_6f4a68f67a_chunk_0001",
+          "score": 0.6736035346984863,
+          "category": "reference",
+          "day": null,
+          "text_preview": "Transformer 是一种以注意力机制为核心的神经网络架构。  它不依赖循环神经网络逐步处理序列，因此能够更高效地并行训练。  自注意力机制会根据 Query、Key 和 Value 计算序列中不同位置之间的关系。  多头注意力会从多个表示空间学习不同类型的关系，然后将结果组合起来。  Transformer 通常"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 10 学习笔记",
+          "chunk_id": "doc_cdf150f06b_chunk_0035",
+          "score": 0.6519620418548584,
+          "category": "learning_note",
+          "day": 10,
+          "text_preview": "2. Self-Attention 的作用。  3. Query、Key、Value 的基本含义。  4. Attention Score 如何计算。  5. Mask 在 Transformer 中如何参与注意力计算。  Day 10 已完成。"
+        },
+        {
+          "rank": 3,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0009",
+          "score": 0.6094276905059814,
+          "category": "learning_note",
+          "day": 12,
+          "text_preview": "原始注意力分数可能：  - 小于 0；  - 等于 0；  - 大于 1；  - 每一行的总和不等于 1。  因此原始分数不能直接当作权重，需要使用：  attention_weights = torch.softmax(attention_scores, dim=-1)  dim=-1 表示在最后一维 key_cou"
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 11 学习笔记",
+          "chunk_id": "doc_9b983c3ee6_chunk_0022",
+          "score": 0.5984257459640503,
+          "category": "learning_note",
+          "day": 11,
+          "text_preview": "用今天加入 PAD 后的数据：  Q、K、V：               (1, 4, 4) 注意力分数：            (1, 4, 4) 注意力权重：            (1, 4, 4) 上下文向量：            (1, 4, 4)  注意：形状中的数字恰好都为 4，但含义不同。  必须根"
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 11 学习笔记",
+          "chunk_id": "doc_9b983c3ee6_chunk_0023",
+          "score": 0.5967349410057068,
+          "category": "learning_note",
+          "day": 11,
+          "text_preview": "完整过程：  1. pytorch 的输入向量经过 query_layer，生成 pytorch 的 Query。  2. pytorch 的 Query 分别与 python、pytorch、rag 的 Key 计算点积。  3. 得到 pytorch 对各个 Key 的原始注意力分数。  4. 所有分数除以 √d_"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6736035346984863,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_attention_score",
       "query": "自注意力计算中，Query 与 Key 的匹配结果起什么作用？",
       "expected_titles": [
         "Transformer基础",
@@ -149,8 +282,8 @@
       "correct": true
     },
     {
-      "id": "residual_layernorm",
-      "query": "Transformer编码器为什么在子层外加入残差连接和LayerNorm？",
+      "id": "fact_residual_layernorm",
+      "query": "Transformer 编码器为什么在子层外加入残差连接和 LayerNorm？",
       "expected_titles": [
         "Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block"
       ],
@@ -214,75 +347,206 @@
       "correct": true
     },
     {
-      "id": "inference_mode",
-      "query": "预测阶段同时使用model.eval()和inference_mode()分别解决什么问题？",
+      "id": "fact_token_position_embedding",
+      "query": "Token Embedding 和 Position Embedding 分别提供了什么信息？",
       "expected_titles": [
-        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
-        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
-        "PyTorch训练"
+        "Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
       ],
       "retrieved_titles": [
-        "Python Day 7 学习笔记",
-        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
-        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
-        "Python Day 6 学习笔记",
-        "Python Day 6 学习笔记"
+        "Python Day 11 学习笔记",
+        "Python Day 11 学习笔记",
+        "Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block",
+        "Python Day 10 学习笔记",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
       ],
       "retrieved_details": [
         {
           "rank": 1,
-          "title": "Python Day 7 学习笔记",
-          "chunk_id": "doc_600c116976_chunk_0017",
-          "score": 0.708027184009552,
+          "title": "Python Day 11 学习笔记",
+          "chunk_id": "doc_9b983c3ee6_chunk_0004",
+          "score": 0.5104981064796448,
           "category": "learning_note",
-          "day": 7,
-          "text_preview": "model.eval()  with torch.no_grad(): test_logits = model(test_data) test_probabilities = torch.sigmoid(test_logits) test_predictions = ( test_probabilities >= 0."
+          "day": 11,
+          "text_preview": "Q = XW_q K = XW_k V = XW_v  可以这样理解：  Query（Q）：当前 Token 想寻找什么信息。  Key（K）：当前 Token 能提供什么匹配线索。  Value（V）：当前 Token 真正携带、准备被汇总的内容。  Q 和 K 的比较结果决定注意力权重，V 则根据这些权重被加权求和"
         },
         {
           "rank": 2,
-          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
-          "chunk_id": "doc_8c982557cc_chunk_0006",
-          "score": 0.6962339282035828,
+          "title": "Python Day 11 学习笔记",
+          "chunk_id": "doc_9b983c3ee6_chunk_0003",
+          "score": 0.46448224782943726,
           "category": "learning_note",
-          "day": 17,
-          "text_preview": "Instruct 表示模型经过指令微调，更熟悉 system、user、assistant 等对话结构，也更擅长遵循要求完成问答。  四、model.eval()、no_grad() 与 inference_mode() ------------------------------------------------ "
+          "day": 11,
+          "text_preview": "同一个 Token ID 在同一个 Embedding 中总是查询同一行参数，因此它还没有根据当前句子中的其他 Token 改变自己的表示。  Self-Attention 的目标是：  让每个 Token 查看句子中的其他 Token，并按照重要程度汇总它们的信息，从而生成包含上下文的新向量。  例如句子中有：  p"
         },
         {
           "rank": 3,
-          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
-          "chunk_id": "doc_30d9ea5fd0_chunk_0010",
-          "score": 0.6876547932624817,
+          "title": "Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block",
+          "chunk_id": "doc_2d8a31f829_chunk_0016",
+          "score": 0.4554441273212433,
           "category": "learning_note",
-          "day": 16,
-          "text_preview": "模型参数和输入 Tensor 要参与同一次数学计算，因此必须同时位于 CPU 或同时位于 GPU。  3. eval 与 no_grad  embedding_model.eval()  把模型切换到预测模式，使 Dropout 等训练和预测行为不同的层采用预测行为。  with torch.no_grad():  关"
+          "day": 13,
+          "text_preview": "Wq、Wk和Wv不同，因此三个结果可以学习不同职责：  - Q：当前token想寻找什么。  - K：当前token能提供什么匹配线索。  - V：当前token真正携带什么内容。  以后学习Cross-Attention时，Q可能来自一组输入，K和V来自另一组输入。  十八、注意力权重的形状  当：  batch_s"
         },
         {
           "rank": 4,
-          "title": "Python Day 6 学习笔记",
-          "chunk_id": "doc_fa8876987f_chunk_0015",
-          "score": 0.6848999261856079,
+          "title": "Python Day 10 学习笔记",
+          "chunk_id": "doc_cdf150f06b_chunk_0035",
+          "score": 0.44673508405685425,
           "category": "learning_note",
-          "day": 6,
-          "text_preview": "model.eval() 只切换网络层的工作模式，不会自动关闭梯度计算。  ============================================================ 十四、torch.no_grad() 与模型推理 ===================================="
+          "day": 10,
+          "text_preview": "2. Self-Attention 的作用。  3. Query、Key、Value 的基本含义。  4. Attention Score 如何计算。  5. Mask 在 Transformer 中如何参与注意力计算。  Day 10 已完成。"
         },
         {
           "rank": 5,
-          "title": "Python Day 6 学习笔记",
-          "chunk_id": "doc_fa8876987f_chunk_0016",
-          "score": 0.6823875904083252,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0027",
+          "score": 0.44475290179252625,
           "category": "learning_note",
-          "day": 6,
-          "text_preview": "两者区别：  model.eval()：切换某些网络层的工作模式。  torch.no_grad()：关闭梯度和计算图记录。  预测时通常两者一起使用。  ============================================================ 十五、测试数据与泛化能力 ========"
+          "day": 14,
+          "text_preview": "13. Key Mask和Query Mask分别解决什么？  Key Mask屏蔽PAD列，防止真实Token关注PAD；  Query Mask清零PAD输出行。  14. 为什么使用Masked Mean Pooling？  它只对真实Token求平均，不会让PAD进入分母并错误缩小短文本向量。  15. (4,"
         }
       ],
-      "expected_rank": 2,
-      "max_score": 0.708027184009552,
+      "expected_rank": 3,
+      "max_score": 0.5104981064796448,
       "accepted": true,
       "correct": true
     },
     {
-      "id": "fastapi_lifespan",
-      "query": "为什么RAGPipeline应该在FastAPI启动时加载一次，而不是每次请求重新创建？",
+      "id": "fact_bge_instruction",
+      "query": "使用 BGE 做中文检索时，为什么查询文本需要加检索指令？",
+      "expected_titles": [
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库"
+      ],
+      "retrieved_titles": [
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+          "chunk_id": "doc_30d9ea5fd0_chunk_0015",
+          "score": 0.6183738112449646,
+          "category": "learning_note",
+          "day": 16,
+          "text_preview": "如果有 N 个文本块：  chunk_embeddings 形状为 (N, 512)  当前索引关系：  chunk_embeddings 第 0 行 ↔ document_chunks 第 0 项 chunk_embeddings 第 1 行 ↔ document_chunks 第 1 项 chunk_embeddi"
+        },
+        {
+          "rank": 2,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0017",
+          "score": 0.612727165222168,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "3. 必要的一致性检查  if len(chunks) !  = embeddings.shape[0]: raise ValueError(...)  原因：文本块列表的第 i 项必须对应向量矩阵第 i 行。  检索返回的是向量行索引。  只有二者顺序和数量一致，才能根据该索引找到正确原文。  否则系统可能计算的是 "
+        },
+        {
+          "rank": 3,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0040",
+          "score": 0.5766163468360901,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "- 引用是否正确。  - 答案是否清晰完整。  检索正确不等于生成一定正确。  检索错误通常会让生成更难正确。  一个完整 RAG 项目需要同时评估两层。  ============================================================ 三十三、GBK UnicodeEncod"
+        },
+        {
+          "rank": 4,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0054",
+          "score": 0.5716303586959839,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "13. 中文 API 需要同时注意请求字节、Content-Type、响应头和终端编码。  14. RAG 已从本地命令行程序升级为可被其他应用调用的服务。"
+        },
+        {
+          "rank": 5,
+          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+          "chunk_id": "doc_30d9ea5fd0_chunk_0001",
+          "score": 0.5665000677108765,
+          "category": "learning_note",
+          "day": 16,
+          "text_preview": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库  一、今天完成的内容  今天在 Day 15 预训练句子向量的基础上，搭建了第一个中文 RAG 检索原型。  完成的主要内容：  1. 理解 RAG 的 Retrieval、Augmentation、Generation 三个阶段。  2. "
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6183738112449646,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_l2_dot",
+      "query": "向量做 L2 归一化后，为什么点积可以等价表示余弦相似度？",
+      "expected_titles": [
+        "Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配",
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建"
+      ],
+      "retrieved_titles": [
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+        "Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配",
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0019",
+          "score": 0.6825054883956909,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "归一化后模长为 1，因此两个归一化向量的点积就等于余弦相似度。  6. 相似度矩阵乘法  similarities = ( query_embedding @ embeddings.T ).squeeze(0)  形状变化：  (1, 512) @ (10, 512).T = (1, 512) @ (512, 10) "
+        },
+        {
+          "rank": 2,
+          "title": "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+          "chunk_id": "doc_27cae4791c_chunk_0018",
+          "score": 0.6824650764465332,
+          "category": "learning_note",
+          "day": 26,
+          "text_preview": "当前项目根据 BGE 模型的使用方式取 CLS 表示。  ============================================================ 十三、为什么要做 L2 归一化 ======================================================"
+        },
+        {
+          "rank": 3,
+          "title": "Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配",
+          "chunk_id": "doc_54ce5d8b7e_chunk_0015",
+          "score": 0.677961528301239,
+          "category": "learning_note",
+          "day": 15,
+          "text_preview": "解决方法二：如果函数外确实需要使用，就通过 return 返回。  核心规律：  函数内部创建的局部变量，只能在函数内部直接访问。  八、L2 归一化  sentence_embeddings = F.normalize( sentence_embeddings, p=2, dim=1, )  L2 归一化公式：  归"
+        },
+        {
+          "rank": 4,
+          "title": "Day 21 学习笔记：RAG 检索质量评估",
+          "chunk_id": "doc_bd6cc11fde_chunk_0009",
+          "score": 0.6654722094535828,
+          "category": "learning_note",
+          "day": 21,
+          "text_preview": "由于归一化向量的余弦相似度理论范围是 -1 到 1，设置 -1.0 可以让检索函数返回 Top-K。  随后评估脚本再独立计算：  accepted = max_score >= min_similarity  这里的 min_similarity 才是实际配置中的 0.40。  需要注意：-1.0 只是评估时获取排名"
+        },
+        {
+          "rank": 5,
+          "title": "Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配",
+          "chunk_id": "doc_54ce5d8b7e_chunk_0024",
+          "score": 0.6632161140441895,
+          "category": "learning_note",
+          "day": 15,
+          "text_preview": "10. 为什么需要 Attention Mask  为了排除 PAD，只对真实 Token 进行池化。  11. Masked Mean Pooling  扩展 Mask → PAD 向量清零 → 有效 Token 向量求和 → 除以有效 Token 数量 → 得到句子向量。  12. L2 归一化  每个句子向量除以"
+        }
+      ],
+      "expected_rank": 2,
+      "max_score": 0.6825054883956909,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_fastapi_lifespan",
+      "query": "为什么 RAGPipeline 应该在 FastAPI 启动时加载一次，而不是每次请求重新创建？",
       "expected_titles": [
         "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API"
       ],
@@ -346,72 +610,139 @@
       "correct": false
     },
     {
-      "id": "pytest_fake_pipeline",
-      "query": "测试问答接口时，怎样避免真正加载和运行本地大模型？",
+      "id": "fact_api_status",
+      "query": "问答 API 中 200、422、500、503 分别适合表示什么情况？",
       "expected_titles": [
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
         "Day 20 学习笔记：使用 pytest 自动测试 RAG API"
       ],
       "retrieved_titles": [
-        "Python Day 9 学习笔记",
-        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
-        "Day 21 学习笔记：RAG 检索质量评估",
-        "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
-        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库"
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 23 学习笔记：完整 RAG 生成质量评估",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 22 学习笔记：RAG 相关性门槛校准"
       ],
       "retrieved_details": [
         {
           "rank": 1,
-          "title": "Python Day 9 学习笔记",
-          "chunk_id": "doc_007c7c6a98_chunk_0028",
-          "score": 0.6237448453903198,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0047",
+          "score": 0.5560324192047119,
           "category": "learning_note",
-          "day": 9,
-          "text_preview": "它不是让任意模型文件自动只保留一部分参数，而是限制加载方式。  今天保存的本来就是 state_dict，所以这个选项很合适。  ============================================================ 二十二、使用最佳模型进行最终测试 ================="
+          "day": 19,
+          "text_preview": "23. try、except、logger.exception 分别负责什么？  try 执行可能失败的业务逻辑；  except 捕获异常；  logger.exception 记录错误消息和完整异常堆栈，便于服务器端排查。  24. 200、422、500、503、passed=false 分别表示什么？  200"
         },
         {
           "rank": 2,
-          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
-          "chunk_id": "doc_1f7ecc7354_chunk_0023",
-          "score": 0.5883808135986328,
+          "title": "Day 23 学习笔记：完整 RAG 生成质量评估",
+          "chunk_id": "doc_900dfd6942_chunk_0032",
+          "score": 0.5360791683197021,
           "category": "learning_note",
-          "day": 14,
-          "text_preview": "加载步骤：  1. 读取词表、最大长度和模型配置。  2. 创建结构相同的新模型。  3. 使用load_state_dict()装入模型参数。  4. 调用eval()切换到预测模式。  加载参数前必须先创建结构相同的模型，因为Checkpoint中的参数名称和形状必须和网络层一一对应。  Checkpoint不会保"
+          "day": 23,
+          "text_preview": "6. 扩充生成评估集，加入更多表达方式和困难问题。  7. 将开发调试数据与最终测试数据分开。  不应该为了提高数字而直接删除引用指标。  引用率为 0% 是一次有效发现，应推动系统改进。  ============================================================ 二十七"
         },
         {
           "rank": 3,
-          "title": "Day 21 学习笔记：RAG 检索质量评估",
-          "chunk_id": "doc_bd6cc11fde_chunk_0029",
-          "score": 0.585979700088501,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0052",
+          "score": 0.5353515148162842,
           "category": "learning_note",
-          "day": 21,
-          "text_preview": "34. 扩充数据时应加入改写、错别字、模糊问题和困难负例。  35. 调门槛使用开发集，最终报告使用独立测试集，可以减少评估集过拟合。  36. 检索评估后仍应运行 pytest，确认软件功能没有回归。  37. Day 21 只评估 Retrieval，没有评估 Qwen 生成回答质量。  ============="
+          "day": 28,
+          "text_preview": "第六，同义表达可以加入关键词替代组，但不能放宽事实要求。  第七，多维指标比单一总分更容易定位故障。  第八，失败样例应该保留，不能为了满分过拟合。  ============================================================ 五十五、面试时怎样介绍 Day 28 ===="
         },
         {
           "rank": 4,
-          "title": "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
-          "chunk_id": "doc_c36e648e0d_chunk_0036",
-          "score": 0.5818880796432495,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0023",
+          "score": 0.5351724624633789,
           "category": "learning_note",
-          "day": 20,
-          "text_preview": "31. 应同时测试正常路径、非法输入、业务拒绝和异常路径。  32. 覆盖率显示代码是否被执行过，但不能独立证明代码正确。  33. 高价值场景和准确断言比单纯追求 100% 覆盖率更重要。  34. pytest 缓存、覆盖率数据和 Python 缓存不应提交到 Git。  35. 自动化测试使用固定输入和输出，不能"
+          "day": 27,
+          "text_preview": "中点 0.5151 位于最高负例和最低正例之间，数学上很直观。  但当前项目选择 0.45，原因包括：  1. 0.45 已经高于当前最高负例分数 0.44295。  2. 0.45 在当前数据上已经实现 FP=0、FN=0。  3. 它是完美区间的下边界。  4. 相比 0.5151，它为未来表达方式不同的相关问题保"
         },
         {
           "rank": 5,
-          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
-          "chunk_id": "doc_30d9ea5fd0_chunk_0019",
-          "score": 0.5803173780441284,
+          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
+          "chunk_id": "doc_55b9210b11_chunk_0029",
+          "score": 0.5314485430717468,
           "category": "learning_note",
-          "day": 16,
-          "text_preview": "作用：  1. 让大模型标注引用。  2. 展示回答依据。  3. 检查回答是否基于检索资料。  4. 排查检索是否返回错误文本块。  十八、RAG 提示词  提示词的核心规则：  1. 仅根据检索资料回答。  2. 资料不足时明确回答“现有资料不足”。  3. 不编造信息。  4. 标注使用了哪条资料。  完整结构："
+          "day": 22,
+          "text_preview": "16. F1 综合考虑 Precision 与 Recall，但不直接考虑 TN。  17. safe_divide 可以防止指标计算出现除零异常。  18. 网格搜索会逐一评估一组候选门槛。  19. 本次从 0.20 到 0.70，每隔 0.01 生成一个候选值，共 51 个。  20. round 可以减轻浮点数"
         }
       ],
-      "expected_rank": 4,
-      "max_score": 0.6237448453903198,
+      "expected_rank": 1,
+      "max_score": 0.5560324192047119,
       "accepted": true,
       "correct": true
     },
     {
-      "id": "threshold_too_high",
+      "id": "fact_hit_mrr",
+      "query": "Hit@K 和 MRR@K 在检索质量评估中分别衡量什么？",
+      "expected_titles": [
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"
+      ],
+      "retrieved_titles": [
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0054",
+          "score": 0.5985427498817444,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "31. Hit@K 衡量正确来源有没有进入前 K 名。  32. MRR 衡量正确来源平均排得是否靠前。  33. Hit@K 高而 MRR 较低，表示正确来源经常不是第一名。  34. 诊断 Top-K 可以较大，运行 Top-K 不必与诊断深度相同。  35. 当前 Hit@1=33.33%、Hit@3=77.78"
+        },
+        {
+          "rank": 2,
+          "title": "Day 21 学习笔记：RAG 检索质量评估",
+          "chunk_id": "doc_bd6cc11fde_chunk_0008",
+          "score": 0.5494347810745239,
+          "category": "learning_note",
+          "day": 21,
+          "text_preview": "这个过程加载了真实检索模型，但没有加载 Qwen 生成模型，因为 Day 21 只评估 Retrieval，不评估 Generation。  ============================================================ 六、为什么评估时传入 min_similarity=-1"
+        },
+        {
+          "rank": 3,
+          "title": "Day 21 学习笔记：RAG 检索质量评估",
+          "chunk_id": "doc_bd6cc11fde_chunk_0004",
+          "score": 0.54909348487854,
+          "category": "learning_note",
+          "day": 21,
+          "text_preview": "- 检索指标高，不代表 API 的状态码、异常处理和参数校验正确。  - 一个可靠项目需要同时进行软件测试与模型质量评估。  ============================================================ 三、评估数据集 evaluation_cases.json ======"
+        },
+        {
+          "rank": 4,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0050",
+          "score": 0.5476653575897217,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "简短版本：  “知识库从 4 篇资料扩展到 29 个知识源、810 个文本块后，我重新建立了独立检索评估集，并发现历史学习笔记导致旧测试题发生数据泄漏。  我把评估标签升级为支持多个正确来源，增加逐文本块排名和内容预览，重新校准相似度门槛，并分析 Hit@1、Hit@3、Hit@5、Hit@10。  最终选择 Top-"
+        },
+        {
+          "rank": 5,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0030",
+          "score": 0.54243403673172,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "好处：  1. 单一事实来源。  2. 修改参数时不容易漏掉某个文件。  3. API 请求模型与检索实现更容易保持一致。  4. 自动化测试可以明确验证配置是否正确传播。  5. README、报告和代码更容易同步。  所谓单一事实来源，就是：  同一个配置只在一个地方定义，其他地方引用它。  ==========="
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.5985427498817444,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_threshold_high",
       "query": "相关性门槛设置得过高时，通常会增加误接受还是误拒绝？",
       "expected_titles": [
         "Day 21 学习笔记：RAG 检索质量评估",
@@ -420,9 +751,9 @@
       "retrieved_titles": [
         "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
         "Day 22 学习笔记：RAG 相关性门槛校准",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
         "Day 22 学习笔记：RAG 相关性门槛校准",
-        "Day 21 学习笔记：RAG 检索质量评估",
-        "Day 22 学习笔记：RAG 相关性门槛校准"
+        "Day 21 学习笔记：RAG 检索质量评估"
       ],
       "retrieved_details": [
         {
@@ -445,6 +776,15 @@
         },
         {
           "rank": 3,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0017",
+          "score": 0.6327179074287415,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "门槛判断可以看成一个二分类问题：  - 相关问题应该接受。  - 无关问题应该拒绝。  四种结果：  TP，True Positive，真正例：  问题相关，并且系统接受。  FP，False Positive，假正例：  问题无关，但系统错误接受。  TN，True Negative，真负例：  问题无关，并且系统正"
+        },
+        {
+          "rank": 4,
           "title": "Day 22 学习笔记：RAG 相关性门槛校准",
           "chunk_id": "doc_55b9210b11_chunk_0009",
           "score": 0.6285632848739624,
@@ -453,22 +793,13 @@
           "text_preview": "公式：  Precision = TP / (TP + FP)  它回答：  “系统接受的问题中，有多少确实与知识库相关？  ”  Precision 越高，说明误接受无关问题的比例越低。  当前结果：  8 / (8 + 0) = 1.0 = 100%  降低门槛通常会增加 FP，使 Precision 下降。  ="
         },
         {
-          "rank": 4,
+          "rank": 5,
           "title": "Day 21 学习笔记：RAG 检索质量评估",
           "chunk_id": "doc_bd6cc11fde_chunk_0006",
           "score": 0.6068922281265259,
           "category": "learning_note",
           "day": 21,
           "text_preview": "如果只评估负例，提高 min_similarity 往往可以拒绝更多无关问题，但系统也可能拒绝本来能够回答的相关问题。  因此门槛存在权衡：  - 门槛过低：召回较多，但误接受无关问题的风险上升。  - 门槛过高：拒绝更严格，但可能漏掉相关问题。  同时包含正例和负例，才能观察接受相关问题与拒绝无关问题之间的平衡。  "
-        },
-        {
-          "rank": 5,
-          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
-          "chunk_id": "doc_55b9210b11_chunk_0030",
-          "score": 0.6057719588279724,
-          "category": "learning_note",
-          "day": 22,
-          "text_preview": "28. 多个门槛并列时，选择接近当前默认值的门槛可以减少无收益的配置变化。  29. selected_mistakes 保存误接受和误拒绝样例，本次为空。  30. 低门槛通常降低 Precision 和 Specificity。  31. 高门槛通常降低 Recall。  32. pytest.approx 适合比"
         }
       ],
       "expected_rank": 2,
@@ -477,7 +808,7 @@
       "correct": true
     },
     {
-      "id": "chunk_overlap",
+      "id": "fact_chunk_overlap",
       "query": "切分长文档时保留相邻文本块的重叠区域有什么作用？",
       "expected_titles": [
         "Day 24 学习笔记：文档导入与智能切块"
@@ -542,15 +873,80 @@
       "correct": true
     },
     {
-      "id": "note_day_metadata",
-      "query": "导入dayXX学习笔记时，怎样从文件名取得学习天数并保存为元数据？",
+      "id": "fact_markdown_code_fence",
+      "query": "处理 Markdown 文档时，为什么要尽量保持代码块完整？",
+      "expected_titles": [
+        "Day 24 学习笔记：文档导入与智能切块"
+      ],
+      "retrieved_titles": [
+        "Day 24 学习笔记：文档导入与智能切块",
+        "Day 24 学习笔记：文档导入与智能切块",
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+        "Day 24 学习笔记：文档导入与智能切块",
+        "Day 24 学习笔记：文档导入与智能切块"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0012",
+          "score": 0.6261790990829468,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "识别出的代码块优先作为一个整体语义单元。  只有代码块本身已经超过 chunk_size 时，才使用字符窗口后备切分。  测试中使用：  fence = \"`\" * 3  这是为了避免聊天界面把测试字符串中的三个反引号误认为外层代码展示结束。  Python 运行时得到的内容仍是真正的 Markdown 代码围栏。  "
+        },
+        {
+          "rank": 2,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0026",
+          "score": 0.6261447668075562,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "split_long_unit 中的 if end == len(unit) 曾经因为展示代码时多出缩进而触发 unexpected indent。  修正原则是保证 if 与同一 while 内的 end、pieces.append、start 保持正确层级。  可以使用下面的命令先做纯语法检查：  python -"
+        },
+        {
+          "rank": 3,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0037",
+          "score": 0.6219073534011841,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "第 7 题：main.py 的主要职责是什么？  标准答案：  作为项目命令行入口，负责创建 Pipeline、接收用户输入、识别退出和空问题、调用问答流程、展示结果以及处理运行异常。  第 8 题：为什么创建一次 RAGPipeline 后可以连续回答多个问题？  标准答案：  因为 RAGPipeline 在输入循"
+        },
+        {
+          "rank": 4,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0011",
+          "score": 0.6185894012451172,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "- 。  - ！  和 !  - ？  和 ?  - ；  和 ;  这样 chunk_text 可以把多个完整句子组合成文本块，而不是优先从句子中间截断。  ============================================================ 八、为什么要特殊处理 Markdown"
+        },
+        {
+          "rank": 5,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0035",
+          "score": 0.613351583480835,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "可以这样介绍 Day 24：  “在完整 RAG 生成评估中，我发现旧知识库采用简单定长切分，部分文本块在词语和句子中间断开，问题会继续传递到最终回答。  因此我新增了独立的文档预处理模块，从 TXT 和 Markdown 原始资料递归加载内容，统一换行和空白，优先按照段落、完整句子和 Markdown 代码块切分，并"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6261790990829468,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_note_metadata",
+      "query": "导入 dayXX 学习笔记时，怎样从文件名取得学习天数并保存为元数据？",
       "expected_titles": [
         "Day 25 学习笔记：导入历史学习笔记与扩展知识库"
       ],
       "retrieved_titles": [
         "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
         "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
-        "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
         "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
         "Day 25 学习笔记：导入历史学习笔记与扩展知识库"
       ],
@@ -568,13 +964,22 @@
           "rank": 2,
           "title": "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
           "chunk_id": "doc_53dfa9e699_chunk_0040",
-          "score": 0.7031794786453247,
+          "score": 0.7031792998313904,
           "category": "learning_note",
           "day": 25,
           "text_preview": "可以这样介绍 Day 25：  “在完成原始 Markdown 文档的语义切块后，我进一步把每天的学习笔记接入知识库构建流程。  我使用 pathlib 和文件命名规则自动发现 dayXX 笔记，通过正则提取学习天数，以 UTF-8 读取并清理 BOM 和多余空白，然后把笔记转换成与基础资料一致的文档结构。  我为不同"
         },
         {
           "rank": 3,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0041",
+          "score": 0.6780921220779419,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "资料状态 → 切块状态 → 元数据状态 → 向量状态 → 内存 Pipeline 状态  只有这些状态按照正确顺序更新， RAG API 才能稳定使用最新资料。  以后生成新的 dayXX笔记.txt 后， 无需再记忆多条构建命令。  运行统一更新程序，或者重新启动 API， 系统就会检查变化并按需更新知识库。  Da"
+        },
+        {
+          "rank": 4,
           "title": "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
           "chunk_id": "doc_53dfa9e699_chunk_0027",
           "score": 0.6704776287078857,
@@ -583,26 +988,1662 @@
           "text_preview": "test_read_learning_note_builds_metadata：  - 清理 BOM - 构造正确 source - 提取标题 - 设置 category 和 day - char_count 与实际文本一致 - 同一来源多次读取时 document_id 稳定  test_merge_document"
         },
         {
-          "rank": 4,
+          "rank": 5,
           "title": "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
           "chunk_id": "doc_53dfa9e699_chunk_0004",
           "score": 0.6568806171417236,
           "category": "learning_note",
           "day": 25,
           "text_preview": "今天建立的流程可以概括为：  项目根目录中的 dayXX笔记.txt → 按文件名规则发现笔记 → 从文件名提取 Day 编号 → 使用 UTF-8 读取文本 → 清除 BOM、统一换行和空白 → 构造文档级元数据 → 与 source_documents 基础资料合并 → 检查 document_id 和 sourc"
-        },
-        {
-          "rank": 5,
-          "title": "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
-          "chunk_id": "doc_53dfa9e699_chunk_0012",
-          "score": 0.6557978391647339,
-          "category": "learning_note",
-          "day": 25,
-          "text_preview": "每篇学习笔记被转换为一个字典：  { \"document_id\": ..., \"source\": ..., \"title\": ..., \"text\": ..., \"char_count\": ..., \"category\": \"learning_note\", \"day\": ..., }  字段含义：  document_"
         }
       ],
       "expected_rank": 1,
       "max_score": 0.7042568922042847,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_vector_build",
+      "query": "构建正式向量知识库前，为什么要检查 chunk 数量、字段和向量维度？",
+      "expected_titles": [
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"
+      ],
+      "retrieved_titles": [
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Python Day 10 学习笔记",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+          "chunk_id": "doc_30d9ea5fd0_chunk_0022",
+          "score": 0.6845625638961792,
+          "category": "learning_note",
+          "day": 16,
+          "text_preview": "必须保证：  loaded_chunks 第 i 项 ↔ loaded_embeddings 第 i 行  数量不一致时，无法保证每个向量都能找到对应原文。  二十、为什么要持久化知识库  真实项目可能包含成千上万个文本块。  为全部文本块运行预训练模型可能非常耗时。  如果每次启动程序都重新计算：  1. 重复占用 "
+        },
+        {
+          "rank": 2,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0003",
+          "score": 0.6651170253753662,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "文本 → 语义向量  它负责把用户问题和知识库文本转换成位于同一语义空间的向量。  之后再通过矩阵乘法、余弦相似度和 torch.topk() 找到相关资料。  AutoModel 的主要输出是隐藏状态向量，本身不会直接生成自然语言回答。  2. Causal Language Model（因果语言模型）  今天使用的"
+        },
+        {
+          "rank": 3,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0025",
+          "score": 0.6568828225135803,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "它准备：  - 相同的预览 chunks。  - 相同的正式元数据 chunks。  - 正确的 model_id。  - 形状为 (2, 512) 的测试向量。  期望：  knowledge_base_is_current() 返回 True。  第二个测试：  test_changed_content_requi"
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 10 学习笔记",
+          "chunk_id": "doc_cdf150f06b_chunk_0023",
+          "score": 0.6537520289421082,
+          "category": "learning_note",
+          "day": 10,
+          "text_preview": "当前代码中的 nn.Embedding 是刚创建的，参数没有经过训练。  因此：  1. 每个词的初始向量基本是随机的。  2. 模型不知道 Python 和 PyTorch 在语义上相关。  3. 模型不知道 Agent 与智能体相关。  4. 不同词的向量可能偶然方向接近，产生虚假的高相似度。  5. 相同词会查询"
+        },
+        {
+          "rank": 5,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0011",
+          "score": 0.6528135538101196,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "= metadata.get( \"embedding_dimension\" ): return False  只有这些条件全部满足，函数才返回 True。  ============================================================ 八、为什么查询向量和知识库向量必须来自同"
+        }
+      ],
+      "expected_rank": 3,
+      "max_score": 0.6845625638961792,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_data_leakage",
+      "query": "为什么知识库扩大后，原来的负例可能变成数据泄漏？",
+      "expected_titles": [
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"
+      ],
+      "retrieved_titles": [
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0043",
+          "score": 0.6592541933059692,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "如果反复查看某个用例并为它修改代码，它实际上已经从测试集变成验证集。  因此 Day 28 最终没有继续针对唯一失败用例追求满分。  ============================================================ 四十六、扩充知识库后为什么旧评估会失效 ============"
+        },
+        {
+          "rank": 2,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0051",
+          "score": 0.6165046095848083,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "“我没有继续使用已经被历史学习笔记收录的旧测试问题，而是建立新的独立评估集；  同时避免在会被重新索引的学习笔记里复制完整评估题。  知识库继续扩充后，还需要再准备新的留出测试集。  ”  如果面试官问 93.33% 为什么不是 100%：  “门槛分类已经达到 TP=9、FP=0、TN=6、FN=0，但有一个正例的正"
+        },
+        {
+          "rank": 3,
+          "title": "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+          "chunk_id": "doc_27cae4791c_chunk_0036",
+          "score": 0.6148188710212708,
+          "category": "learning_note",
+          "day": 26,
+          "text_preview": "- 是否出现异常类型。  - 进程是否非正常退出。  - 是否有检索分数、来源或后续输出。  单纯看到知识库正文，通常说明它正在展示检索结果。  ============================================================ 三十、为什么不能继续凭感觉使用 0.40 门槛 =="
+        },
+        {
+          "rank": 4,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0004",
+          "score": 0.6086419820785522,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "向量检索并不是“资料越多，效果一定越好”。  知识库扩大以后，会发生以下变化：  1. 候选文本块数量增加。  2. 语义相似但并非真正答案的文本块增加。  3. 正确文本块可能被其他相似文本挤到更低排名。  4. 无关问题更容易偶然匹配某些文本。  5. 正例和负例的最高相似度分布会变化。  6. 旧门槛可能变得过低"
+        },
+        {
+          "rank": 5,
+          "title": "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+          "chunk_id": "doc_27cae4791c_chunk_0053",
+          "score": 0.5965045690536499,
+          "category": "learning_note",
+          "day": 26,
+          "text_preview": "2. 保留明确的知识库外负例问题。  3. 重新计算 Hit@3 和 MRR@3。  4. 记录正例与负例最高相似度分布。  5. 重新校准 min_similarity。  6. 检查扩大知识库后是否增加误命中。  7. 检查 top_k 中低分块是否应该被单独过滤。  8. 形成可用于 README 和简历描述的新"
+        }
+      ],
+      "expected_rank": 2,
+      "max_score": 0.6592541933059692,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_programmatic_citation",
+      "query": "为什么程序化追加引用比完全依赖小模型自己输出引用更可靠？",
+      "expected_titles": [
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"
+      ],
+      "retrieved_titles": [
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+        "Day 23 学习笔记：完整 RAG 生成质量评估",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0017",
+          "score": 0.6759049296379089,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "在最初的生成评估中，检索来源能够命中，但小型生成模型没有稳定输出引用编号。  当引用完全交给模型时，可能发生：  - 忘记引用。  - 格式不一致。  - 引用不存在的编号。  - 引用编号与 sources 顺序不一致。  - 拒答时仍输出引用。  这会让 API 的答案看似有依据，实际无法验证来源。  引用可靠性问"
+        },
+        {
+          "rank": 2,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0020",
+          "score": 0.6291859149932861,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "否则按照真实来源数量生成：  【资料1】 【资料2】 ……  再统一追加到回答末尾。  这样引用编号来自实际 sources，而不是模型的自由生成。  ============================================================ 二十二、为什么程序化引用比提示词引用稳定 =="
+        },
+        {
+          "rank": 3,
+          "title": "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+          "chunk_id": "doc_c36e648e0d_chunk_0004",
+          "score": 0.5984432101249695,
+          "category": "learning_note",
+          "day": 20,
+          "text_preview": "6. 可以使用测试替身避开昂贵的模型加载。  修改代码后导致原本正常的功能失效，称为回归错误。  自动化测试的重要作用之一就是防止回归错误。  ============================================================ 三、生产依赖与开发依赖 ==============="
+        },
+        {
+          "rank": 4,
+          "title": "Day 23 学习笔记：完整 RAG 生成质量评估",
+          "chunk_id": "doc_900dfd6942_chunk_0011",
+          "score": 0.5852352380752563,
+          "category": "learning_note",
+          "day": 23,
+          "text_preview": "例如 sources 有 3 项：  - 【资料1】：有效。  - 【资料3】：有效。  - 【资料4】：无效。  - 没有任何引用：无效。  本次 4 个正例回答都没有输出【资料N】：  - citation_numbers=[] - citation_present=false - citation_valid=f"
+        },
+        {
+          "rank": 5,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0039",
+          "score": 0.5785406827926636,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "- 引用来源中的每个句子都支持答案的每个结论。  - 模型完全不会幻觉。  - 0.48 永远是最佳门槛。  - 9 个样例能代表生产环境。  ============================================================ 四十二、引用出现、引用有效与引用忠实的区别 ====="
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6759049296379089,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_idempotent_update",
+      "query": "知识库自动更新流程里，幂等性具体指什么？",
+      "expected_titles": [
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"
+      ],
+      "retrieved_titles": [
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0038",
+          "score": 0.6569947004318237,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "可以写成：  - 设计本地 RAG 知识库自动更新流程，基于切块内容、模型标识与向量形状判断索引有效性，实现无变化跳过重建、资料变化自动向量化。  - 将知识库更新接入 FastAPI lifespan，保证服务启动时先完成索引校验与更新，再加载 RAG Pipeline，避免内存数据与磁盘索引版本不一致。  - 使用"
+        },
+        {
+          "rank": 2,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0007",
+          "score": 0.6468453407287598,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "幂等可以理解为：  在输入没有变化时，重复执行同一个操作，最终状态不会发生变化。  在本项目中：  - 第一次加入新笔记后运行更新程序，会重建知识库。  - 第二次没有修改任何资料时再次运行，会直接跳过向量重建。  - 无论重复运行多少次，知识库内容保持一致。  幂等更新的价值：  - 减少不必要的模型计算。  - 缩"
+        },
+        {
+          "rank": 3,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0006",
+          "score": 0.623753547668457,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "主流程的结构是：  def main() -> None: print(\"第一步：扫描并导入最新学习笔记\") import_learning_notes()  if knowledge_base_is_current(): print(\"\\n知识库内容没有变化，跳过向量重建\") verify_knowledge_bas"
+        },
+        {
+          "rank": 4,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0001",
+          "score": 0.6145375967025757,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成  ============================================================ 一、今天完成了什么 ================================================="
+        },
+        {
+          "rank": 5,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0039",
+          "score": 0.6024535298347473,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "知识点三：  判断向量知识库是否可复用，至少要检查：  - 必要文件。  - 切块内容。  - 检索模型。  - 向量矩阵维度。  - 文本块数量与向量行数。  知识点四：  FastAPI lifespan 适合在服务启动时加载和释放长期资源。  知识点五：  更新知识库必须发生在加载 RAGPipeline 之前，"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6569947004318237,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "fact_docker_image_container",
+      "query": "Docker 镜像和容器分别扮演什么角色？",
+      "expected_titles": [
+        "Docker部署"
+      ],
+      "retrieved_titles": [
+        "Docker部署",
+        "Python Day 4 学习笔记",
+        "Transformer基础",
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+        "Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Docker部署",
+          "chunk_id": "doc_c6d8626551_chunk_0001",
+          "score": 0.6073267459869385,
+          "category": "reference",
+          "day": null,
+          "text_preview": "Docker 可以把应用程序、运行环境和依赖打包为镜像，从而减少不同计算机之间的环境差异。  Dockerfile 描述镜像如何构建，docker build 用于构建镜像，docker run 用于根据镜像创建并运行容器。  端口映射可以把容器内部的服务端口暴露给宿主机。  部署 FastAPI 服务时，需要在镜像中"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 4 学习笔记",
+          "chunk_id": "doc_22ccd12f30_chunk_0024",
+          "score": 0.4326575994491577,
+          "category": "learning_note",
+          "day": 4,
+          "text_preview": "已完成 NumPy 环境配置、数组创建、数组属性、索引切片、reshape、二维数组、转置、聚合计算、axis、点积、向量模长、余弦相似度及岗位相似度排名。  Day 4 的 NumPy ndarray、shape、axis 和向量计算概念，将直接迁移到下一阶段的 PyTorch Tensor。  余弦相似度和向量排名"
+        },
+        {
+          "rank": 3,
+          "title": "Transformer基础",
+          "chunk_id": "doc_6f4a68f67a_chunk_0001",
+          "score": 0.42905575037002563,
+          "category": "reference",
+          "day": null,
+          "text_preview": "Transformer 是一种以注意力机制为核心的神经网络架构。  它不依赖循环神经网络逐步处理序列，因此能够更高效地并行训练。  自注意力机制会根据 Query、Key 和 Value 计算序列中不同位置之间的关系。  多头注意力会从多个表示空间学习不同类型的关系，然后将结果组合起来。  Transformer 通常"
+        },
+        {
+          "rank": 4,
+          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+          "chunk_id": "doc_30d9ea5fd0_chunk_0010",
+          "score": 0.4171859323978424,
+          "category": "learning_note",
+          "day": 16,
+          "text_preview": "模型参数和输入 Tensor 要参与同一次数学计算，因此必须同时位于 CPU 或同时位于 GPU。  3. eval 与 no_grad  embedding_model.eval()  把模型切换到预测模式，使 Dropout 等训练和预测行为不同的层采用预测行为。  with torch.no_grad():  关"
+        },
+        {
+          "rank": 5,
+          "title": "Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配",
+          "chunk_id": "doc_54ce5d8b7e_chunk_0002",
+          "score": 0.41655391454696655,
+          "category": "learning_note",
+          "day": 15,
+          "text_preview": "8. 计算个人技能文本与多条 JD 的语义相似度并排序。  9. 使用集合交集、差集和覆盖率补充必备技能检查。  10. 区分“语义相似度”“技能覆盖率”和“录取概率”。  二、环境与 transformers  1. transformers 是什么  transformers 是 Hugging Face 提供的模"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6073267459869385,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "code_python_dict_get",
+      "query": "为什么键可能不存在时更适合用 dict.get，而不是直接用 dict[key]？",
+      "expected_titles": [
+        "Python Day 1｜六道复习题与核心代码"
+      ],
+      "retrieved_titles": [
+        "Python Day 1｜六道复习题与核心代码",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
+        "Python Day 9 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Python Day 1｜六道复习题与核心代码",
+          "chunk_id": "doc_485b9ca9c1_chunk_0002",
+          "score": 0.7334948778152466,
+          "category": "learning_note",
+          "day": 1,
+          "text_preview": "二、dict[\"key\"] 和 dict.get(\"key\") 有什么区别？  ---------------------------------  假设有一个字典：  job = { \"company\": \"百度\", \"city\": \"北京\", }  键存在时，下面两种写法结果相同：  print(job[\"comp"
+        },
+        {
+          "rank": 2,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0008",
+          "score": 0.5864077806472778,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "get_expected_titles(case)  它的行为是：  1. 如果存在 expected_titles，直接读取列表。  2. 否则尝试读取旧的 expected_title。  3. 旧标题不为空时，把它包装成单元素列表。  4. 旧标题为空时，返回空列表。  5. 验证列表中的标题都是非空字符串。  "
+        },
+        {
+          "rank": 3,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0020",
+          "score": 0.5625126957893372,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "- 资料排名。  - 来源标题。  - 文档编号。  - 文本块编号。  - 文本块正文。  - 用户问题。  - 回答限制。  多个资料使用：  \"\\n\\n\".join(context_parts)  连接，表示相邻资料之间插入两个换行符。  提示词中的关键限制：  1. 只能根据检索资料回答。  2. 不使用资料外"
+        },
+        {
+          "rank": 4,
+          "title": "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
+          "chunk_id": "doc_53dfa9e699_chunk_0025",
+          "score": 0.558956503868103,
+          "category": "learning_note",
+          "day": 25,
+          "text_preview": "问题 2：导入配置变量失败  新增 config.py 内容后，如果编辑器标签仍显示白点，说明文件尚未保存。  Python 导入的是磁盘上的旧版本，因此会出现 ImportError。  保存文件后重新启动 Python 进程即可读取新配置。  问题 3：NameError: build_chunks is not "
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0027",
+          "score": 0.5552171468734741,
+          "category": "learning_note",
+          "day": 9,
+          "text_preview": "常见加载错误：  Missing key：新模型需要某个参数，但文件中没有。  Unexpected key：文件中有新模型不需要的参数。  size mismatch：参数名称可能相同，但 Tensor 形状不同。  =================================================="
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.7334948778152466,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "code_python_split_strip",
+      "query": "split 返回什么类型，清洗文本时为什么常和 strip 一起使用？",
+      "expected_titles": [
+        "Python Day 1｜六道复习题与核心代码"
+      ],
+      "retrieved_titles": [
+        "Python Day 1｜六道复习题与核心代码",
+        "Python Day 1｜六道复习题与核心代码",
+        "Python Day 2｜函数、参数、返回值与作用域",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+        "Day 24 学习笔记：文档导入与智能切块"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Python Day 1｜六道复习题与核心代码",
+          "chunk_id": "doc_485b9ca9c1_chunk_0003",
+          "score": 0.6903644800186157,
+          "category": "learning_note",
+          "day": 1,
+          "text_preview": "三、split() 返回什么类型？  ---------------------------------  split() 返回 list 类型，也就是列表。  text = \"Python,RAG,Docker\" skills = text.split(\",\")  print(skills) print(type(s"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 1｜六道复习题与核心代码",
+          "chunk_id": "doc_485b9ca9c1_chunk_0004",
+          "score": 0.5619991421699524,
+          "category": "learning_note",
+          "day": 1,
+          "text_preview": "输出：  Python Developer  相关方法：  text.strip()    # 清除两端空白 text.lstrip()   # 只清除左侧空白 text.rstrip()   # 只清除右侧空白  技能清洗中的常用写法：  cleaned_skill = skill.strip().lower()  "
+        },
+        {
+          "rank": 3,
+          "title": "Python Day 2｜函数、参数、返回值与作用域",
+          "chunk_id": "doc_78df56bfa7_chunk_0010",
+          "score": 0.5430448055267334,
+          "category": "learning_note",
+          "day": 2,
+          "text_preview": "return unique_skills  处理内容：  1. split(\",\")：按逗号拆分。  2. strip()：清除两端空白。  3. lower()：统一为小写。  4. cleaned_skill：过滤空字符串。  5. not in seen_skills：过滤重复技能。  为什么同时使用列表和集合？"
+        },
+        {
+          "rank": 4,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0004",
+          "score": 0.5381138920783997,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "多分类模型也会输出logits，只是每个样本会对多个类别分别输出一个logit。  三、分词、词表和特殊Token  分词函数：  def tokenize(text: str) -> list[str]: return text.lower().strip().split()  作用：  1. lower()统一大小"
+        },
+        {
+          "rank": 5,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0009",
+          "score": 0.5360151529312134,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "2. 将单独的 \\r 也转换为 \\n。  3. 删除每行末尾空白，并把三个以上连续换行压缩成两个。  核心过程：  text = text.replace(\"\\r\\n\", \"\\n\").replace(\"\\r\", \"\\n\") lines = [line.rstrip() for line in text.splitlin"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6903644800186157,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "code_python_function_scope",
+      "query": "Python 函数中的参数、返回值和作用域分别解决什么问题？",
+      "expected_titles": [
+        "Python Day 2｜函数、参数、返回值与作用域"
+      ],
+      "retrieved_titles": [
+        "Python Day 2｜函数、参数、返回值与作用域",
+        "Python Day 2｜函数、参数、返回值与作用域",
+        "Python Day 2｜函数、参数、返回值与作用域",
+        "Python Day 11 学习笔记",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Python Day 2｜函数、参数、返回值与作用域",
+          "chunk_id": "doc_78df56bfa7_chunk_0001",
+          "score": 0.609972357749939,
+          "category": "learning_note",
+          "day": 2,
+          "text_preview": "Python Day 2｜函数、参数、返回值与作用域 ========================================  一、函数的定义与调用 ----------------------------------------  定义函数：  def greet(name): message = f\"你好"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 2｜函数、参数、返回值与作用域",
+          "chunk_id": "doc_78df56bfa7_chunk_0014",
+          "score": 0.6012345552444458,
+          "category": "learning_note",
+          "day": 2,
+          "text_preview": "1. 调用函数要写函数名和括号，例如greet(\"小明\")。  2. 没有显式return的函数默认返回None。  3. 默认参数是“没有提供对应实参时使用默认值”，不是“没有使用关键字参数”。  4. 多个返回值整体是tuple，可以使用相同数量的变量解包。  5. 局部变量不能直接在函数外使用。  6. 计算比例"
+        },
+        {
+          "rank": 3,
+          "title": "Python Day 2｜函数、参数、返回值与作用域",
+          "chunk_id": "doc_78df56bfa7_chunk_0004",
+          "score": 0.5992687344551086,
+          "category": "learning_note",
+          "day": 2,
+          "text_preview": "result_print = add_with_print(10, 20) result_return = add_with_return(10, 20)  print(result_print)   # None print(result_return)  # 30  区别：  1. print()只把内容显示在终端"
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 11 学习笔记",
+          "chunk_id": "doc_9b983c3ee6_chunk_0003",
+          "score": 0.5932649374008179,
+          "category": "learning_note",
+          "day": 11,
+          "text_preview": "同一个 Token ID 在同一个 Embedding 中总是查询同一行参数，因此它还没有根据当前句子中的其他 Token 改变自己的表示。  Self-Attention 的目标是：  让每个 Token 查看句子中的其他 Token，并按照重要程度汇总它们的信息，从而生成包含上下文的新向量。  例如句子中有：  p"
+        },
+        {
+          "rank": 5,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0004",
+          "score": 0.5901221036911011,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "多分类模型也会输出logits，只是每个样本会对多个类别分别输出一个logit。  三、分词、词表和特殊Token  分词函数：  def tokenize(text: str) -> list[str]: return text.lower().strip().split()  作用：  1. lower()统一大小"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.609972357749939,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "code_python_exception",
+      "query": "try except 通常用来处理什么类型的问题？",
+      "expected_titles": [
+        "Python Day 4 学习笔记",
+        "Python Day 5 学习笔记"
+      ],
+      "retrieved_titles": [
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Python Day 3 学习笔记",
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Python Day 3 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0047",
+          "score": 0.6475809812545776,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "23. try、except、logger.exception 分别负责什么？  try 执行可能失败的业务逻辑；  except 捕获异常；  logger.exception 记录错误消息和完整异常堆栈，便于服务器端排查。  24. 200、422、500、503、passed=false 分别表示什么？  200"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 3 学习笔记",
+          "chunk_id": "doc_7a6758326d_chunk_0010",
+          "score": 0.6234590411186218,
+          "category": "learning_note",
+          "day": 3,
+          "text_preview": "except 不会让已经失败的代码重新成功执行。  它的作用是：捕获匹配的异常，执行备用处理，避免整个程序直接终止，然后让程序有机会继续运行。  例如，文件读取依然失败了，但程序可以返回 None 或空列表作为备用结果。  3. 今日遇到的异常  FileNotFoundError：指定的文件不存在。  json.JS"
+        },
+        {
+          "rank": 3,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0027",
+          "score": 0.6065377593040466,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "query = input(\"请输入问题：\").strip()  strip() 去除字符串首尾空白，不是只去除“首位”。  query.lower()  把英文退出命令统一转换为小写，因此 EXIT、Exit 和 exit 都能识别。  5. break 与 continue  - break：结束整个循环。  - "
+        },
+        {
+          "rank": 4,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0028",
+          "score": 0.5995532274246216,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "- 因此回答“现有资料不足”，sources 返回空列表。  必须区分“HTTP 请求是否成功”和“检索结果是否通过门槛”。  ============================================================ 十八、异常处理与日志 ========================"
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 3 学习笔记",
+          "chunk_id": "doc_7a6758326d_chunk_0009",
+          "score": 0.5662705898284912,
+          "category": "learning_note",
+          "day": 3,
+          "text_preview": "- job.json 最外层是 {}，读取结果是 dict。  - jobs.json 最外层是 []，读取结果是 list。  ============================================================ 四、异常处理 try/except ================"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.6475809812545776,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "code_pytorch_training_order",
+      "query": "PyTorch 训练循环里 zero_grad、backward 和 optimizer.step 的顺序为什么重要？",
+      "expected_titles": [
+        "PyTorch训练",
+        "Python Day 8 学习笔记",
+        "Python Day 9 学习笔记"
+      ],
+      "retrieved_titles": [
+        "Python Day 6 学习笔记",
+        "Python Day 6 学习笔记",
+        "PyTorch训练",
+        "Python Day 9 学习笔记",
+        "Python Day 7 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Python Day 6 学习笔记",
+          "chunk_id": "doc_fa8876987f_chunk_0011",
+          "score": 0.6826345920562744,
+          "category": "learning_note",
+          "day": 6,
+          "text_preview": "optimizer = torch.optim.SGD( model.parameters(), lr=0.01, )  model.parameters() 把模型的可训练参数交给优化器管理。  SGD 的基本更新公式：  新参数 = 旧参数 - 学习率×梯度  即：  parameter = parameter -"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 6 学习笔记",
+          "chunk_id": "doc_fa8876987f_chunk_0018",
+          "score": 0.6673753261566162,
+          "category": "learning_note",
+          "day": 6,
+          "text_preview": "5. optimizer.zero_grad() 做什么？  清空优化器管理的模型参数上一轮留下的梯度。  6. nn.Linear(1,1) 中两个 1 是什么？  输入特征维度为 1，输出特征维度为 1。  7. model(x_train) 做什么？  执行前向传播，用当前模型参数对训练数据进行预测。  8. M"
+        },
+        {
+          "rank": 3,
+          "title": "PyTorch训练",
+          "chunk_id": "doc_b0fe31aa8a_chunk_0001",
+          "score": 0.6614362597465515,
+          "category": "reference",
+          "day": null,
+          "text_preview": "PyTorch 是常用的深度学习框架。  一个基本训练流程通常包括准备数据、定义模型、设置损失函数、创建优化器和执行训练循环。  在每一轮训练中，程序先通过模型得到预测结果，再计算损失。  调用 loss.backward() 会根据计算图计算梯度，optimizer.step() 根据梯度更新参数，optimizer"
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0013",
+          "score": 0.6407214403152466,
+          "category": "learning_note",
+          "day": 9,
+          "text_preview": "每调用一次，模型会完整使用一次 data_loader 中的全部训练数据，也就是完成一个 epoch。  核心步骤：  model.train()  for batch_features, batch_labels in data_loader: batch_features = batch_features.to(d"
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 7 学习笔记",
+          "chunk_id": "doc_600c116976_chunk_0014",
+          "score": 0.6289246082305908,
+          "category": "learning_note",
+          "day": 7,
+          "text_preview": "optimizer = torch.optim.Adam( model.parameters(), lr=0.01, )  Adam 和 SGD 的共同作用：  根据梯度更新模型参数，让损失逐渐减小。  简单区别：  SGD：通常按照设定学习率直接使用梯度更新参数。  Adam：利用梯度的一阶矩和二阶矩信息，自适应调整"
+        }
+      ],
+      "expected_rank": 3,
+      "max_score": 0.6826345920562744,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "code_eval_no_grad",
+      "query": "模型预测时 eval 和 no_grad 分别控制什么？",
+      "expected_titles": [
+        "PyTorch训练",
+        "Python Day 6 学习笔记",
+        "Python Day 7 学习笔记"
+      ],
+      "retrieved_titles": [
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Python Day 6 学习笔记",
+        "Python Day 6 学习笔记",
+        "Python Day 7 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+          "chunk_id": "doc_30d9ea5fd0_chunk_0010",
+          "score": 0.6646779775619507,
+          "category": "learning_note",
+          "day": 16,
+          "text_preview": "模型参数和输入 Tensor 要参与同一次数学计算，因此必须同时位于 CPU 或同时位于 GPU。  3. eval 与 no_grad  embedding_model.eval()  把模型切换到预测模式，使 Dropout 等训练和预测行为不同的层采用预测行为。  with torch.no_grad():  关"
+        },
+        {
+          "rank": 2,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0006",
+          "score": 0.6407498121261597,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "Instruct 表示模型经过指令微调，更熟悉 system、user、assistant 等对话结构，也更擅长遵循要求完成问答。  四、model.eval()、no_grad() 与 inference_mode() ------------------------------------------------ "
+        },
+        {
+          "rank": 3,
+          "title": "Python Day 6 学习笔记",
+          "chunk_id": "doc_fa8876987f_chunk_0016",
+          "score": 0.6172733306884766,
+          "category": "learning_note",
+          "day": 6,
+          "text_preview": "两者区别：  model.eval()：切换某些网络层的工作模式。  torch.no_grad()：关闭梯度和计算图记录。  预测时通常两者一起使用。  ============================================================ 十五、测试数据与泛化能力 ========"
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 6 学习笔记",
+          "chunk_id": "doc_fa8876987f_chunk_0015",
+          "score": 0.611095666885376,
+          "category": "learning_note",
+          "day": 6,
+          "text_preview": "model.eval() 只切换网络层的工作模式，不会自动关闭梯度计算。  ============================================================ 十四、torch.no_grad() 与模型推理 ===================================="
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 7 学习笔记",
+          "chunk_id": "doc_600c116976_chunk_0017",
+          "score": 0.6058399081230164,
+          "category": "learning_note",
+          "day": 7,
+          "text_preview": "model.eval()  with torch.no_grad(): test_logits = model(test_data) test_probabilities = torch.sigmoid(test_logits) test_predictions = ( test_probabilities >= 0."
+        }
+      ],
+      "expected_rank": 3,
+      "max_score": 0.6646779775619507,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "code_bce_logits",
+      "query": "二分类训练中为什么常用 BCEWithLogitsLoss，而不是先手动 sigmoid 再算损失？",
+      "expected_titles": [
+        "Python Day 8 学习笔记",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
+      ],
+      "retrieved_titles": [
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+        "Python Day 8 学习笔记",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+        "Python Day 9 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0016",
+          "score": 0.6224052906036377,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "prediction：  predictions = (probabilities >= 0.5).long()  当前分类规则：  概率 >= 0.5 → 1 → 匹配 概率 < 0.5 → 0 → 不匹配  0.5是当前阈值，实际项目可以根据业务目标调整。  十四、训练模型  损失函数：  loss_fn = nn"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 8 学习笔记",
+          "chunk_id": "doc_4ad2d69142_chunk_0002",
+          "score": 0.6060494780540466,
+          "category": "learning_note",
+          "day": 8,
+          "text_preview": "6. 使用 DataLoader 完成小批量二分类训练。  7. 统计每个 epoch 的平均损失和训练准确率。  8. 使用 DataLoader 对新候选人分批推理。  9. 使用 torch.cat() 合并多个批次的预测结果。  10. 理解单元素元组中的结尾逗号。  11. 进一步区分 model.train"
+        },
+        {
+          "rank": 3,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0027",
+          "score": 0.5903754234313965,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "13. Key Mask和Query Mask分别解决什么？  Key Mask屏蔽PAD列，防止真实Token关注PAD；  Query Mask清零PAD输出行。  14. 为什么使用Masked Mean Pooling？  它只对真实Token求平均，不会让PAD进入分母并错误缩小短文本向量。  15. (4,"
+        },
+        {
+          "rank": 4,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0018",
+          "score": 0.5870524644851685,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "它不是固定等于预设batch_size，因为最后一批可能不足最大数量。  统计整个epoch平均损失：  total_loss += loss.item() * current_batch_size average_loss = total_loss / total_samples  loss.item()是当前bat"
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0020",
+          "score": 0.5862166881561279,
+          "category": "learning_note",
+          "day": 9,
+          "text_preview": "每轮训练完成后立即使用验证集检查当前模型，但验证集不会改变参数。  需要同时观察：  训练损失 训练准确率 验证损失 验证准确率  如果训练损失持续下降，而验证损失开始上升，通常意味着模型可能过拟合。  =========================================================="
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6224052906036377,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "code_dataloader_shuffle",
+      "query": "DataLoader 打乱数据时，为什么不会让特征和标签错位？",
+      "expected_titles": [
+        "Python Day 9 学习笔记",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
+      ],
+      "retrieved_titles": [
+        "Python Day 8 学习笔记",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+        "Python Day 8 学习笔记",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+        "Python Day 8 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Python Day 8 学习笔记",
+          "chunk_id": "doc_4ad2d69142_chunk_0010",
+          "score": 0.6820818185806274,
+          "category": "learning_note",
+          "day": 8,
+          "text_preview": "重点：shuffle 不会分别打乱特征和标签。  TensorDataset 已经把相同索引的特征和标签组成一个样本。  DataLoader 打乱的是样本索引，所以特征与标签会一起移动，不会破坏对应关系。  可以理解为：  打乱前：  样本A = 特征A + 标签A 样本B = 特征B + 标签B  打乱后：  样本"
+        },
+        {
+          "rank": 2,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0026",
+          "score": 0.6174799203872681,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "7. shuffle为什么不会导致错位？  DataLoader打乱的是完整样本索引，不是分别打乱三个Tensor。  8. (4,6)经过16维Embedding后是什么形状？  (4,6,16)。  9. Token Embedding和Position Embedding分别做什么？  Token Embeddi"
+        },
+        {
+          "rank": 3,
+          "title": "Python Day 8 学习笔记",
+          "chunk_id": "doc_4ad2d69142_chunk_0011",
+          "score": 0.6143873929977417,
+          "category": "learning_note",
+          "day": 8,
+          "text_preview": "预测时不使用 shuffle 的主要原因不是“测试数据没有标签”，而是需要保持结果顺序可追踪。  即使测试数据带标签，评估阶段通常也不需要打乱。  ============================================================ 九、逐批读取数据 ================"
+        },
+        {
+          "rank": 4,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0025",
+          "score": 0.59623122215271,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "实际计算步骤仍然是多头自注意力，只是在计算过程中屏蔽PAD Key。  二十一、综合自测标准答案  1. 为什么标签使用float32和(样本数,1)？  因为BCEWithLogitsLoss要求标签与模型输出logit具有兼容的浮点类型和相同形状。  2. <PAD>和<UNK>有什么区别？  PAD表示没有真实内"
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 8 学习笔记",
+          "chunk_id": "doc_4ad2d69142_chunk_0026",
+          "score": 0.5667451620101929,
+          "category": "learning_note",
+          "day": 8,
+          "text_preview": "3. batch_size=3 表示什么？  每个批次最多包含 3 个样本。  4. 10 个样本、batch_size=3，一个 epoch 有几批？  4 批，数量分别是 3、3、3、1。  5. 最后一批的形状？  特征为 (1,2)，标签为 (1,1)。  6. shuffle 会破坏特征和标签的对应关系吗？ "
+        }
+      ],
+      "expected_rank": 2,
+      "max_score": 0.6820818185806274,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "code_pytest_fake_pipeline",
+      "query": "测试问答接口时，怎样避免真正加载和运行本地大模型？",
+      "expected_titles": [
+        "Day 20 学习笔记：使用 pytest 自动测试 RAG API"
+      ],
+      "retrieved_titles": [
+        "Python Day 9 学习笔记",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0028",
+          "score": 0.6237448453903198,
+          "category": "learning_note",
+          "day": 9,
+          "text_preview": "它不是让任意模型文件自动只保留一部分参数，而是限制加载方式。  今天保存的本来就是 state_dict，所以这个选项很合适。  ============================================================ 二十二、使用最佳模型进行最终测试 ================="
+        },
+        {
+          "rank": 2,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0026",
+          "score": 0.6227925419807434,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "知识库是否最新的判断逻辑不需要真正运行 BGE 模型。  如果每个单元测试都加载真实模型并生成 978 个向量，会导致：  - 测试速度慢。  - 占用较多显存或内存。  - 测试结果依赖本地模型缓存。  - 失败时难以区分业务逻辑错误和环境问题。  因此测试直接创建一个形状正确的零 Tensor：  torch.ze"
+        },
+        {
+          "rank": 3,
+          "title": "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+          "chunk_id": "doc_27cae4791c_chunk_0030",
+          "score": 0.5981359481811523,
+          "category": "learning_note",
+          "day": 26,
+          "text_preview": "单元测试的目标是验证项目代码逻辑，而不是反复下载和运行真实大模型。  FakeTokenizer 模拟 tokenizer：  - 接收文本列表。  - 记录输入。  - 返回形状可控的张量。  FakeModel 模拟模型：  - 接收 tokenizer 输出。  - 返回可预测的 last_hidden_stat"
+        },
+        {
+          "rank": 4,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0025",
+          "score": 0.5952747464179993,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "它准备：  - 相同的预览 chunks。  - 相同的正式元数据 chunks。  - 正确的 model_id。  - 形状为 (2, 512) 的测试向量。  期望：  knowledge_base_is_current() 返回 True。  第二个测试：  test_changed_content_requi"
+        },
+        {
+          "rank": 5,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0029",
+          "score": 0.5904017686843872,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "固定查询向量示意：  torch.tensor([[1.0, 0.0]])  然后人工准备文本块向量，使相似度结果完全可预测。  好处：  1. 测试运行快。  2. 不依赖网络下载模型。  3. 不依赖 GPU。  4. 不受模型版本变化影响。  5. 失败时容易判断是检索逻辑问题，而不是模型问题。  这种测试叫隔离"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.6237448453903198,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "code_fixture_monkeypatch",
+      "query": "pytest 中 fixture 和 monkeypatch 在隔离测试环境时分别有什么作用？",
+      "expected_titles": [
+        "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"
+      ],
+      "retrieved_titles": [
+        "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+        "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
+        "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 20 学习笔记：使用 pytest 自动测试 RAG API"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+          "chunk_id": "doc_c36e648e0d_chunk_0002",
+          "score": 0.6614151000976562,
+          "category": "learning_note",
+          "day": 20,
+          "text_preview": "5. 使用 FastAPI TestClient 测试 HTTP 接口。  6. 使用 pytest fixture 准备和清理测试环境。  7. 使用 FakePipeline 隔离真实的 BGE 和 Qwen 模型。  8. 使用 monkeypatch 测试 FastAPI lifespan。  9. 测试 HT"
+        },
+        {
+          "rank": 2,
+          "title": "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
+          "chunk_id": "doc_53dfa9e699_chunk_0028",
+          "score": 0.6173697710037231,
+          "category": "learning_note",
+          "day": 25,
+          "text_preview": "新增测试总数为 9，因为参数化测试中的两组输入会被 pytest 视为两个独立用例。  ============================================================ 二十一、tmp_path 和 monkeypatch ============================"
+        },
+        {
+          "rank": 3,
+          "title": "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+          "chunk_id": "doc_c36e648e0d_chunk_0016",
+          "score": 0.5795197486877441,
+          "category": "learning_note",
+          "day": 20,
+          "text_preview": "fixture 负责为测试准备对象或环境，并在测试结束后清理。  定义：  @pytest.fixture def client(): test_client = TestClient(app) yield test_client test_client.close()  使用：  def test_root_retu"
+        },
+        {
+          "rank": 4,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0024",
+          "score": 0.5788650512695312,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "update_knowledge_base.py 默认指向正式知识库路径。  测试使用 monkeypatch 临时替换模块中的路径变量：  monkeypatch.setattr( updater, \"EXPANDED_CHUNK_PREVIEW_PATH\", preview_path, )  同样替换元数据和向量路"
+        },
+        {
+          "rank": 5,
+          "title": "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+          "chunk_id": "doc_c36e648e0d_chunk_0038",
+          "score": 0.571271538734436,
+          "category": "learning_note",
+          "day": 20,
+          "text_preview": "随后通过 TestClient 测试 HTTP 200、422、500、503 以及 passed=false 等 API 行为。  为了避免每次测试加载真实 BGE 和 Qwen，我实现了 FakePipeline，并通过 fixture 在测试前注入、测试后恢复。  对于 lifespan，我使用 monkeypa"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6614151000976562,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "multi_attention_mask",
+      "query": "Key Padding Mask 为什么能避免真实 token 注意到 PAD 位置？",
+      "expected_titles": [
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
+      ],
+      "retrieved_titles": [
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+        "Python Day 10 学习笔记",
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+        "Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0027",
+          "score": 0.6091463565826416,
+          "category": "learning_note",
+          "day": 12,
+          "text_preview": "Key Mask 防止真实 token 关注 PAD；  Query Mask 清除 PAD 位置产生的输出。  9. 为什么需要 output_layer？  它负责学习如何组合不同注意力头提供的信息，并让输出保持 embed_dim 维度。  10. 当前注意力权重能否说明模型理解了文本？  不能。  当前 Q、K"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 10 学习笔记",
+          "chunk_id": "doc_cdf150f06b_chunk_0010",
+          "score": 0.5934935808181763,
+          "category": "learning_note",
+          "day": 10,
+          "text_preview": "3. 截断  token_ids[:max_length]  只保留前 max_length 个 Token ID，超过的部分会被删除。  4. Attention Mask 的数值如何得到  它不是模型随机计算出来的，而是根据“这个位置是不是真实 Token”直接生成的：  真实 Token，包括 <UNK>：1 补"
+        },
+        {
+          "rank": 3,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0013",
+          "score": 0.5886075496673584,
+          "category": "learning_note",
+          "day": 12,
+          "text_preview": "十二、Padding Mask：Key Mask  假设原来有 3 个真实 token，后来补了 1 个 PAD：  attention_mask = [[1, 1, 1, 0]]  形状：  (B, K)  其中：  - 1 表示真实 token，需要参与计算。  - 0 表示 PAD，不应被关注。  注意力分数形状"
+        },
+        {
+          "rank": 4,
+          "title": "Day 13 学习笔记：位置向量、残差连接、LayerNorm、FFN与Transformer Encoder Block",
+          "chunk_id": "doc_2d8a31f829_chunk_0021",
+          "score": 0.5752402544021606,
+          "category": "learning_note",
+          "day": 13,
+          "text_preview": "注意力处理token之间的信息；  FFN处理每个token内部的特征。  11. 输入(4,10,16)、4个头时注意力权重形状？  (4,4,10,10)，分别是batch、heads、queries、keys。  12. Encoder流程？  输入 → 多头自注意力 → 残差 → LayerNorm → FFN"
+        },
+        {
+          "rank": 5,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0005",
+          "score": 0.5737136602401733,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "四、文本编码、Padding与Attention Mask  编码函数返回：  1. token_ids：固定长度的Token编号列表。  2. attention_mask：标记每个位置是否为真实Token。  词表查询：  token_ids = [ vocab.get(token, UNK_ID) for tok"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6091463565826416,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "multi_head_split_merge",
+      "query": "多头注意力为什么要拆成多个头，计算后又如何合并？",
+      "expected_titles": [
+        "Transformer基础",
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"
+      ],
+      "retrieved_titles": [
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0001",
+          "score": 0.6217083930969238,
+          "category": "learning_note",
+          "day": 12,
+          "text_preview": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）  一、今天完成了什么  今天在 Day 11 单头自注意力的基础上，完成了多头自注意力的完整计算流程：  1. 把完整的 token 向量投影成 Q、K、V。  2. 把 embed_dim 平均拆分到多个注意力头中。  3. "
+        },
+        {
+          "rank": 2,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0002",
+          "score": 0.6203586459159851,
+          "category": "learning_note",
+          "day": 12,
+          "text_preview": "二、单头注意力与多头注意力  1. 单头注意力  单头注意力只有一套 Q、K、V 投影，只从一个表示空间计算 token 之间的关系。  2. 多头注意力  多头注意力会把完整向量拆成多个较小的子空间，每个头分别计算注意力，最后再把多个头的结果拼接、混合。  多头注意力的优势是：它为不同注意力头学习不同关系提供了可能。"
+        },
+        {
+          "rank": 3,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0023",
+          "score": 0.5673664808273315,
+          "category": "learning_note",
+          "day": 12,
+          "text_preview": "它负责确保内存连续。  交换由 transpose 完成，合并由 reshape 完成。  4. output_layer 的作用  output_layer 混合不同头的特征，不负责把注意力权重归一化为和等于1。  5. Attention Mask 的形状  原始 mask 是 (batch_size, token"
+        },
+        {
+          "rank": 4,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0022",
+          "score": 0.5495423674583435,
+          "category": "learning_note",
+          "day": 12,
+          "text_preview": "return output, attention_weights  两个结果用途不同：  - output：传给后续网络层继续计算。  - attention_weights：用于调试、检查 Mask、分析或可视化注意力分配。  返回注意力权重并不意味着它一定具有可靠语义。  只有经过合适训练并谨慎分析后，才可能从中获"
+        },
+        {
+          "rank": 5,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0012",
+          "score": 0.5458695888519287,
+          "category": "learning_note",
+          "day": 12,
+          "text_preview": "它本身不负责交换维度。  - reshape：把 heads 和 head_dim 两个维度合并为 embed_dim。  “拼接”不是把头首尾变成更多 token，而是把同一个 token 在所有头里的特征首尾合并，恢复成完整 token 向量。  十一、输出线性层的作用  合并多个头后，还要经过输出投影：  out"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6217083930969238,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "multi_threshold_tradeoff",
+      "query": "相关性门槛调低或调高时，Precision、Recall 和拒答表现通常会怎样变化？",
+      "expected_titles": [
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 22 学习笔记：RAG 相关性门槛校准"
+      ],
+      "retrieved_titles": [
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Day 22 学习笔记：RAG 相关性门槛校准",
+        "Day 22 学习笔记：RAG 相关性门槛校准",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0034",
+          "score": 0.6590603590011597,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "Augmentation 把资料、来源和问题组合成增强提示词；  Generation 把提示词交给生成模型得到回答。  22. 为什么需要相关性门槛？  标准答案：Top-K 即使面对无关问题也会返回结果；  门槛可以在最高分过低时拒绝回答，减少无关资料进入生成阶段。  23. 相似度 0.60 是否表示 60% 概"
+        },
+        {
+          "rank": 2,
+          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
+          "chunk_id": "doc_55b9210b11_chunk_0028",
+          "score": 0.6157585978507996,
+          "category": "learning_note",
+          "day": 22,
+          "text_preview": "1. 相关性门槛决定系统接受问题还是返回“现有资料不足”。  2. 门槛过低会增加误接受，门槛过高会增加误拒绝。  3. Day 22 复用 Day 21 的真实分数，不需要重复加载 BGE。  4. 检索模型、知识库或切块方式变化后，需要重新生成分数。  5. expected_title 不为 None 表示正例，"
+        },
+        {
+          "rank": 3,
+          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
+          "chunk_id": "doc_55b9210b11_chunk_0009",
+          "score": 0.6143215894699097,
+          "category": "learning_note",
+          "day": 22,
+          "text_preview": "公式：  Precision = TP / (TP + FP)  它回答：  “系统接受的问题中，有多少确实与知识库相关？  ”  Precision 越高，说明误接受无关问题的比例越低。  当前结果：  8 / (8 + 0) = 1.0 = 100%  降低门槛通常会增加 FP，使 Precision 下降。  ="
+        },
+        {
+          "rank": 4,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0018",
+          "score": 0.6060064435005188,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "Precision，精确率：  Precision = TP / (TP + FP)  含义：  所有被系统接受的问题中，有多少确实属于知识库范围。  Precision 低说明：  系统容易对无关问题也强行回答。  Recall，召回率：  Recall = TP / (TP + FN)  含义：  所有真正相关的问"
+        },
+        {
+          "rank": 5,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0028",
+          "score": 0.5992491245269775,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "测试问题“RAG由哪三个阶段组成？  ”曾得到约 0.44～0.46 的最高相似度，低于原先 0.60 的门槛，因此系统返回“现有资料不足”。  这不是程序崩溃，而是门槛逻辑正常工作。  出现这种情况的原因：  1. 当前小型知识库原文描述的是“检索资料、加入提示词、生成回答”，没有直接写出 Retrieval、Aug"
+        }
+      ],
+      "expected_rank": 2,
+      "max_score": 0.6590603590011597,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "multi_retrieval_generation_eval",
+      "query": "为什么检索评估通过后，还需要单独做生成质量评估？",
+      "expected_titles": [
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 23 学习笔记：完整 RAG 生成质量评估",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"
+      ],
+      "retrieved_titles": [
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 23 学习笔记：完整 RAG 生成质量评估",
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0058",
+          "score": 0.6002572774887085,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "Day 28 的核心不是让所有样例看起来都是满分。  真正完成的是一套可解释、可定位、可回归的生成质量评估流程：  新建独立生成评估集 → 支持多个正确来源 → 使用关键词组评估语义覆盖 → 检查引用是否出现及是否合法 → 检查知识库外问题是否正确拒答 → 让检索门槛负责回答决策 → 让模型只负责生成正文 → 让程序根"
+        },
+        {
+          "rank": 2,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0039",
+          "score": 0.5796394348144531,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "5. 不能证明返回的每个高分块都事实可靠。  6. 不能证明 15 个样本足以代表真实用户问题分布。  7. 不能证明导入新笔记后指标不会变化。  ============================================================ 三十二、检索评估与生成评估的区别 ========"
+        },
+        {
+          "rank": 3,
+          "title": "Day 23 学习笔记：完整 RAG 生成质量评估",
+          "chunk_id": "doc_900dfd6942_chunk_0025",
+          "score": 0.5737693905830383,
+          "category": "learning_note",
+          "day": 23,
+          "text_preview": "规则评估的优点：  - 速度快。  - 成本低。  - 结果稳定。  - 容易自动化。  - 失败原因比较直观。  规则评估的限制：  - 关键词出现不代表事实正确。  - 近义表达可能被错误判为缺失。  - 引用编号合法不代表引用支持事实。  - 无法充分判断逻辑、流畅度和幻觉。  因此完整生成评估通常需要结合：  "
+        },
+        {
+          "rank": 4,
+          "title": "Day 21 学习笔记：RAG 检索质量评估",
+          "chunk_id": "doc_bd6cc11fde_chunk_0008",
+          "score": 0.5666632652282715,
+          "category": "learning_note",
+          "day": 21,
+          "text_preview": "这个过程加载了真实检索模型，但没有加载 Qwen 生成模型，因为 Day 21 只评估 Retrieval，不评估 Generation。  ============================================================ 六、为什么评估时传入 min_similarity=-1"
+        },
+        {
+          "rank": 5,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0003",
+          "score": 0.5643508434295654,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "Day 28 开始回答更靠近最终用户体验的问题：  检索到资料之后，最终生成的答案是否真的可靠？  因此今天评估的对象不再只有 Retrieval，而是完整链路：  用户问题 → 语义检索 → 相关性门槛 → 构造增强提示词 → 本地生成模型回答 → 程序追加来源引用 → 返回答案与 sources → 自动化生成质量"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6002572774887085,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "multi_chunk_to_answer_failure",
+      "query": "固定字符切块为什么可能导致检索命中但最终回答仍然不完整？",
+      "expected_titles": [
+        "Day 23 学习笔记：完整 RAG 生成质量评估",
+        "Day 24 学习笔记：文档导入与智能切块"
+      ],
+      "retrieved_titles": [
+        "Day 24 学习笔记：文档导入与智能切块",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+        "Day 24 学习笔记：文档导入与智能切块",
+        "Day 23 学习笔记：完整 RAG 生成质量评估"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0012",
+          "score": 0.5990304946899414,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "识别出的代码块优先作为一个整体语义单元。  只有代码块本身已经超过 chunk_size 时，才使用字符窗口后备切分。  测试中使用：  fence = \"`\" * 3  这是为了避免聊天界面把测试字符串中的三个反引号误认为外层代码展示结束。  Python 运行时得到的内容仍是真正的 Markdown 代码围栏。  "
+        },
+        {
+          "rank": 2,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0040",
+          "score": 0.5962216258049011,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "- 引用是否正确。  - 答案是否清晰完整。  检索正确不等于生成一定正确。  检索错误通常会让生成更难正确。  一个完整 RAG 项目需要同时评估两层。  ============================================================ 三十三、GBK UnicodeEncod"
+        },
+        {
+          "rank": 3,
+          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+          "chunk_id": "doc_30d9ea5fd0_chunk_0004",
+          "score": 0.5902597904205322,
+          "category": "learning_note",
+          "day": 16,
+          "text_preview": "真实项目还可以按照：  段落、句号、标题、Markdown 层级、Token 数量  进行更自然的切块。  四、固定字符切块  核心函数：  def split_text( text: str, chunk_size: int = 45, overlap: int = 10, ) -> list[str]: if ch"
+        },
+        {
+          "rank": 4,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0011",
+          "score": 0.582557737827301,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "- 。  - ！  和 !  - ？  和 ?  - ；  和 ;  这样 chunk_text 可以把多个完整句子组合成文本块，而不是优先从句子中间截断。  ============================================================ 八、为什么要特殊处理 Markdown"
+        },
+        {
+          "rank": 5,
+          "title": "Day 23 学习笔记：完整 RAG 生成质量评估",
+          "chunk_id": "doc_900dfd6942_chunk_0017",
+          "score": 0.5685608386993408,
+          "category": "learning_note",
+          "day": 23,
+          "text_preview": "- max_score：约 0.6297。  - 正确来源：“Docker部署”。  - 关键词覆盖率：100%。  - 引用：缺失。  - 正确提到代码、依赖和运行环境。  - 增加了“复制到新的虚拟机”这一资料外表述，说明即使关键词满分，仍可能出现不忠实内容。  =========================="
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.5990304946899414,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "multi_source_traceability",
+      "query": "chunk_id、source、title 和相似度一起返回，怎样帮助排查 RAG 问答问题？",
+      "expected_titles": [
+        "Day 24 学习笔记：文档导入与智能切块",
+        "Day 25 学习笔记：导入历史学习笔记与扩展知识库",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"
+      ],
+      "retrieved_titles": [
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0016",
+          "score": 0.6552239656448364,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "retrieval_model_id = knowledge_base_metadata[\"model_id\"]  原因：  - 不同模型的 Tokenizer、词表、参数和语义空间不同。  - 即使向量维度碰巧相同，坐标含义也不一定相同。  - 查询向量和文档向量不在同一语义空间时，点积/余弦相似度没有可靠意义。  "
+        },
+        {
+          "rank": 2,
+          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+          "chunk_id": "doc_30d9ea5fd0_chunk_0029",
+          "score": 0.6524953842163086,
+          "category": "learning_note",
+          "day": 16,
+          "text_preview": "# 4. 生成查询向量 query_embedding = encode_queries([query])  # 5. 计算相似度与 Top-K similarity_scores = ( query_embedding @ chunk_embeddings.T ).squeeze(0)  top_scores, to"
+        },
+        {
+          "rank": 3,
+          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+          "chunk_id": "doc_30d9ea5fd0_chunk_0016",
+          "score": 0.6467565298080444,
+          "category": "learning_note",
+          "day": 16,
+          "text_preview": "这属于非对称检索任务。  BGE 推荐在查询前添加检索指令，文档块仍然按照原文编码。  查询向量和文档向量必须：  1. 使用同一个 Tokenizer。  2. 使用同一个模型。  3. 使用相同池化方法。  4. 使用相同归一化方法。  这样二者才位于相同的语义向量空间。  十四、批量计算相似度  查询只有 1 条"
+        },
+        {
+          "rank": 4,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0017",
+          "score": 0.6409426927566528,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "3. 必要的一致性检查  if len(chunks) !  = embeddings.shape[0]: raise ValueError(...)  原因：文本块列表的第 i 项必须对应向量矩阵第 i 行。  检索返回的是向量行索引。  只有二者顺序和数量一致，才能根据该索引找到正确原文。  否则系统可能计算的是 "
+        },
+        {
+          "rank": 5,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0025",
+          "score": 0.639767050743103,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "在线问答阶段（Day 17）：  用户问题 → 添加 BGE 查询指令 → BGE 生成查询向量 → L2 归一化 → 与文档向量矩阵相乘 → 得到余弦相似度 → torch.topk() 得到 Top-K 分数和索引 → 检查最高相似度门槛 ├─ 低于门槛：返回“现有资料不足” └─ 达到门槛：继续执行 → 根据索引"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.6552239656448364,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "multi_update_consistency",
+      "query": "为什么知识库更新时必须同步切块、元数据、向量矩阵和内存中的 Pipeline？",
+      "expected_titles": [
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"
+      ],
+      "retrieved_titles": [
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 24 学习笔记：文档导入与智能切块",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+          "chunk_id": "doc_27cae4791c_chunk_0008",
+          "score": 0.6879492998123169,
+          "category": "learning_note",
+          "day": 26,
+          "text_preview": "- 810 个文本块对应形状为 (810, 512) 的矩阵。  维度越大不一定代表检索一定越好。  模型质量、训练数据、文本语言、切块策略和评估样本同样重要。  知识库向量和用户问题向量必须使用同一个检索模型生成。  如果知识库使用 BGE 生成，而问题使用其他模型生成，它们不位于同一个向量空间，相似度就没有可靠意义"
+        },
+        {
+          "rank": 2,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0039",
+          "score": 0.6777930855751038,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "知识点三：  判断向量知识库是否可复用，至少要检查：  - 必要文件。  - 切块内容。  - 检索模型。  - 向量矩阵维度。  - 文本块数量与向量行数。  知识点四：  FastAPI lifespan 适合在服务启动时加载和释放长期资源。  知识点五：  更新知识库必须发生在加载 RAGPipeline 之前，"
+        },
+        {
+          "rank": 3,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0038",
+          "score": 0.6715174913406372,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "可以写成：  - 设计本地 RAG 知识库自动更新流程，基于切块内容、模型标识与向量形状判断索引有效性，实现无变化跳过重建、资料变化自动向量化。  - 将知识库更新接入 FastAPI lifespan，保证服务启动时先完成索引校验与更新，再加载 RAG Pipeline，避免内存数据与磁盘索引版本不一致。  - 使用"
+        },
+        {
+          "rank": 4,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0030",
+          "score": 0.6653908491134644,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "9. 非法切块参数会被拒绝。  今天还不能证明：  1. 新文本块已经生成 embedding。  2. 新知识库可以被 retrieval.py 检索。  3. 新知识库的 Hit@K 和 MRR 比旧版本更好。  4. 新知识库能够提升 Qwen 回答质量。  5. PDF、Word、HTML 等格式能够直接导入。"
+        },
+        {
+          "rank": 5,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0012",
+          "score": 0.663777768611908,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "所以元数据中保存 model_id， 更新检查时再与当前 RETRIEVAL_MODEL_ID 比较， 是保证检索正确性的必要条件。  ============================================================ 九、为什么文本块数量必须等于向量行数 ============"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6879492998123169,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "multi_topk_after_expansion",
+      "query": "为什么扩展知识库后要重新分析 Hit@1、Hit@3、Hit@5 和 Hit@10？",
+      "expected_titles": [
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"
+      ],
+      "retrieved_titles": [
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0051",
+          "score": 0.6782145500183105,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "“我没有继续使用已经被历史学习笔记收录的旧测试问题，而是建立新的独立评估集；  同时避免在会被重新索引的学习笔记里复制完整评估题。  知识库继续扩充后，还需要再准备新的留出测试集。  ”  如果面试官问 93.33% 为什么不是 100%：  “门槛分类已经达到 TP=9、FP=0、TN=6、FN=0，但有一个正例的正"
+        },
+        {
+          "rank": 2,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0043",
+          "score": 0.6614494919776917,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "如果反复查看某个用例并为它修改代码，它实际上已经从测试集变成验证集。  因此 Day 28 最终没有继续针对唯一失败用例追求满分。  ============================================================ 四十六、扩充知识库后为什么旧评估会失效 ============"
+        },
+        {
+          "rank": 3,
+          "title": "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+          "chunk_id": "doc_27cae4791c_chunk_0036",
+          "score": 0.6491266489028931,
+          "category": "learning_note",
+          "day": 26,
+          "text_preview": "- 是否出现异常类型。  - 进程是否非正常退出。  - 是否有检索分数、来源或后续输出。  单纯看到知识库正文，通常说明它正在展示检索结果。  ============================================================ 三十、为什么不能继续凭感觉使用 0.40 门槛 =="
+        },
+        {
+          "rank": 4,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0003",
+          "score": 0.6399281620979309,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "10. 在 retrieval.py 中对每个候选文本块单独应用门槛。  11. 为逐块过滤行为增加自动化测试。  12. 新建排名深度分析程序。  13. 比较 Hit@1、Hit@3、Hit@5 和 Hit@10。  14. 将默认 Top-K 由 3 调整为 5。  15. 同步更新 Pydantic 请求模型和"
+        },
+        {
+          "rank": 5,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0039",
+          "score": 0.631367564201355,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "知识点三：  判断向量知识库是否可复用，至少要检查：  - 必要文件。  - 切块内容。  - 检索模型。  - 向量矩阵维度。  - 文本块数量与向量行数。  知识点四：  FastAPI lifespan 适合在服务启动时加载和释放长期资源。  知识点五：  更新知识库必须发生在加载 RAGPipeline 之前，"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.6782145500183105,
+      "accepted": true,
+      "correct": true
+    },
+    {
+      "id": "multi_dify_provider",
+      "query": "系统接入 Dify 后，哪些部分仍然由本项目负责，哪些部分交给 Dify？",
+      "expected_titles": [
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"
+      ],
+      "retrieved_titles": [
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+        "RAG基础",
+        "Python Day 5 学习笔记",
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0037",
+          "score": 0.5967642664909363,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "第 7 题：main.py 的主要职责是什么？  标准答案：  作为项目命令行入口，负责创建 Pipeline、接收用户输入、识别退出和空问题、调用问答流程、展示结果以及处理运行异常。  第 8 题：为什么创建一次 RAGPipeline 后可以连续回答多个问题？  标准答案：  因为 RAGPipeline 在输入循"
+        },
+        {
+          "rank": 2,
+          "title": "RAG基础",
+          "chunk_id": "doc_ba53fec8d7_chunk_0001",
+          "score": 0.551638662815094,
+          "category": "reference",
+          "day": null,
+          "text_preview": "RAG 的全称是 Retrieval-Augmented Generation，即检索增强生成。  它把外部知识库检索与大语言模型生成结合起来，让模型能够根据指定资料回答问题。  一个基本的 RAG 系统通常包含三个阶段。  第一阶段是 Retrieval，系统把用户问题转换成向量，并从知识库中检索相似文本。  第二阶"
+        },
+        {
+          "rank": 3,
+          "title": "Python Day 5 学习笔记",
+          "chunk_id": "doc_dc473e29e3_chunk_0025",
+          "score": 0.5494841933250427,
+          "category": "learning_note",
+          "day": 5,
+          "text_preview": "这条知识链已经接近真实 AI 项目中的数据处理方式，也是后续学习神经网络、Embedding、Transformer 和 RAG 检索计算的重要基础。"
+        },
+        {
+          "rank": 4,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0038",
+          "score": 0.5448882579803467,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "只要保留原始数据、模型 ID 和构建代码，这些向量通常可以重新生成；  重要且不可重建的文件应另行保存。  第 11 题：compileall 与真正运行项目有什么区别？  标准答案：  compileall 主要检查 Python 语法能否通过编译，不会完整加载模型、读取知识库或执行业务逻辑。  真正运行项目才会验证"
+        },
+        {
+          "rank": 5,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0035",
+          "score": 0.5448334217071533,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "11. break 退出循环；  continue 跳过本轮并开始下一轮。  12. compileall 通过不代表完整项目一定能运行。  13. .pth 被忽略通常是因为体积大且可通过建库流程重新生成，不是因为 Python 会自动替你重新加载。  14. README 和 requirements 不是算法代码"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.5967642664909363,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "multi_docker_fastapi",
+      "query": "把 FastAPI 服务放进 Docker 时，为什么既要让 Uvicorn 监听 0.0.0.0，又要配置端口映射？",
+      "expected_titles": [
+        "Docker部署",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API"
+      ],
+      "retrieved_titles": [
+        "Docker部署",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Docker部署",
+          "chunk_id": "doc_c6d8626551_chunk_0001",
+          "score": 0.5922220945358276,
+          "category": "reference",
+          "day": null,
+          "text_preview": "Docker 可以把应用程序、运行环境和依赖打包为镜像，从而减少不同计算机之间的环境差异。  Dockerfile 描述镜像如何构建，docker build 用于构建镜像，docker run 用于根据镜像创建并运行容器。  端口映射可以把容器内部的服务端口暴露给宿主机。  部署 FastAPI 服务时，需要在镜像中"
+        },
+        {
+          "rank": 2,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0048",
+          "score": 0.5743739604949951,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "Invoke-RestMethod 是 PowerShell 调用 HTTP/REST API 的命令；  ConvertTo-Json 把 PowerShell 对象转换成 JSON 字符串。  27. Uvicorn 停止后会发生什么？  端口不再有服务器监听，浏览器和 PowerShell 请求都会连接失败，通常"
+        },
+        {
+          "rank": 3,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0030",
+          "score": 0.5730498433113098,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "服务器运行时可以访问：  - http://127.0.0.1:8000/docs - http://127.0.0.1:8000/openapi.json  Swagger UI 适合人工调试：  1. 展开接口。  2. 点击 Try it out。  3. 输入请求 JSON。  4. 点击 Execute。  "
+        },
+        {
+          "rank": 4,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0002",
+          "score": 0.568261981010437,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "6. 设置 200、422、500、503 等不同状态的处理逻辑。  7. 使用 Swagger UI 和 PowerShell 测试接口。  8. 处理中文请求和响应的 UTF-8 编码。  9. 更新 README.md、requirements.txt，并提交 Git 版本。  最终效果：原来的本地 RAG 能力"
+        },
+        {
+          "rank": 5,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0037",
+          "score": 0.5573310256004333,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "原因：当前 Python 环境没有安装 FastAPI，或 VS Code 使用了错误解释器。  应激活项目虚拟环境，并使用当前 Python 安装依赖。  4. ModuleNotFoundError: No module named 'rag_project'  原因：直接运行包内 api.py，或当前目录不在项目"
+        }
+      ],
+      "expected_rank": 1,
+      "max_score": 0.5922220945358276,
       "accepted": true,
       "correct": true
     },
@@ -737,15 +2778,33 @@
       "query": "家用空调连续运行一天大约消耗多少度电？",
       "expected_titles": [],
       "retrieved_titles": [
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
         "Day 23 学习笔记：完整 RAG 生成质量评估",
-        "Day 22 学习笔记：RAG 相关性门槛校准",
-        "Day 22 学习笔记：RAG 相关性门槛校准",
-        "Day 22 学习笔记：RAG 相关性门槛校准",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
         "Day 22 学习笔记：RAG 相关性门槛校准"
       ],
       "retrieved_details": [
         {
           "rank": 1,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0040",
+          "score": 0.4438566565513611,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "- 更细粒度的句子到来源映射。  - Natural Language Inference 模型。  - LLM-as-a-Judge，并结合人工复核。  ============================================================ 四十三、为什么不能只看整体通过率 ===="
+        },
+        {
+          "rank": 2,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0036",
+          "score": 0.4363192021846771,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "样本很小时，直接为当前评估集调到 100% 容易过拟合。  过拟合表现为：  - 对这 9 个问题表现很好。  - 对新问题不一定更好。  - 参数选择过度依赖当前样本。  - 返回内容越来越多，但有效信息比例下降。  更可靠的方法：  1. 保留当前 Top-K=5。  2. 增加更多独立正例和负例。  3. 分析唯"
+        },
+        {
+          "rank": 3,
           "title": "Day 23 学习笔记：完整 RAG 生成质量评估",
           "chunk_id": "doc_900dfd6942_chunk_0033",
           "score": 0.4201134443283081,
@@ -754,44 +2813,26 @@
           "text_preview": "结果显示门槛判断、来源命中、关键词覆盖和拒答准确率都是 100%，但引用出现率为 0%，因此严格整体通过率只有 33.33%。  逐样例分析还发现 Docker 回答包含资料未提供的虚拟机表述，以及部分回答受简单切块或生成长度影响而不完整。  这说明规则指标能快速定位问题，但关键词满分不能证明事实忠实，我会继续结合引用"
         },
         {
-          "rank": 2,
+          "rank": 4,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0056",
+          "score": 0.41835978627204895,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "Day 27 的核心不是把两个默认数字改掉。  真正完成的是一套可解释的检索优化方法：  发现旧评估集泄漏 → 建立新的独立正负样本 → 允许多个正确来源 → 记录逐块检索详情 → 用混淆矩阵校准门槛 → 用 Hit@K 和 MRR 分析排名 → 为每个返回块应用门槛 → 在召回与噪声之间选择 Top-K → 使用最终"
+        },
+        {
+          "rank": 5,
           "title": "Day 22 学习笔记：RAG 相关性门槛校准",
           "chunk_id": "doc_55b9210b11_chunk_0015",
           "score": 0.4164861738681793,
           "category": "learning_note",
           "day": 22,
           "text_preview": "列表中的值再次使用 round(..., 2)，是为了减少二进制浮点数产生 0.30000000000000004 等显示误差。  步长决定搜索精度：  - 步长较大：运行和报告更简单，但可能跳过较好的门槛。  - 步长较小：搜索更细，但候选数量和报告体积增加。  本次已有固定分数，计算 51 个候选门槛几乎不产生额外"
-        },
-        {
-          "rank": 3,
-          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
-          "chunk_id": "doc_55b9210b11_chunk_0019",
-          "score": 0.4130063056945801,
-          "category": "learning_note",
-          "day": 22,
-          "text_preview": "最高负例约为 0.3705。  判断条件使用：  max_score >= threshold  因此门槛必须高于 0.3705 才能拒绝这个负例。  网格中的下一个候选值是 0.38。  最低正例约为 0.4430。  门槛为 0.44 时它仍能通过；  门槛提高到 0.45 时它会被拒绝。  所以当前 0.01 精"
-        },
-        {
-          "rank": 4,
-          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
-          "chunk_id": "doc_55b9210b11_chunk_0035",
-          "score": 0.4097902774810791,
-          "category": "learning_note",
-          "day": 22,
-          "text_preview": "当前 0.40 位于 0.38～0.44 的满分范围内，因此不修改配置。  真正重要的结论不是“指标为 100%”，而是已经建立了一套可重复执行、可解释、可测试、可随着评估数据增长而重新运行的门槛校准流程。"
-        },
-        {
-          "rank": 5,
-          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
-          "chunk_id": "doc_55b9210b11_chunk_0032",
-          "score": 0.40650343894958496,
-          "category": "learning_note",
-          "day": 22,
-          "text_preview": "当前 0.38 到 0.44 都获得满分，默认门槛 0.40 被保留。  最低正例约为 0.443，最高负例约为 0.370，分数间隔约为 0.073。  同时我为网格边界、误接受、误拒绝和最佳门槛选择编写了自动化测试。  我也明确这只是 12 个样例上的基线，正式调参还需要更大的开发集和独立测试集。  ”  ===="
         }
       ],
       "expected_rank": null,
-      "max_score": 0.4201134443283081,
+      "max_score": 0.4438566565513611,
       "accepted": false,
       "correct": true
     },
@@ -802,9 +2843,9 @@
       "retrieved_titles": [
         "Day 23 学习笔记：完整 RAG 生成质量评估",
         "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
         "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
-        "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
-        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API"
+        "Day 20 学习笔记：使用 pytest 自动测试 RAG API"
       ],
       "retrieved_details": [
         {
@@ -827,6 +2868,15 @@
         },
         {
           "rank": 3,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0032",
+          "score": 0.3791390657424927,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "手动更新知识库：  python -m rag_project.update_knowledge_base  启动 API：  python -m uvicorn rag_project.api:app --host 127.0.0.1 --port 8000  检查 API 健康状态：  Invoke-RestMet"
+        },
+        {
+          "rank": 4,
           "title": "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
           "chunk_id": "doc_c36e648e0d_chunk_0025",
           "score": 0.37692898511886597,
@@ -835,22 +2885,13 @@
           "text_preview": "5. 测试完成后 monkeypatch 自动恢复真实 RAGPipeline。  因此既测试了生命周期，又没有加载真实模型。  ============================================================ 二十、HTTP 状态与业务状态的测试覆盖 ============="
         },
         {
-          "rank": 4,
+          "rank": 5,
           "title": "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
           "chunk_id": "doc_c36e648e0d_chunk_0038",
           "score": 0.3683107793331146,
           "category": "learning_note",
           "day": 20,
           "text_preview": "随后通过 TestClient 测试 HTTP 200、422、500、503 以及 passed=false 等 API 行为。  为了避免每次测试加载真实 BGE 和 Qwen，我实现了 FakePipeline，并通过 fixture 在测试前注入、测试后恢复。  对于 lifespan，我使用 monkeypa"
-        },
-        {
-          "rank": 5,
-          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
-          "chunk_id": "doc_284b4cb5ed_chunk_0026",
-          "score": 0.3616822063922882,
-          "category": "learning_note",
-          "day": 19,
-          "text_preview": "19. FastAPI 按 AskResponse 校验返回数据。  20. 校验失败：服务器记录异常，客户端得到 500。  21. 校验成功：返回 HTTP 200 和 JSON。  服务器关闭：  1. Uvicorn 收到停止信号。  2. FastAPI 从 yield 后继续执行 lifespan。  3."
         }
       ],
       "expected_rank": null,
@@ -864,10 +2905,10 @@
       "expected_titles": [],
       "retrieved_titles": [
         "Day 23 学习笔记：完整 RAG 生成质量评估",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
         "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
         "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
-        "Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配",
-        "Day 22 学习笔记：RAG 相关性门槛校准"
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"
       ],
       "retrieved_details": [
         {
@@ -881,6 +2922,15 @@
         },
         {
           "rank": 2,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0023",
+          "score": 0.3652040362358093,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "中点 0.5151 位于最高负例和最低正例之间，数学上很直观。  但当前项目选择 0.45，原因包括：  1. 0.45 已经高于当前最高负例分数 0.44295。  2. 0.45 在当前数据上已经实现 FP=0、FN=0。  3. 它是完美区间的下边界。  4. 相比 0.5151，它为未来表达方式不同的相关问题保"
+        },
+        {
+          "rank": 3,
           "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
           "chunk_id": "doc_30d9ea5fd0_chunk_0006",
           "score": 0.3463327884674072,
@@ -889,7 +2939,7 @@
           "text_preview": "新的 start 会向后退，无法正常向文本末尾推进。  所以必须满足：  0 <= overlap < chunk_size  4. 为什么到末尾要 break  if end == len(text): break  表示当前文本块已经到达原文末尾。  此时必须结束，否则继续用重叠长度计算起点，可能重复处理末尾内容。"
         },
         {
-          "rank": 3,
+          "rank": 4,
           "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
           "chunk_id": "doc_3f90dc215d_chunk_0024",
           "score": 0.3460022807121277,
@@ -898,22 +2948,13 @@
           "text_preview": "Query Mask 清零 PAD 输出行；  Key Mask 防止真实 token 把概率分给 PAD 列，两者解决的问题不同。  十八、完整数据流  输入向量 X：(B,T,E) -> 线性投影得到 Q、K、V：(B,T,E) -> reshape 拆头：(B,T,H,Dh) -> transpose：(B,H,"
         },
         {
-          "rank": 4,
-          "title": "Day 15 学习笔记：预训练 Transformer、句子向量与岗位匹配",
-          "chunk_id": "doc_54ce5d8b7e_chunk_0016",
-          "score": 0.3373646140098572,
-          "category": "learning_note",
-          "day": 15,
-          "text_preview": "因此：  cos(A, B) = A·B  这里的 A·B 是点积，不是保留所有元素的普通逐元素乘法结果。  十、封装句子编码函数  def encode_sentences(sentences: list[str]) -> torch.Tensor: inputs = tokenizer( sentences, pa"
-        },
-        {
           "rank": 5,
-          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
-          "chunk_id": "doc_55b9210b11_chunk_0033",
-          "score": 0.3247477114200592,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0027",
+          "score": 0.3432464003562927,
           "category": "learning_note",
-          "day": 22,
-          "text_preview": "Day 22 Git 提交：  0e8d56b 完成 Day 22 RAG 相关性门槛校准  提交内容包括：  - rag_project/calibrate_threshold.py - rag_project/tests/test_threshold_calibration.py - rag_project/thr"
+          "day": 28,
+          "text_preview": "最终代码恢复为：  context_chunks = retrieved_chunks  也就是保持检索结果原有顺序和数量。  失败实验不作为今天必须掌握的功能，也不应该为了保留“做过的工作”留在生产路径中。  工程上的正确做法是：  - 用指标验证改动。  - 没有收益就回退。  - 保留最终稳定方案。  - 不把临"
         }
       ],
       "expected_rank": null,
@@ -926,15 +2967,24 @@
       "query": "春季应该怎样修剪院子里的玫瑰花？",
       "expected_titles": [],
       "retrieved_titles": [
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
         "Day 24 学习笔记：文档导入与智能切块",
         "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
         "Day 24 学习笔记：文档导入与智能切块",
-        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
-        "Python Day 9 学习笔记"
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API"
       ],
       "retrieved_details": [
         {
           "rank": 1,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0014",
+          "score": 0.3644750714302063,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "旧报告使用 expected_title。  新报告使用 expected_titles。  如果校准程序只认识新字段，那么过去生成的报告将无法读取。  Day 27 在 calibrate_threshold.py 中增加 get_expected_titles()：  1. 如果存在 expected_titles"
+        },
+        {
+          "rank": 2,
           "title": "Day 24 学习笔记：文档导入与智能切块",
           "chunk_id": "doc_13fc5e16b7_chunk_0035",
           "score": 0.3511577546596527,
@@ -943,7 +2993,7 @@
           "text_preview": "可以这样介绍 Day 24：  “在完整 RAG 生成评估中，我发现旧知识库采用简单定长切分，部分文本块在词语和句子中间断开，问题会继续传递到最终回答。  因此我新增了独立的文档预处理模块，从 TXT 和 Markdown 原始资料递归加载内容，统一换行和空白，优先按照段落、完整句子和 Markdown 代码块切分，并"
         },
         {
-          "rank": 2,
+          "rank": 3,
           "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
           "chunk_id": "doc_30d9ea5fd0_chunk_0004",
           "score": 0.3415404260158539,
@@ -952,7 +3002,7 @@
           "text_preview": "真实项目还可以按照：  段落、句号、标题、Markdown 层级、Token 数量  进行更自然的切块。  四、固定字符切块  核心函数：  def split_text( text: str, chunk_size: int = 45, overlap: int = 10, ) -> list[str]: if ch"
         },
         {
-          "rank": 3,
+          "rank": 4,
           "title": "Day 24 学习笔记：文档导入与智能切块",
           "chunk_id": "doc_13fc5e16b7_chunk_0015",
           "score": 0.3352423310279846,
@@ -961,28 +3011,901 @@
           "text_preview": "start = 0 end = min(start + chunk_size, len(unit)) start = end - overlap  这种方式可以保证程序不会因为一个超长单元产生无限大的文本块，并且相邻窗口保留指定字符重叠。  字符窗口是后备方案，不是首选方案，因为它仍可能从词语或代码中间断开。  ==="
         },
         {
-          "rank": 4,
+          "rank": 5,
           "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
           "chunk_id": "doc_284b4cb5ed_chunk_0013",
           "score": 0.3349887728691101,
           "category": "learning_note",
           "day": 19,
           "text_preview": "只设置 min_length=1 仍然存在一个问题：字符串 \"   \" 含有字符，因此能够通过长度检查，但它没有实际问题内容。  解决方法：  @field_validator(\"query\") @classmethod def clean_query(cls, value: str) -> str: value = "
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.3644750714302063,
+      "accepted": false,
+      "correct": true
+    },
+    {
+      "id": "negative_stock",
+      "query": "现在应该买入哪只股票，未来一个月收益最高？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 22 学习笔记：RAG 相关性门槛校准",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 22 学习笔记：RAG 相关性门槛校准",
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 22 学习笔记：RAG 相关性门槛校准"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
+          "chunk_id": "doc_55b9210b11_chunk_0013",
+          "score": 0.4298132658004761,
+          "category": "learning_note",
+          "day": 22,
+          "text_preview": "只有两者都较高时，F1 才会较高。  当前结果：  2 × 1.0 × 1.0 / (1.0 + 1.0) = 1.0  F1 关注被接受结果的准确性和相关问题的覆盖率，但不直接包含 TN，因此脚本同时使用 Balanced Accuracy 和 F1，而不是只看 F1。  ======================"
+        },
+        {
+          "rank": 2,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0032",
+          "score": 0.4269609749317169,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "Hit@K 高但 MRR 较低，通常表示：  虽然多数问题能找到正确资料，但正确资料经常排在第 3、第 4 或第 5，而不是第 1。  Day 27 最终：  - Hit@5：88.89% - MRR@5：56.48%  说明召回已经较好，但首位排序质量仍有提升空间。  ========================"
+        },
+        {
+          "rank": 3,
+          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
+          "chunk_id": "doc_55b9210b11_chunk_0017",
+          "score": 0.40766024589538574,
+          "category": "learning_note",
+          "day": 22,
+          "text_preview": "choose_best_result 使用 max 和一个比较元组：  1. 优先选择 Balanced Accuracy 更高的结果。  2. 如果相同，选择 F1 更高的结果。  3. 如果仍相同，选择 Accuracy 更高的结果。  4. 如果仍相同，选择最接近当前默认门槛的结果。  最后一项：  -abs(r"
+        },
+        {
+          "rank": 4,
+          "title": "Day 21 学习笔记：RAG 检索质量评估",
+          "chunk_id": "doc_bd6cc11fde_chunk_0032",
+          "score": 0.40286388993263245,
+          "category": "learning_note",
+          "day": 21,
+          "text_preview": "当前 12 个基线样例全部正确，说明检索排名和 0.40 门槛在这组数据上表现良好。  下一步的重点不是盲目庆祝 100%，而是逐步扩大数据集、加入更困难的问题，并用独立数据进行门槛校准和生成质量评估。"
+        },
+        {
+          "rank": 5,
+          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
+          "chunk_id": "doc_55b9210b11_chunk_0015",
+          "score": 0.4000060558319092,
+          "category": "learning_note",
+          "day": 22,
+          "text_preview": "列表中的值再次使用 round(..., 2)，是为了减少二进制浮点数产生 0.30000000000000004 等显示误差。  步长决定搜索精度：  - 步长较大：运行和报告更简单，但可能跳过较好的门槛。  - 步长较小：搜索更细，但候选数量和报告体积增加。  本次已有固定分数，计算 51 个候选门槛几乎不产生额外"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.4298132658004761,
+      "accepted": false,
+      "correct": true
+    },
+    {
+      "id": "negative_medical",
+      "query": "喉咙痛发烧三天应该吃什么抗生素？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+        "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0031",
+          "score": 0.38386228680610657,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "GET 健康检查：  Invoke-RestMethod ` -Uri \"http://127.0.0.1:8000/health\" ` -Method Get  Invoke-RestMethod 是 PowerShell 用来发送 HTTP/REST 请求的命令，并会把 JSON 响应转换成便于访问属性的 Powe"
+        },
+        {
+          "rank": 2,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0032",
+          "score": 0.36740797758102417,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "手动更新知识库：  python -m rag_project.update_knowledge_base  启动 API：  python -m uvicorn rag_project.api:app --host 127.0.0.1 --port 8000  检查 API 健康状态：  Invoke-RestMet"
+        },
+        {
+          "rank": 3,
+          "title": "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+          "chunk_id": "doc_c36e648e0d_chunk_0024",
+          "score": 0.3515947461128235,
+          "category": "learning_note",
+          "day": 20,
+          "text_preview": "会执行应用启动和关闭生命周期。  如果直接执行，就会创建真实 RAGPipeline 并加载模型。  测试前使用：  monkeypatch.setattr( \"rag_project.api.RAGPipeline\", LifespanFakePipeline, )  它会在测试期间临时把 api.py 使用的 RA"
+        },
+        {
+          "rank": 4,
+          "title": "Day 20 学习笔记：使用 pytest 自动测试 RAG API",
+          "chunk_id": "doc_c36e648e0d_chunk_0002",
+          "score": 0.34183645248413086,
+          "category": "learning_note",
+          "day": 20,
+          "text_preview": "5. 使用 FastAPI TestClient 测试 HTTP 接口。  6. 使用 pytest fixture 准备和清理测试环境。  7. 使用 FakePipeline 隔离真实的 BGE 和 Qwen 模型。  8. 使用 monkeypatch 测试 FastAPI lifespan。  9. 测试 HT"
+        },
+        {
+          "rank": 5,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0056",
+          "score": 0.33111679553985596,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "Day 27 的核心不是把两个默认数字改掉。  真正完成的是一套可解释的检索优化方法：  发现旧评估集泄漏 → 建立新的独立正负样本 → 允许多个正确来源 → 记录逐块检索详情 → 用混淆矩阵校准门槛 → 用 Hit@K 和 MRR 分析排名 → 为每个返回块应用门槛 → 在召回与噪声之间选择 Top-K → 使用最终"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.38386228680610657,
+      "accepted": false,
+      "correct": true
+    },
+    {
+      "id": "negative_travel",
+      "query": "冬季去北海道自驾旅行需要准备哪些防滑装备？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Python Day 7 学习笔记",
+        "Python Day 7 学习笔记",
+        "Python Day 9 学习笔记",
+        "Python Day 6 学习笔记",
+        "Python Day 9 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Python Day 7 学习笔记",
+          "chunk_id": "doc_600c116976_chunk_0016",
+          "score": 0.3623410761356354,
+          "category": "learning_note",
+          "day": 7,
+          "text_preview": "训练损失直接使用 logits：  loss = loss_fn(logits, y_train)  检查准确率时需要：  with torch.no_grad(): check_logits = model(x_train) check_probabilities = torch.sigmoid(check_logi"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 7 学习笔记",
+          "chunk_id": "doc_600c116976_chunk_0015",
+          "score": 0.3484124541282654,
+          "category": "learning_note",
+          "day": 7,
+          "text_preview": "# 2. 计算损失 loss = loss_fn( logits, y_train, )  # 3. 清空梯度 optimizer.zero_grad()  # 4. 反向传播 loss.backward()  # 5. 更新参数 optimizer.step()  五步顺序：  前向传播 -> 计算损失 -> 清空梯"
+        },
+        {
+          "rank": 3,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0013",
+          "score": 0.3398630917072296,
+          "category": "learning_note",
+          "day": 9,
+          "text_preview": "每调用一次，模型会完整使用一次 data_loader 中的全部训练数据，也就是完成一个 epoch。  核心步骤：  model.train()  for batch_features, batch_labels in data_loader: batch_features = batch_features.to(d"
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 6 学习笔记",
+          "chunk_id": "doc_fa8876987f_chunk_0019",
+          "score": 0.3394055962562561,
+          "category": "learning_note",
+          "day": 6,
+          "text_preview": "14. 为什么损失逐渐减小？  优化器利用梯度不断把参数朝降低损失的方向更新。  15. train() 和 eval() 的作用？  分别切换到训练模式和评估模式。  16. no_grad() 的作用？  关闭梯度和计算图记录，节省资源并提高推理效率。  17. 为什么用未训练数据测试？  检验模型是否学到规律，以"
         },
         {
           "rank": 5,
           "title": "Python Day 9 学习笔记",
-          "chunk_id": "doc_007c7c6a98_chunk_0010",
-          "score": 0.32861948013305664,
+          "chunk_id": "doc_007c7c6a98_chunk_0019",
+          "score": 0.33897069096565247,
           "category": "learning_note",
           "day": 9,
-          "text_preview": "因此一个 epoch 有 9 个训练批次，也会执行 9 次 optimizer.step()。  第一个完整批次形状：  特征：(16,2) 标签：(16,1)  ============================================================ 七、iter() 和 next()"
+          "text_preview": "规范评估通常两者一起使用：  model.eval()  with torch.no_grad(): logits = model(features)  ============================================================ 十四、多轮训练与验证 ==========="
         }
       ],
       "expected_rank": null,
-      "max_score": 0.3511577546596527,
+      "max_score": 0.3623410761356354,
       "accepted": false,
       "correct": true
+    },
+    {
+      "id": "negative_recipe",
+      "query": "红烧牛肉怎样炖得更软烂？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 23 学习笔记：完整 RAG 生成质量评估",
+        "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Python Day 9 学习笔记",
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 23 学习笔记：完整 RAG 生成质量评估",
+          "chunk_id": "doc_900dfd6942_chunk_0013",
+          "score": 0.38091176748275757,
+          "category": "learning_note",
+          "day": 23,
+          "text_preview": "” - “番茄炒蛋应该怎么做？  ”  都没有通过 0.40 门槛，并返回：  - answer=\"现有资料不足\" - sources=[]  拒答准确率为 2 / 2 = 100%。  由于 RAGPipeline 在未通过门槛时提前 return，这两个负例没有调用生成模型，既降低了幻觉风险，也节省了推理时间。  "
+        },
+        {
+          "rank": 2,
+          "title": "Day 16 学习笔记：中文 RAG 语义检索、Top-K 与本地向量知识库",
+          "chunk_id": "doc_30d9ea5fd0_chunk_0003",
+          "score": 0.36781376600265503,
+          "category": "learning_note",
+          "day": 16,
+          "text_preview": "3. Generation：生成  把增强后的提示词提交给生成式大模型，由大模型生成最终回答。  今天已经完成：  Retrieval：完成 Augmentation：完成 Generation：尚未接入生成式大模型  注意：构造出 rag_prompt 只是准备好了提示词字符串，并不代表大模型已经生成回答。  三、为"
+        },
+        {
+          "rank": 3,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0013",
+          "score": 0.3516783118247986,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "if do_sample: generation_kwargs[\"temperature\"] = 0.7 generation_kwargs[\"top_p\"] = 0.9  output_token_ids = generation_model.generate( **model_inputs, **generatio"
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0025",
+          "score": 0.34659337997436523,
+          "category": "learning_note",
+          "day": 9,
+          "text_preview": "加载最佳权重的标准模板如下，可在以后需要推理或最终测试时使用：  best_model = create_model().to(device)  best_state_dict = torch.load( best_model_path, map_location=device, weights_only=True, "
+        },
+        {
+          "rank": 5,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0036",
+          "score": 0.34564244747161865,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "应用 Qwen Chat Template；  生成 Token；  切掉原提示词；  解码并返回答案、分数和来源。  二十二、本次自测表现与重点纠正 ------------------------------  综合表现：约 28/30，已经理解 Day 17 的完整主线。  需要特别记住的纠正：  1. assi"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.38091176748275757,
+      "accepted": false,
+      "correct": true
+    },
+    {
+      "id": "negative_real_estate",
+      "query": "现在上海哪几个板块最适合买房投资？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0023",
+          "score": 0.3791269063949585,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "中点 0.5151 位于最高负例和最低正例之间，数学上很直观。  但当前项目选择 0.45，原因包括：  1. 0.45 已经高于当前最高负例分数 0.44295。  2. 0.45 在当前数据上已经实现 FP=0、FN=0。  3. 它是完美区间的下边界。  4. 相比 0.5151，它为未来表达方式不同的相关问题保"
+        },
+        {
+          "rank": 2,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0032",
+          "score": 0.3723224103450775,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "Hit@K 高但 MRR 较低，通常表示：  虽然多数问题能找到正确资料，但正确资料经常排在第 3、第 4 或第 5，而不是第 1。  Day 27 最终：  - Hit@5：88.89% - MRR@5：56.48%  说明召回已经较好，但首位排序质量仍有提升空间。  ========================"
+        },
+        {
+          "rank": 3,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0035",
+          "score": 0.3719630837440491,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "从 3 增加到 5：  - 多找回一个正例。  - 上下文增加幅度有限。  - 配合逐块 0.45 门槛，可以过滤低分候选。  从 5 增加到 10：  - 当前小样本上能达到 100% 召回。  - 但最多候选数量翻倍。  - 更容易加入重复或边缘相关内容。  - 增加生成阶段的上下文负担。  - 可能只是对 9 个"
+        },
+        {
+          "rank": 4,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0022",
+          "score": 0.3598752021789551,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "在当前样本上，0.45 到 0.58 都能得到：  - TP = 9 - FP = 0 - TN = 6 - FN = 0  因此：  - Precision = 100% - Recall = 100% - Specificity = 100% - Accuracy = 100% - Balanced Accurac"
+        },
+        {
+          "rank": 5,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0019",
+          "score": 0.35371342301368713,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "在 RAG 门槛评估中：  irrelevant_rejection_rate 与 specificity 表达的是相近目标。  ============================================================ 十四、F1 与 Balanced Accuracy 的含义 ===="
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.3791269063949585,
+      "accepted": false,
+      "correct": true
+    },
+    {
+      "id": "negative_law",
+      "query": "租房合同纠纷应该怎么起诉房东？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0052",
+          "score": 0.3981040120124817,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "第六，同义表达可以加入关键词替代组，但不能放宽事实要求。  第七，多维指标比单一总分更容易定位故障。  第八，失败样例应该保留，不能为了满分过拟合。  ============================================================ 五十五、面试时怎样介绍 Day 28 ===="
+        },
+        {
+          "rank": 2,
+          "title": "Day 21 学习笔记：RAG 检索质量评估",
+          "chunk_id": "doc_bd6cc11fde_chunk_0024",
+          "score": 0.3793018162250519,
+          "category": "learning_note",
+          "day": 21,
+          "text_preview": "8. 来自真实用户日志并经过隐私处理的问题。  评估样例应有明确、可复查的标签。  模糊样例最好由多人检查，避免错误标签使指标失真。  ============================================================ 二十二、门槛校准应注意数据泄漏 ==============="
+        },
+        {
+          "rank": 3,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0054",
+          "score": 0.37247318029403687,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "“新的独立负例暴露出一个约 0.473 的误接受边界，而当前正例仍保持更高分数，因此把门槛提高到 0.48，拒绝新负例，同时保持当前正例召回。  ”  ============================================================ 五十六、今天必须掌握的有效知识点 ======"
+        },
+        {
+          "rank": 4,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0011",
+          "score": 0.37160372734069824,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "6. 可以判断问题出在向量检索、标签设计还是评估规则。  7. 报告可以用于人工错误分析，而不仅是展示一个百分比。  工程上，可解释性报告往往比单个总分更重要。  ============================================================ 七、为什么一个问题可以有多个正确来"
+        },
+        {
+          "rank": 5,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0011",
+          "score": 0.36753010749816895,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "- 不能判断事实是否自相矛盾。  - 不能完整评估流畅度和可读性。  因此应该把它与以下检查结合：  - 来源标题命中。  - 检索门槛判断。  - 引用有效性。  - 拒答正确性。  - 人工抽查。  =========================================================="
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.3981040120124817,
+      "accepted": false,
+      "correct": true
+    },
+    {
+      "id": "boundary_python_excel",
+      "query": "用 Python 自动整理 Excel 财务报表时，应该怎么设计公式和透视表？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 24 学习笔记：文档导入与智能切块",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0011",
+          "score": 0.541121780872345,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "6. 可以判断问题出在向量检索、标签设计还是评估规则。  7. 报告可以用于人工错误分析，而不仅是展示一个百分比。  工程上，可解释性报告往往比单个总分更重要。  ============================================================ 七、为什么一个问题可以有多个正确来"
+        },
+        {
+          "rank": 2,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0020",
+          "score": 0.5250430107116699,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "例如：  doc_ba53fec8d7_chunk_0001  四位序号让文本块排序和显示更整齐，也为以后同一文档产生大量文本块留出空间。  ============================================================ 十七、chunk_preview.json ======"
+        },
+        {
+          "rank": 3,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0034",
+          "score": 0.5128288269042969,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "诊断 Top-K：  为了分析正确资料到底排在多深的位置，可以临时设置较大的 K。  运行 Top-K：  系统真正向生成模型提供的最大文本块数量。  诊断时使用 Top-10 不等于运行时必须使用 Top-10。  诊断目标：  - 观察排名分布。  - 判断正确资料是否完全没有被模型识别。  - 选择合理候选范围。"
+        },
+        {
+          "rank": 4,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0014",
+          "score": 0.5114213228225708,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "旧报告使用 expected_title。  新报告使用 expected_titles。  如果校准程序只认识新字段，那么过去生成的报告将无法读取。  Day 27 在 calibrate_threshold.py 中增加 get_expected_titles()：  1. 如果存在 expected_titles"
+        },
+        {
+          "rank": 5,
+          "title": "Day 28 学习笔记：扩展知识库的生成质量评估与引用可靠性优化",
+          "chunk_id": "doc_6d1cda8eaa_chunk_0026",
+          "score": 0.506546139717102,
+          "category": "learning_note",
+          "day": 28,
+          "text_preview": "- Gate：正确。  - Source：正确。  - Citation：正确。  - Content coverage：不完整。  这正是多维评估的价值。  如果只看 overall_case_pass_rate，只能看到 88.89%。  拆分后可以知道下一步优化方向是：  - 更强的生成模型。  - 更好的生成上"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.541121780872345,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "boundary_docker_k8s",
+      "query": "Docker 服务上线后，Kubernetes HPA 应该怎样配置扩缩容策略？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+        "Day 23 学习笔记：完整 RAG 生成质量评估",
+        "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+        "Docker部署",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 12 学习笔记：多头自注意力（Multi-Head Self-Attention）",
+          "chunk_id": "doc_3f90dc215d_chunk_0028",
+          "score": 0.5558604001998901,
+          "category": "learning_note",
+          "day": 12,
+          "text_preview": "缩放点积注意力：  scores = query_heads @ key_heads.transpose(-2, -1) scores = scores / (head_dim ** 0.5)  Key Mask 与 Softmax：  key_mask = attention_mask.unsqueeze(1).un"
+        },
+        {
+          "rank": 2,
+          "title": "Day 23 学习笔记：完整 RAG 生成质量评估",
+          "chunk_id": "doc_900dfd6942_chunk_0019",
+          "score": 0.5552905797958374,
+          "category": "learning_note",
+          "day": 23,
+          "text_preview": "- 回答提前遇到 EOS 时，也可能在达到上限前结束。  - 提高上限可以减少截断，但会增加生成时间和资源消耗。  - 上限过高也不能保证模型输出更准确。  正式判断截断原因时，可以记录实际生成 Token 数并检查是否达到上限。  ==========================================="
+        },
+        {
+          "rank": 3,
+          "title": "Day 18 学习笔记：把单文件 RAG 重构成模块化 Python 项目",
+          "chunk_id": "doc_565d1d1c3f_chunk_0021",
+          "score": 0.5457525849342346,
+          "category": "learning_note",
+          "day": 18,
+          "text_preview": "- 资料不足时回答“现有资料不足”。  提示词可以降低幻觉风险，但不能保证模型绝对不会犯错，因此仍需要检索门槛、引用来源和人工检查。  2. 消息结构  messages = [ {\"role\": \"system\", \"content\": SYSTEM_PROMPT}, {\"role\": \"user\", \"conten"
+        },
+        {
+          "rank": 4,
+          "title": "Docker部署",
+          "chunk_id": "doc_c6d8626551_chunk_0001",
+          "score": 0.5403770208358765,
+          "category": "reference",
+          "day": null,
+          "text_preview": "Docker 可以把应用程序、运行环境和依赖打包为镜像，从而减少不同计算机之间的环境差异。  Dockerfile 描述镜像如何构建，docker build 用于构建镜像，docker run 用于根据镜像创建并运行容器。  端口映射可以把容器内部的服务端口暴露给宿主机。  部署 FastAPI 服务时，需要在镜像中"
+        },
+        {
+          "rank": 5,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0034",
+          "score": 0.538974404335022,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "诊断 Top-K：  为了分析正确资料到底排在多深的位置，可以临时设置较大的 K。  运行 Top-K：  系统真正向生成模型提供的最大文本块数量。  诊断时使用 Top-10 不等于运行时必须使用 Top-10。  诊断目标：  - 观察排名分布。  - 判断正确资料是否完全没有被模型识别。  - 选择合理候选范围。"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.5558604001998901,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "boundary_transformer_translation",
+      "query": "Transformer 做机器翻译时 BLEU 分数低，应该怎样调参？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Day 22 学习笔记：RAG 相关性门槛校准",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0022",
+          "score": 0.5365623235702515,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "- 召回率下降。  门槛过低：  - 无关资料容易通过。  - 错误回答和幻觉风险增加。  - 精确率下降。  0.60 只是当前练习中的初始值，不是通用标准。  真实项目必须用验证集和业务代价进行调参。  十六、结构化返回结果 --------------------  answer_with_rag() 返回字典，"
+        },
+        {
+          "rank": 2,
+          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
+          "chunk_id": "doc_55b9210b11_chunk_0032",
+          "score": 0.5320053696632385,
+          "category": "learning_note",
+          "day": 22,
+          "text_preview": "当前 0.38 到 0.44 都获得满分，默认门槛 0.40 被保留。  最低正例约为 0.443，最高负例约为 0.370，分数间隔约为 0.073。  同时我为网格边界、误接受、误拒绝和最佳门槛选择编写了自动化测试。  我也明确这只是 12 个样例上的基线，正式调参还需要更大的开发集和独立测试集。  ”  ===="
+        },
+        {
+          "rank": 3,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0034",
+          "score": 0.5277189016342163,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "诊断 Top-K：  为了分析正确资料到底排在多深的位置，可以临时设置较大的 K。  运行 Top-K：  系统真正向生成模型提供的最大文本块数量。  诊断时使用 Top-10 不等于运行时必须使用 Top-10。  诊断目标：  - 观察排名分布。  - 判断正确资料是否完全没有被模型识别。  - 选择合理候选范围。"
+        },
+        {
+          "rank": 4,
+          "title": "Day 21 学习笔记：RAG 检索质量评估",
+          "chunk_id": "doc_bd6cc11fde_chunk_0028",
+          "score": 0.5226969718933105,
+          "category": "learning_note",
+          "day": 21,
+          "text_preview": "21. 相似度分数不是答案正确概率。  22. min_similarity 需要使用代表性数据校准，不能只凭感觉设置。  23. 门槛过低可能误接受无关问题，门槛过高可能漏掉相关问题。  24. safe_divide 可以避免分母为 0 的运行错误。  25. 报告既要保存汇总指标，也要保存逐样例详细结果。  26"
+        },
+        {
+          "rank": 5,
+          "title": "Day 27 学习笔记：扩展知识库检索评估、门槛校准与 Top-K 优化",
+          "chunk_id": "doc_60b05aad64_chunk_0032",
+          "score": 0.520936131477356,
+          "category": "learning_note",
+          "day": 27,
+          "text_preview": "Hit@K 高但 MRR 较低，通常表示：  虽然多数问题能找到正确资料，但正确资料经常排在第 3、第 4 或第 5，而不是第 1。  Day 27 最终：  - Hit@5：88.89% - MRR@5：56.48%  说明召回已经较好，但首位排序质量仍有提升空间。  ========================"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.5365623235702515,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "boundary_fastapi_oauth",
+      "query": "FastAPI 项目如何接入 OAuth2 登录和刷新令牌？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 24 学习笔记：文档导入与智能切块",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Python Day 1｜六道复习题与核心代码"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0001",
+          "score": 0.5446945428848267,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API 学习日期：2026-09-06  ============================================================ 一、今天完成了什么 ============================="
+        },
+        {
+          "rank": 2,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0050",
+          "score": 0.5321075916290283,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "进入项目父目录：  cd \"C:\\Users\\21855\\Documents\\python learning\"  激活虚拟环境：  .\\.venv\\Scripts\\Activate.ps1  安装依赖：  python -m pip install -r .\\rag_project\\requirements.txt  "
+        },
+        {
+          "rank": 3,
+          "title": "Day 24 学习笔记：文档导入与智能切块",
+          "chunk_id": "doc_13fc5e16b7_chunk_0025",
+          "score": 0.532017707824707,
+          "category": "learning_note",
+          "day": 24,
+          "text_preview": "这不是断言失败，也不是 document_id 算法错误，而是 pytest 无法访问 Windows 默认临时目录。  解决命令：  python -m pytest .\\rag_project\\tests\\test_document_processor.py -v --basetemp=\".pytest_tmp\" "
+        },
+        {
+          "rank": 4,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0041",
+          "score": 0.5310424566268921,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "README 应记录：  - 项目简介。  - 主要功能。  - 项目结构。  - 使用的模型。  - 环境安装方法。  - 命令行运行方法。  - API 启动方法。  - /health、/validate、/ask 的用途。  - 请求 JSON 示例。  - HTTP 状态码说明。  Day 19 已创建提交："
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 1｜六道复习题与核心代码",
+          "chunk_id": "doc_485b9ca9c1_chunk_0010",
+          "score": 0.5294462442398071,
+          "category": "learning_note",
+          "day": 1,
+          "text_preview": "使用以下命令查看当前目录：  Get-Location  进入Python学习目录：  cd \"C:\\Users\\21855\\Documents\\python learning\"  确认当前位置正确后再初始化：  git init -b main  git init 会在当前目录创建隐藏的 .git 文件夹，使当前目录"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.5446945428848267,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "boundary_pytorch_cuda_oom",
+      "query": "PyTorch 训练大模型出现 CUDA out of memory，应该怎样优化显存？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+        "Python Day 9 学习笔记",
+        "Python Day 8 学习笔记",
+        "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0007",
+          "score": 0.6525698900222778,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "Token ID：(4,6) Attention Mask：(4,6) 标签：(4,1)  如果有18个样本、batch_size=4：  会产生5个batch，前4批各4个样本，最后一批2个样本。  为什么完整数据保存在CPU：  完整数据保存在CPU可以减少显存占用。  训练时只把当前batch移动到GPU，使GP"
+        },
+        {
+          "rank": 2,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0020",
+          "score": 0.6276572942733765,
+          "category": "learning_note",
+          "day": 9,
+          "text_preview": "每轮训练完成后立即使用验证集检查当前模型，但验证集不会改变参数。  需要同时观察：  训练损失 训练准确率 验证损失 验证准确率  如果训练损失持续下降，而验证损失开始上升，通常意味着模型可能过拟合。  =========================================================="
+        },
+        {
+          "rank": 3,
+          "title": "Python Day 8 学习笔记",
+          "chunk_id": "doc_4ad2d69142_chunk_0003",
+          "score": 0.6130571365356445,
+          "category": "learning_note",
+          "day": 8,
+          "text_preview": "真实项目中的数据量可能非常大，不能总是一次性把全部数据放入 GPU。  更常见的处理方式：  完整数据保存在 CPU -> Dataset 组织样本 -> DataLoader 划分批次 -> 当前批次移动到 GPU -> 模型训练当前批次 -> 继续读取下一个批次  这样可以：  1. 控制显存占用。  2. 处理远"
+        },
+        {
+          "rank": 4,
+          "title": "Day 29 学习笔记：知识库自动更新、幂等检测与 FastAPI 启动集成",
+          "chunk_id": "doc_24f00bf57b_chunk_0026",
+          "score": 0.5977157354354858,
+          "category": "learning_note",
+          "day": 29,
+          "text_preview": "知识库是否最新的判断逻辑不需要真正运行 BGE 模型。  如果每个单元测试都加载真实模型并生成 978 个向量，会导致：  - 测试速度慢。  - 占用较多显存或内存。  - 测试结果依赖本地模型缓存。  - 失败时难以区分业务逻辑错误和环境问题。  因此测试直接创建一个形状正确的零 Tensor：  torch.ze"
+        },
+        {
+          "rank": 5,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0022",
+          "score": 0.5956619381904602,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "各项作用：  model_state_dict：保存模型参数。  optimizer_state_dict：保存AdamW内部状态，便于继续训练。  vocab：保存单词与Token ID的对应关系。  max_length：保存相同的截断、Padding和位置Embedding配置。  model_config：保存"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.6525698900222778,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "boundary_rag_vector_database",
+      "query": "生产级 RAG 应该选择 Milvus、Qdrant 还是 Elasticsearch 作为向量数据库？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+        "Python Day 4 学习笔记",
+        "Python Day 11 学习笔记"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0039",
+          "score": 0.6145698428153992,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "- 生成 Token 的切片与解码。  - 贪心生成与随机采样。  - 持久化向量知识库的加载和校验。  - BGE 查询编码与 Top-K 检索。  - 完整 Retrieval、Augmentation、Generation 流程。  - 相关性门槛与资料不足拒答。  - 结构化答案和引用来源。  - 无 RAG "
+        },
+        {
+          "rank": 2,
+          "title": "Day 17 学习笔记：本地生成模型与完整 RAG 问答系统",
+          "chunk_id": "doc_8c982557cc_chunk_0003",
+          "score": 0.6035779714584351,
+          "category": "learning_note",
+          "day": 17,
+          "text_preview": "文本 → 语义向量  它负责把用户问题和知识库文本转换成位于同一语义空间的向量。  之后再通过矩阵乘法、余弦相似度和 torch.topk() 找到相关资料。  AutoModel 的主要输出是隐藏状态向量，本身不会直接生成自然语言回答。  2. Causal Language Model（因果语言模型）  今天使用的"
+        },
+        {
+          "rank": 3,
+          "title": "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+          "chunk_id": "doc_27cae4791c_chunk_0008",
+          "score": 0.5952372550964355,
+          "category": "learning_note",
+          "day": 26,
+          "text_preview": "- 810 个文本块对应形状为 (810, 512) 的矩阵。  维度越大不一定代表检索一定越好。  模型质量、训练数据、文本语言、切块策略和评估样本同样重要。  知识库向量和用户问题向量必须使用同一个检索模型生成。  如果知识库使用 BGE 生成，而问题使用其他模型生成，它们不位于同一个向量空间，相似度就没有可靠意义"
+        },
+        {
+          "rank": 4,
+          "title": "Python Day 4 学习笔记",
+          "chunk_id": "doc_22ccd12f30_chunk_0018",
+          "score": 0.5950815677642822,
+          "category": "learning_note",
+          "day": 4,
+          "text_preview": "============================================================ 十、与 Embedding 和 RAG 的联系 ============================================================  今天的流程：  个人技能 "
+        },
+        {
+          "rank": 5,
+          "title": "Python Day 11 学习笔记",
+          "chunk_id": "doc_9b983c3ee6_chunk_0003",
+          "score": 0.5945340991020203,
+          "category": "learning_note",
+          "day": 11,
+          "text_preview": "同一个 Token ID 在同一个 Embedding 中总是查询同一行参数，因此它还没有根据当前句子中的其他 Token 改变自己的表示。  Self-Attention 的目标是：  让每个 Token 查看句子中的其他 Token，并按照重要程度汇总它们的信息，从而生成包含上下文的新向量。  例如句子中有：  p"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.6145698428153992,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "boundary_dify_billing",
+      "query": "Dify 云服务的团队版计费和调用额度应该怎么选？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Python Day 9 学习笔记",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+        "Day 26 学习笔记：扩展知识库向量化与正式索引构建"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Python Day 9 学习笔记",
+          "chunk_id": "doc_007c7c6a98_chunk_0015",
+          "score": 0.4820367097854614,
+          "category": "learning_note",
+          "day": 9,
+          "text_preview": "今天的网络没有 Dropout 和 BatchNorm，因此 train() 暂时不会明显改变输出，但在规范训练代码中仍应调用。  ============================================================ 十一、整个数据集的平均损失和准确率 ==============="
+        },
+        {
+          "rank": 2,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0054",
+          "score": 0.4787638783454895,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "13. 中文 API 需要同时注意请求字节、Content-Type、响应头和终端编码。  14. RAG 已从本地命令行程序升级为可被其他应用调用的服务。"
+        },
+        {
+          "rank": 3,
+          "title": "Day 21 学习笔记：RAG 检索质量评估",
+          "chunk_id": "doc_bd6cc11fde_chunk_0029",
+          "score": 0.4760839343070984,
+          "category": "learning_note",
+          "day": 21,
+          "text_preview": "34. 扩充数据时应加入改写、错别字、模糊问题和困难负例。  35. 调门槛使用开发集，最终报告使用独立测试集，可以减少评估集过拟合。  36. 检索评估后仍应运行 pytest，确认软件功能没有回归。  37. Day 21 只评估 Retrieval，没有评估 Qwen 生成回答质量。  ============="
+        },
+        {
+          "rank": 4,
+          "title": "Day 14 学习笔记：从零搭建并训练Transformer文本分类模型",
+          "chunk_id": "doc_1f7ecc7354_chunk_0016",
+          "score": 0.4738667607307434,
+          "category": "learning_note",
+          "day": 14,
+          "text_preview": "prediction：  predictions = (probabilities >= 0.5).long()  当前分类规则：  概率 >= 0.5 → 1 → 匹配 概率 < 0.5 → 0 → 不匹配  0.5是当前阈值，实际项目可以根据业务目标调整。  十四、训练模型  损失函数：  loss_fn = nn"
+        },
+        {
+          "rank": 5,
+          "title": "Day 26 学习笔记：扩展知识库向量化与正式索引构建",
+          "chunk_id": "doc_27cae4791c_chunk_0048",
+          "score": 0.4688968062400818,
+          "category": "learning_note",
+          "day": 26,
+          "text_preview": "最终将 810 个文本块保存为 810×512 的 float32 向量矩阵，同时保存与行号严格对齐的 JSON 元数据。  构建过程中还会检查数量、重复 ID、非有限值和向量范数，并通过假 tokenizer、假模型和临时目录完成无需下载模型的单元测试。  最后通过配置切换让现有检索器加载新索引。  ”  如果面试官"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.4820367097854614,
+      "accepted": true,
+      "correct": false
+    },
+    {
+      "id": "boundary_github_actions_deploy",
+      "query": "GitHub Actions 怎样自动部署到阿里云 ECS 并配置 HTTPS 证书？",
+      "expected_titles": [],
+      "retrieved_titles": [
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 23 学习笔记：完整 RAG 生成质量评估",
+        "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+        "Day 21 学习笔记：RAG 检索质量评估",
+        "Day 22 学习笔记：RAG 相关性门槛校准"
+      ],
+      "retrieved_details": [
+        {
+          "rank": 1,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0024",
+          "score": 0.5447760820388794,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "服务器启动：  1. 运行 python -m uvicorn rag_project.api:app。  2. Uvicorn 导入 rag_project.api 模块。  3. 找到 app 这个 FastAPI 对象。  4. FastAPI 进入 lifespan。  5. 创建 RAGPipeline。  "
+        },
+        {
+          "rank": 2,
+          "title": "Day 23 学习笔记：完整 RAG 生成质量评估",
+          "chunk_id": "doc_900dfd6942_chunk_0034",
+          "score": 0.5388038158416748,
+          "category": "learning_note",
+          "day": 23,
+          "text_preview": "Day 23 核心代码提交：  0c9394f 完成 Day 23 RAG 生成质量评估  该提交包括：  - rag_project/evaluate_generation.py - rag_project/generation_evaluation_cases.json - rag_project/generati"
+        },
+        {
+          "rank": 3,
+          "title": "Day 19 学习笔记：使用 FastAPI 将本地 RAG 封装成 Web API",
+          "chunk_id": "doc_284b4cb5ed_chunk_0050",
+          "score": 0.5385105609893799,
+          "category": "learning_note",
+          "day": 19,
+          "text_preview": "进入项目父目录：  cd \"C:\\Users\\21855\\Documents\\python learning\"  激活虚拟环境：  .\\.venv\\Scripts\\Activate.ps1  安装依赖：  python -m pip install -r .\\rag_project\\requirements.txt  "
+        },
+        {
+          "rank": 4,
+          "title": "Day 21 学习笔记：RAG 检索质量评估",
+          "chunk_id": "doc_bd6cc11fde_chunk_0029",
+          "score": 0.537208080291748,
+          "category": "learning_note",
+          "day": 21,
+          "text_preview": "34. 扩充数据时应加入改写、错别字、模糊问题和困难负例。  35. 调门槛使用开发集，最终报告使用独立测试集，可以减少评估集过拟合。  36. 检索评估后仍应运行 pytest，确认软件功能没有回归。  37. Day 21 只评估 Retrieval，没有评估 Qwen 生成回答质量。  ============="
+        },
+        {
+          "rank": 5,
+          "title": "Day 22 学习笔记：RAG 相关性门槛校准",
+          "chunk_id": "doc_55b9210b11_chunk_0033",
+          "score": 0.5346659421920776,
+          "category": "learning_note",
+          "day": 22,
+          "text_preview": "Day 22 Git 提交：  0e8d56b 完成 Day 22 RAG 相关性门槛校准  提交内容包括：  - rag_project/calibrate_threshold.py - rag_project/tests/test_threshold_calibration.py - rag_project/thr"
+        }
+      ],
+      "expected_rank": null,
+      "max_score": 0.5447760820388794,
+      "accepted": true,
+      "correct": false
     }
   ]
 }
